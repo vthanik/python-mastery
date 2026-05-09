@@ -15,12 +15,29 @@ In this chapter you will learn to:
 
 ## A first class {#sec-cls-first}
 
-Imagine tracking a bank account: an owner, a balance, and operations (deposit, withdraw) that have to keep the balance consistent. Separate variables and helper functions work for one account; for ten thousand, they break down. A class is the natural unit that bundles the data and the rules that govern it.
+Imagine tracking a bank account: an owner, a balance, and operations (deposit, withdraw) that have to keep the balance consistent. Separate variables and helper functions work for one account; for ten thousand, they break down. A class is the natural unit that bundles the data and the rules that govern it. We'll build `BankAccount` in three small steps — data, then printable form, then behavior.
+
+**Step 1: data attached in `__init__`.** The minimum class is a constructor that stores values on the new instance — nothing else.
 
 ```{python}
 class BankAccount:
-    """A simple bank account."""
+    def __init__(self, owner, balance=0.0):
+        self.owner = owner
+        self.balance = balance
 
+alice = BankAccount("Alice", 1000.0)
+[alice.owner, alice.balance]
+```
+
+- `class BankAccount:` declares a new type. Everything indented under it is the **class body**.
+- `__init__(self, owner, balance=0.0)` is the **constructor**, run when you write `BankAccount("Alice", 1000.0)`. The first parameter `self` is the new instance Python is building; you never pass it explicitly.
+- `self.owner = owner` *attaches* a value to that specific instance. After `__init__` returns, the object remembers it.
+- The default `balance=0.0` makes that argument optional.
+
+**Step 2: tell developers and users how to read the object.** Every class should be inspectable. Two dunder methods control what people see:
+
+```{python}
+class BankAccount:
     def __init__(self, owner, balance=0.0):
         self.owner = owner
         self.balance = balance
@@ -30,6 +47,25 @@ class BankAccount:
 
     def __str__(self):
         return f"{self.owner}'s account: ${self.balance:.2f}"
+
+alice = BankAccount("Alice", 1000.0)
+[repr(alice), str(alice)]
+```
+
+- `__repr__` is for *developers* — what tracebacks and the REPL print. Convention: it should look like the call that would recreate the object.
+- `__str__` is for *users* — what `print(obj)` and `str(obj)` show. Friendlier, less precise.
+- Always implement `__repr__`. `__str__` is optional; if you skip it, `str(obj)` falls back to `__repr__`.
+
+**Step 3: behavior — methods that operate on `self`.** Now add the deposit and withdraw rules. Each method takes `self` first; validation guards the invariant "balance is non-negative":
+
+```{python}
+class BankAccount:
+    def __init__(self, owner, balance=0.0):
+        self.owner = owner
+        self.balance = balance
+
+    def __repr__(self):
+        return f"BankAccount({self.owner!r}, {self.balance!r})"
 
     def deposit(self, amount):
         if amount <= 0:
@@ -46,18 +82,13 @@ class BankAccount:
 alice = BankAccount("Alice", 1000.0)
 alice.deposit(500)
 alice.withdraw(200)
-[str(alice), repr(alice), alice.balance]
+[repr(alice), alice.balance]
 ```
 
-Walking through this piece by piece:
-
-- `class BankAccount:` declares a new type. Everything indented under it is the **class body** — definitions there become attributes of the class itself.
-- `__init__(self, owner, balance=0.0)` is the **constructor**, run when you write `BankAccount("Alice", 1000.0)`. The `0.0` default makes `balance` optional. The first parameter `self` is the new instance Python is building; you never pass it explicitly.
-- `self.owner = owner` *attaches* a value to that specific instance. After `__init__` returns, the object remembers it.
 - `deposit` and `withdraw` are **instance methods**. Each takes `self` first — the object the call operates on. When you write `alice.deposit(500)`, Python looks up `deposit` on the class and passes `alice` in as `self` automatically.
-- `__repr__` is for *developers* (debug output, tracebacks); `__str__` is for *users* (`str(obj)`, `print(obj)`). Always implement `__repr__`.
+- The `raise ValueError(...)` lines protect the *invariant* — the rule that must always hold. Validation in methods is the main reason to use a class instead of a plain dict.
 
-That's the universal shape of a Python class: data attached in `__init__`, behavior in methods that take `self` first. Every class you'll write follows it.
+That's the universal shape of a Python class: data attached in `__init__`, dunder methods for native-feeling output, behavior in methods that take `self` first. Every class you'll write follows it.
 
 ## Special methods make a class feel native {#sec-cls-special}
 

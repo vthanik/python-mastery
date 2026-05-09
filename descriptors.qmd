@@ -168,7 +168,9 @@ There's no "magic." The same pattern — descriptor + `__get__` — implements a
 
 ## A complete validating descriptor {#sec-desc-complete}
 
-The earlier `Quantity` baked one validation rule (`> 0`) into the descriptor. Real codebases need a family of rules — positive numbers, non-empty strings, valid emails — and you don't want to rewrite the storage-and-retrieval boilerplate each time. The clean answer is an abstract base descriptor that handles the protocol, with concrete subclasses that implement only the rule.
+The earlier `Quantity` baked one validation rule (`> 0`) into the descriptor. Real codebases need a family of rules — positive numbers, non-empty strings, valid emails — and you don't want to rewrite the storage-and-retrieval boilerplate each time. The clean answer is an abstract base descriptor that handles the protocol, with concrete subclasses that implement only the rule. Two steps build it.
+
+**Step 1: lift the protocol into a base class.** `Validated` does the `__set_name__` / `__get__` / `__set__` plumbing once and leaves `validate` abstract. A subclass adds only the rule:
 
 ```{python}
 import abc
@@ -196,6 +198,23 @@ class Positive(Validated):
             raise ValueError(f"value must be positive, got {value!r}")
         return value
 
+class Order:
+    qty = Positive()
+    def __init__(self, qty):
+        self.qty = qty
+
+Order(3).__dict__
+```
+
+- `Validated(abc.ABC)` implements `__set_name__`, `__get__`, and `__set__` once — the protocol plumbing — and declares `validate` abstract so subclasses are forced to provide it.
+- `__set_name__` records both `public_name` (for error messages) and `private_name` (`_qty` here — the underscore-prefixed key used for *storage*). Python calls this automatically when the class body completes.
+- `__get__` returns the descriptor itself on class access (`if instance is None`) — that's how `Order.qty` shows the descriptor for introspection. On instance access it fetches `_qty` via `getattr`.
+- `__set__` runs `validate` first, then stores via `setattr(instance, self.private_name, value)`. Storing under a *different* name than the descriptor's is the trick — otherwise the descriptor would intercept its own write and recurse.
+- `Positive` adds nothing but a `validate` method. The subclass *is* the rule.
+
+**Step 2: a family of validators on the same class.** Add a second subclass for non-empty strings, then attach both descriptors to one class:
+
+```{python}
 class NonEmpty(Validated):
     def validate(self, value):
         if not value:
@@ -217,14 +236,8 @@ Order("widget", 3).__dict__
 Order("", 3)
 ```
 
-Walking through the structure:
-
-- `Validated(abc.ABC)` is the base. It implements `__set_name__`, `__get__`, and `__set__` once — the protocol plumbing — and declares `validate` abstract so subclasses are forced to provide it.
-- `__set_name__` records both `public_name` (for error messages) and `private_name` (the underscore-prefixed key used for storage). Python calls this automatically when the class body completes.
-- `__get__` returns the descriptor itself when accessed on the class (`if instance is None`) — that's how `Order.qty` shows the descriptor for introspection. On an instance access, it fetches `_qty` from the instance via `getattr`.
-- `__set__` runs validation first, then stores via `setattr(instance, self.private_name, value)`. Storing under a *different* name than the descriptor's name is the trick — otherwise the descriptor's `__set__` would intercept its own write and recurse.
-- `Positive` and `NonEmpty` add nothing but a `validate` method. Each subclass is the rule, nothing else.
-- `Order` declares `qty = Positive()` and `name = NonEmpty()` — same syntax as `Quantity()` earlier, but now with a family of validators to choose from.
+- Each descriptor manages its own attribute. `__set_name__` records different `private_name` values (`_qty`, `_name`) so the instance's `__dict__` keeps them separate.
+- `Order("", 3)` triggers `NonEmpty.validate("")` during `__init__`, which raises before `qty` is even assigned. The descriptor protocol intercepts the assignment as it happens.
 
 The general pattern: lift the descriptor protocol into a base class, leave only the validation rule for subclasses. This is the right structure when the same validation pattern repeats across attributes or classes.
 

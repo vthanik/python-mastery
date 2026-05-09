@@ -114,7 +114,9 @@ The general pattern: `gather` for "wait for all of these"; `create_task` for "fi
 
 ## Structured concurrency with `TaskGroup` {#sec-async-taskgroup}
 
-Python 3.11 added `asyncio.TaskGroup` — the modern replacement for `gather` when you want *structured concurrency*. If any task raises, sibling tasks are cancelled and the group re-raises an `ExceptionGroup`. Prefer it for new code.
+Python 3.11 added `asyncio.TaskGroup` — the modern replacement for `gather` when you want *structured concurrency*. If any task raises, sibling tasks are cancelled and the group re-raises an `ExceptionGroup`. Prefer it for new code. Build it in two steps.
+
+**Step 1: the happy path.** Three tasks scheduled in a group; the block exits when all of them finish:
 
 ```{python}
 async def main():
@@ -127,17 +129,37 @@ async def main():
 await main()
 ```
 
-Walking through the structured form:
-
-- `async with asyncio.TaskGroup() as tg:` opens an async context manager — it has `__aenter__` and `__aexit__` instead of `__enter__`/`__exit__`, awaitable versions of the same protocol.
+- `async with asyncio.TaskGroup() as tg:` opens an async context manager — same shape as `with`, but it implements `__aenter__` / `__aexit__` (the awaitable cousins of `__enter__` / `__exit__`).
 - `tg.create_task(coro)` schedules a task that's *owned* by the group. Each call returns immediately, just like `asyncio.create_task`.
-- The body of the `async with` exits *after* every owned task completes — the group implicitly awaits its children. No explicit `gather` needed.
-- `t1.result()` reads the finished task's return value. Because the group has already awaited the tasks, calling `.result()` is non-blocking here.
-- If any task raises, the group cancels the rest and re-raises an `ExceptionGroup` — no orphan tasks running silently after a failure.
+- The `async with` block exits *after* every owned task completes — the group implicitly awaits its children. No explicit `gather` needed.
+- `t1.result()` reads the finished task's return value. Because the group already awaited the tasks, `.result()` is non-blocking here.
 
-The block exits only when every task finishes. Errors compose into an `ExceptionGroup` (see @sec-with-exception-group), which `except*` matches by type.
+**Step 2: a sibling fails.** When any task raises, the group cancels the other tasks and re-raises the collected failures as an `ExceptionGroup`. Catch them with `except*`:
 
-The general pattern: prefer `TaskGroup` over `gather` for new code. Same concurrency, plus structured cancellation and clean error aggregation.
+```{python}
+async def boom():
+    raise ValueError("kaboom")
+
+async def main():
+    errors = []
+    try:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(hello("a", 0.1))
+            tg.create_task(boom())
+            tg.create_task(hello("c", 0.1))
+    except* ValueError as eg:
+        errors.extend(str(e) for e in eg.exceptions)
+    return errors
+
+await main()
+```
+
+- When `boom()` raises, the group requests cancellation on every other task and re-raises an `ExceptionGroup` once they all settle.
+- `except* ValueError` is `except` for groups — it matches every `ValueError` inside the `ExceptionGroup`. Other types in the group would propagate.
+- `eg.exceptions` is the tuple of matched exceptions inside that subgroup.
+- No orphan tasks running silently after a failure — that's the safety the structured form gives you.
+
+The general pattern: prefer `TaskGroup` over `gather` for new code. Same concurrency, plus structured cancellation and clean error aggregation. See @sec-with-exception-group for the `ExceptionGroup` / `except*` machinery in detail.
 
 ## Deadlines with `asyncio.timeout` {#sec-async-timeout}
 

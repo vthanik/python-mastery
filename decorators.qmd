@@ -287,7 +287,9 @@ The general pattern: `singledispatch` is the Pythonic alternative to a chain of 
 
 ## Parameterized decorators {#sec-decorators-parameterized}
 
-A decorator that takes arguments is really a *factory* that returns a decorator. Three function nesting levels:
+A decorator that takes arguments is really a *factory* that returns a decorator. The phrase to remember: `@deco(arg)` means "call `deco(arg)` first, then apply the result as a decorator." Build it up in three steps.
+
+**Step 1: a factory that returns a no-op decorator.** When the decorator only inspects or registers the function (no behavior change at call time), the nesting is two levels deep — factory plus decorator:
 
 ```{python}
 def register_if(active=True):
@@ -308,9 +310,34 @@ def g2(): pass
 [f.__name__ for f in registry]
 ```
 
-Read it from the inside out: `register_if(active=True)` *evaluates first*, returning the actual decorator `decorate`. `decorate` then receives `g2` and registers it.
+- `register_if(active=True)` *evaluates first*, returning the actual decorator `decorate`. `decorate` then receives `g2` and registers it before returning it unchanged.
+- `register_if(active=False)` returns a `decorate` whose `if active:` branch is skipped — so `g1` never enters the registry.
 
-A parameterized version of `clock`, where the caller picks the output format:
+**Step 2: add a wrapper — three levels deep.** When the decorator changes the call's *behavior*, the wrapper is the third level. Here's a minimal `repeat(n)` that runs the function `n` times:
+
+```{python}
+def repeat(n):
+    def decorate(func):
+        def wrapper(*args, **kwargs):
+            for _ in range(n - 1):
+                func(*args, **kwargs)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorate
+
+@repeat(3)
+def shout(word):
+    print(word.upper())
+
+shout("hi")
+```
+
+- `repeat(n)` is the **factory** — takes the configuration argument, returns the decorator.
+- `decorate(func)` is the **decorator** — takes the function, returns the wrapper.
+- `wrapper(*args, **kwargs)` is the **wrapper** — replaces the original at every call site. It reads `n` from the enclosing scope through closure.
+- Reading order is *outside-in*: `@repeat(3)` runs `repeat(3)` → returns `decorate` → applied to `shout` → returns `wrapper`, bound to the name `shout`.
+
+**Step 3: the production version.** A real parameterized decorator also forwards arguments, returns the result, and uses `@functools.wraps` so `help()` and tracebacks see the original. Here's a parameterized `clock` where the caller picks the output format:
 
 ```{python}
 DEFAULT_FMT = "[{elapsed:0.8f}s] {name}({args}) -> {result}"
@@ -322,8 +349,6 @@ def clock(fmt=DEFAULT_FMT):
             t0 = time.perf_counter()
             result = func(*args, **kwargs)
             elapsed = time.perf_counter() - t0
-            # Ramalho's original spells this `fmt.format(**locals())`; the
-            # explicit kwargs below name only the placeholders fmt actually uses.
             print(fmt.format(
                 elapsed=elapsed,
                 name=func.__name__,
@@ -341,11 +366,9 @@ def snooze(seconds):
 snooze(0.01)
 ```
 
-Walking through the three nested levels — read them outside-in:
-
-- `clock(fmt=DEFAULT_FMT)` is the *decorator factory*. It takes the user's configuration (`fmt`) and returns the actual decorator. `@clock("...")` means "call `clock("...")` first, then apply the result as a decorator."
-- `decorate(func)` is the actual decorator returned by the factory. It receives `snooze`, sees `fmt` from the enclosing scope (closure!), and produces `clocked`.
-- `clocked(*args, **kwargs)` is the wrapper. Same shape as the simple `clock`, but it formats output using `fmt` — also captured by closure.
+- The three levels are the same as `repeat`: factory `clock`, decorator `decorate`, wrapper `clocked`.
+- `fmt` is captured by closure — `clocked` reads it through the enclosing `decorate` scope, which read it from the outermost `clock` call.
+- `@functools.wraps(func)` keeps `snooze.__name__ == "snooze"` instead of `"clocked"` — essential for tracebacks and `help()`.
 
 So `@clock("{name}: {elapsed:.4f}s")` desugars to `snooze = clock("{name}: {elapsed:.4f}s")(snooze)` — the factory call evaluates first, then its result decorates. The general rule: a decorator with arguments is *one extra level of nesting* — the outermost takes the arguments, returns a decorator that takes the function, that returns the wrapper.
 

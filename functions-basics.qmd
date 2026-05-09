@@ -177,7 +177,28 @@ outer(), x
 
 The general rule: each function's *assignments* create local names by default, even if the same name exists in an enclosing scope. Lookup walks outward (Local → Enclosing → Global → Built-in) until something matches; assignment creates a new local unless declared otherwise.
 
-To **modify** an outer variable from inside a function, you need an explicit declaration: `global` or `nonlocal`. Without it, Python's "assignments make locals" rule will silently shadow the outer name instead.
+To **modify** an outer variable from inside a function, you need an explicit declaration: `global` or `nonlocal`. Without it, Python's "assignments make locals" rule will silently shadow the outer name instead. We'll see the trap first, then the fix, then the deeper lesson — closures.
+
+**Step 1: see the trap.** Try writing a counter the obvious way, with no `nonlocal`:
+
+```{python}
+#| error: true
+def make_counter():
+    count = 0
+    def increment():
+        count += 1   # assignment makes count a *local* of increment
+        return count
+    return increment
+
+c = make_counter()
+c()
+```
+
+- Inside `increment`, the line `count += 1` is shorthand for `count = count + 1` — an *assignment* to `count`. That assignment makes `count` a local of `increment`.
+- But the right-hand side reads `count` *before* anything has been assigned to it locally — so Python raises `UnboundLocalError`.
+- The enclosing `count = 0` is visible for *reading* in nested scopes, but as soon as you assign to a name, Python decides "that name is local now" and the enclosing version is shadowed.
+
+**Step 2: declare `nonlocal`.** Tell Python "don't make a new local — bind to the enclosing one":
 
 ```{python}
 def make_counter():
@@ -192,14 +213,10 @@ c = make_counter()
 [c(), c(), c()]
 ```
 
-- `make_counter` defines a local `count = 0`, then a nested function `increment`, then returns the nested function (without calling it).
-- Inside `increment`, `nonlocal count` declares "I'm not creating a local — I want to bind to the `count` in the enclosing scope."
-- Without that line, `count += 1` would try to read-then-write a local `count` and raise `UnboundLocalError`.
-- `make_counter()` returns the `increment` function. Calling `c()` repeatedly increments the *same* `count` because `increment` holds a reference to its enclosing scope's `count`.
+- `nonlocal count` says "this `count` is the one in the enclosing function, not a new local." The `+=` now reads and writes that enclosing slot.
+- `make_counter()` returns the `increment` function — without calling it. Calling `c()` repeatedly bumps the *same* `count` because `increment` keeps a reference to its enclosing scope after `make_counter` has already returned.
 
-The general rule: `nonlocal name` says "modify the enclosing function's `name`"; `global name` says "modify the module-level `name`". The function `increment` is a **closure** — it carries `count` with it after `make_counter` returns.
-
-A closure can hold more than a single counter. Here's a running-average factory — the inner function remembers its own list of samples between calls:
+**Step 3: the closure.** That last fact is the key idea: the inner function carries its enclosing variables with it, alive even after the outer function returned. The function-plus-its-captured-scope is called a **closure**. A closure can hold more than a single number — here's a running-average factory:
 
 ```{python}
 def make_averager():
@@ -213,7 +230,9 @@ avg = make_averager()
 [avg(10), avg(20), avg(30)]
 ```
 
-Each call to `make_averager()` returns a *fresh* `averager` with its own `samples` list. That's the closure: `samples` lives as long as the returned function does.
+Each call to `make_averager()` returns a *fresh* `averager` with its own `samples` list — `samples` lives as long as the returned function does. Note we did *not* need `nonlocal` here: `samples.append(...)` is a method call, not an assignment to `samples`, so the local-name rule never trips.
+
+The general rule: `nonlocal name` says "modify the enclosing function's `name`"; `global name` says "modify the module-level `name`".
 
 The picture for "where does Python find a name?":
 
@@ -286,40 +305,77 @@ The named version reads itself; the equivalent lambda would force a comment abov
 
 ## A first decorator {#sec-fn-decorator}
 
-You want to time how long a function takes — and you want it for *several* functions, without copying timing code into each one. A decorator is a function that takes a function and returns a (usually wrapped) function — the natural way to add the same behavior around many call sites. The `@` syntax applies it.
+Suppose you want to time how long a function takes — and you want it for *several* functions, without copying the timing code into each one. A **decorator** is a function that takes a function and returns a new function with extra behavior wrapped around it. We'll build one in three small steps.
+
+**Step 1: a function that takes a function and returns a new one.**
 
 ```{python}
-import functools, time
+import time
+
+def timer(func):
+    def wrapper(n):
+        start = time.perf_counter()
+        result = func(n)
+        print(f"{func.__name__}: {time.perf_counter() - start:.4f}s")
+        return result
+    return wrapper
+
+def slow_sum(n):
+    return sum(range(n))
+
+slow_sum = timer(slow_sum)   # rebind the name to the wrapped version
+slow_sum(1_000_000)
+```
+
+- `timer` is an ordinary function whose argument is *another* function.
+- Inside, it defines a local function `wrapper` that does the timing around `func(n)` and returns the original result.
+- `timer` returns `wrapper`. So `slow_sum = timer(slow_sum)` rebinds the name `slow_sum` to the wrapped version — the original is now captured inside the closure.
+- Calling `slow_sum(1_000_000)` actually calls `wrapper(1_000_000)`, which times the call and prints the elapsed seconds.
+
+**Step 2: the `@` sugar.** Writing `slow_sum = timer(slow_sum)` after every `def` gets repetitive. Python's `@decorator` syntax does the same rebind:
+
+```{python}
+@timer
+def fast_sum(n):
+    return sum(range(n))
+
+fast_sum(1_000_000)
+```
+
+- `@timer` directly above `def fast_sum(n):` is exactly equivalent to writing `fast_sum = timer(fast_sum)` after the `def`.
+- Reading rule: every `@name` above a `def` means "pass this function through `name` and rebind the name to whatever comes back."
+
+**Step 3: make it work on any signature.** Our `wrapper(n)` only accepts one argument — useless for a decorator that should work on *any* function. Use `*args, **kwargs` to accept and forward arbitrary arguments. Add `@functools.wraps(func)` so the wrapped function still looks like the original to `help()`, tracebacks, and IDEs:
+
+```{python}
+import functools
 
 def timer(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         start = time.perf_counter()
         result = func(*args, **kwargs)
-        elapsed = time.perf_counter() - start
-        print(f"{func.__name__}: {elapsed:.4f}s")
+        print(f"{func.__name__}: {time.perf_counter() - start:.4f}s")
         return result
     return wrapper
 
 @timer
-def slow_sum(n):
-    return sum(range(n))
+def greet(name, greeting="hello"):
+    return f"{greeting}, {name}"
 
-slow_sum(1_000_000)
+greet("Alice")
 ```
 
-- `timer` is the decorator — it takes a function `func` and returns a *new* function `wrapper` that calls `func` with timing around it.
-- `wrapper(*args, **kwargs)` accepts any arguments and forwards them to the wrapped function — so the decorator works on any signature.
-- `time.perf_counter()` reads a high-resolution timer; the difference gives elapsed seconds.
-- `@functools.wraps(func)` copies `func`'s name, docstring, and attributes onto `wrapper` — without it, `slow_sum.__name__` would become `"wrapper"` and tracebacks would lie.
-- `@timer` above `def slow_sum(n):` is exactly equivalent to writing `slow_sum = timer(slow_sum)` after the def. The `@` is just sugar for "rebind this name to the decorator's output."
-- `slow_sum(1_000_000)` actually calls `wrapper(1_000_000)`, which prints the timing line and returns the real result.
+- `*args, **kwargs` accept any positional and keyword arguments and forward them to the original — so `timer` now works on functions of any signature.
+- `@functools.wraps(func)` copies `func`'s name, docstring, and attributes onto `wrapper`. Without it, `greet.__name__` would become `"wrapper"` and tracebacks would point at the wrong function.
 
 The general rule: `@decorator` above a `def` rebinds the name to `decorator(original)`. The deep treatment of decorators — including parameterized decorators and a tour of the standard library's decorators — is @sec-decorators.
 
 ## A first generator {#sec-fn-generator}
 
-Sometimes you want to produce a sequence of values, but materialising the whole list up front is wasteful — or impossible (the sequence is infinite). A function that uses `yield` instead of `return` is a **generator**. It produces values one at a time, on demand, and pauses between them.
+Sometimes you want to produce a sequence of values, but materialising the whole list up front is wasteful — or impossible (the sequence is infinite). A function that uses `yield` instead of `return` is a **generator**. It produces values one at a time, on demand, and pauses between them. Three small steps will show how.
+
+**Step 1: define a generator and see what calling it returns.**
 
 ```{python}
 def countdown(n):
@@ -327,22 +383,31 @@ def countdown(n):
         yield n
         n -= 1
 
-list(countdown(5))
+countdown(3)
 ```
 
-- The `yield` keyword turns `countdown` into a generator function. Calling `countdown(5)` doesn't run the body — it returns a generator object that *will* run the body, one `yield` at a time, when asked.
-- Each `yield n` produces a value to whoever is consuming the generator, then *pauses* the function with all its locals intact.
-- When the consumer asks for the next value, the function resumes after the `yield`, runs `n -= 1`, and loops back to `yield n` again.
-- `list(countdown(5))` walks the generator to exhaustion, collecting all yielded values into a list.
+- The `yield` keyword turns `countdown` into a generator *function*.
+- Calling `countdown(3)` does **not** execute the body. It returns a **generator object** — a paused computation that *will* run the body when you ask for values.
+- The repr `<generator object countdown at 0x…>` is your cue that no work has happened yet.
+
+**Step 2: pull values one at a time with `next()`.**
 
 ```{python}
 gen = countdown(3)
 [next(gen), next(gen), next(gen)]
 ```
 
-- `countdown(3)` makes a generator but runs none of the body yet.
-- Each `next(gen)` resumes the generator until the next `yield`, then returns the yielded value.
-- A fourth `next(gen)` would raise `StopIteration` — the generator's signal that it's done.
+- Each `next(gen)` resumes the generator until it hits the next `yield`, then hands that value back. Between `next()` calls the function is *paused* — `n` and the position in the `while` loop are kept intact.
+- A fourth `next(gen)` would raise `StopIteration` — the generator's signal that the body has run off the end.
+
+**Step 3: consume the whole thing.** `for` loops and `list()` already know how to call `next()` until `StopIteration`, and stop quietly:
+
+```{python}
+list(countdown(5))
+```
+
+- `list(countdown(5))` walks the generator to exhaustion, collecting all yielded values into a real list.
+- A `for x in countdown(5):` loop would do the same lazily, visiting one value at a time without materialising them all.
 
 The general rule: `yield` makes a function pausable; the consumer pulls one value at a time with `next()` (or implicitly via `for`). Generators are how Python expresses *lazy* sequences — including infinite ones. The deep treatment, including `yield from`, generator pipelines, and the iterator protocol underneath, is @sec-iterators.
 

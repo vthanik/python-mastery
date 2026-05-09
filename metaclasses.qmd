@@ -86,7 +86,9 @@ When the cell is run, both class bodies execute. There is no "instantiate to run
 
 ## `__init_subclass__` (PEP 487) {#sec-meta-init-subclass}
 
-The modern alternative to a metaclass for many use cases. `__init_subclass__` is a `classmethod` (implicitly) that's called on the *parent* whenever a *subclass* is created:
+The modern alternative to a metaclass for many use cases. `__init_subclass__` is a `classmethod` (implicitly) that's called on the *parent* whenever a *subclass* is created. Three small steps show how far it stretches.
+
+**Step 1: register every subclass.** The simplest hook just records the new class:
 
 ```{python}
 class Pluggable:
@@ -105,7 +107,24 @@ class B(Pluggable): ...
 
 Each subclass declaration triggered the registration. No metaclass; no decorator on each subclass; just a single hook on the base.
 
-A real-world pattern: combine `__init_subclass__` with descriptors to wire up a tiny ORM-like model. The user writes a clean class with type annotations; the framework reads those annotations and installs validating descriptors automatically — no decorator on every field, no metaclass.
+**Step 2: inspect the subclass's annotations.** `cls.__annotations__` is the dict of name-to-type from the subclass body. Reading it inside `__init_subclass__` lets the parent react to the subclass's *schema*:
+
+```{python}
+class Annotated:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for name, type_ in cls.__annotations__.items():
+            print(f"{cls.__name__}.{name}: {type_.__name__}")
+
+class Person(Annotated):
+    name: str
+    age: int
+```
+
+- `cls.__annotations__` collects the `{name: type}` pairs from `Person`'s body. The hook runs after the body executes, so the dict is already populated.
+- The *values* are the type objects themselves (`str`, `int`), not strings — you can `issubclass` against them, instantiate them, anything you'd do with a class.
+
+**Step 3: combine with descriptors for an ORM-like model.** The user writes a clean class with type annotations; the framework reads those annotations and installs validating descriptors automatically — no decorator on every field, no metaclass:
 
 ```{python}
 import abc
@@ -156,17 +175,17 @@ m.box_office = -1
 
 Walking through how the pieces fit:
 
-- `Validated` is the descriptor base from @sec-desc-complete — `__set_name__` records the storage name, `__get__` reads, `__set__` validates and writes.
-- `Positive(Validated)` provides the actual rule. Same pattern as before.
-- `Checked.__init_subclass__` is the new piece. It runs once, automatically, for every subclass — `Movie` in this case. It iterates `cls.__annotations__`, the dict of name-to-type from the type annotations.
-- For each annotation whose type is itself a subclass of `Validated`, it constructs a descriptor instance, calls `__set_name__` manually (because we're installing the descriptor *after* the class body finished), and `setattr`s it onto the class. The plain `title: str` and `year: int` annotations are skipped — they don't match the `issubclass(type_, Validated)` test.
-- `__init__` accepts any keyword arguments and assigns each — assignments to `box_office` go through the freshly-installed `Positive` descriptor, which validates.
+- `Validated`, `Positive` — the descriptor base and rule from @sec-desc-complete. Nothing new there.
+- `Checked.__init_subclass__` walks `cls.__annotations__`. For each annotation whose value is a class *and* a `Validated` subclass — `box_office: Positive` qualifies; `title: str` and `year: int` do not — it constructs a descriptor instance, calls `__set_name__` manually (because we're installing the descriptor *after* the class body finished, so Python's automatic call has already passed), and `setattr`s it onto the class.
+- `__init__` accepts keyword arguments and assigns each — assignments to `box_office` route through the freshly-installed `Positive` descriptor, which validates.
 
 The general insight: `__init_subclass__` walked `cls.__annotations__` and replaced fields whose type is a `Validated` subclass with descriptor instances. `Movie` itself needs no metaclass, no decorator, no boilerplate — the parent's hook does the work.
 
 ## Metaclasses, when nothing else fits {#sec-meta-metaclass}
 
-`__init_subclass__` runs on the parent every time a child is defined — but you have to *be* the parent. What if you want to intercept class creation for classes that don't share a base, or you need to change the namespace dict before the class body runs? That's the metaclass's job. A metaclass is a class whose instances are *classes*; the convention is to subclass `type`.
+`__init_subclass__` runs on the parent every time a child is defined — but you have to *be* the parent. What if you want to intercept class creation for classes that don't share a base, or you need to change the namespace dict before the class body runs? That's the metaclass's job. A metaclass is a class whose instances are *classes*; the convention is to subclass `type`. Two steps show the mechanism and why it earns its keep.
+
+**Step 1: a minimal metaclass.** Override `__new__` and you intercept class creation:
 
 ```{python}
 class Loud(type):
@@ -179,14 +198,28 @@ class Quiet(metaclass=Loud):
     ...
 ```
 
-Walking through this:
+- `class Loud(type):` declares a metaclass — a subclass of `type`. Its *instances* will be classes.
+- `__new__(meta, name, bases, namespace)` is the class-creation constructor. The four arguments are the same ones `type(...)` takes: the metaclass itself, the new class's name, its tuple of bases, and its namespace dict. It runs at the moment the new class is being built.
+- `super().__new__(meta, name, bases, namespace)` delegates to `type.__new__` to actually build the class — skip that call and no class comes back.
+- `class Quiet(metaclass=Loud):` says "use `Loud` as the class factory for `Quiet`." When the `class` statement executes, Python calls `Loud("Quiet", (), {...})` instead of the implicit `type("Quiet", (), {...})`, so `__new__` runs and you see the print.
 
-- `class Loud(type):` declares a metaclass — a subclass of `type`. Its instances will be classes.
-- `__new__(meta, name, bases, namespace)` is the constructor. The four arguments are the same ones `type(...)` takes: the metaclass itself, the new class's name, its bases, and its namespace dict. It runs at the moment the new class is being built.
-- `super().__new__(meta, name, bases, namespace)` delegates to `type.__new__` to actually build the class — without that call, no class would come back. Then we print and return `cls`.
-- `class Quiet(metaclass=Loud):` says "use `Loud` as the class factory for `Quiet`." When this `class` statement executes, Python calls `Loud("Quiet", (), {...})` instead of the implicit `type("Quiet", (), {...})`, so `__new__` runs and you see the print.
+**Step 2: why a metaclass and not `__init_subclass__`.** The distinctive property: classes with a metaclass do *not* need to share a base. `__init_subclass__` requires every managed class to inherit from the parent that defines the hook; a metaclass works through the `metaclass=` keyword on classes that have nothing else in common:
 
-The general insight: `__new__` on a metaclass runs at class-creation time — a step earlier than `__init_subclass__`, and applicable to classes that don't share a base. Subclasses of `Quiet` will use `Loud` as well, since metaclasses inherit.
+```{python}
+class A(metaclass=Loud):
+    pass
+
+class B(dict, metaclass=Loud):
+    pass
+
+[type(A).__name__, type(B).__name__]
+```
+
+- `A` has no bases at all; `B` extends `dict`. Both still trigger `Loud.__new__`.
+- `type(A)` is `Loud` — that's the metaclass relationship made visible.
+- A subclass of either `A` or `B` will *also* use `Loud` as its metaclass — metaclasses inherit. That's how a single metaclass can manage a whole tree of classes with mixed bases.
+
+The general insight: `__new__` on a metaclass runs at class-creation time — a step earlier than `__init_subclass__`, and applicable to classes that don't share a base. Reach for one only when the customization needs to run on classes outside a single inheritance line.
 
 Metaclasses can also implement `__prepare__` to swap the class namespace dict for something else (an `OrderedDict` subclass, a tracking dict). This is rarely needed and `__init_subclass__` covers the common cases — mention only.
 

@@ -89,8 +89,28 @@ The API is almost identical to `threading`. The key differences: separate memory
 
 ### `asyncio`
 
+The asyncio version uses no threads and no processes — just one thread, one event loop, and two cooperating coroutines. Build it in two small steps.
+
+**Step 1: a single coroutine.** `async def` declares a coroutine; `await` is the cooperative yield point; `asyncio.run` starts the event loop and waits for the result:
+
 ```python
-import asyncio, itertools
+import asyncio
+
+async def slow():
+    await asyncio.sleep(3)
+    return 42
+
+asyncio.run(slow())
+```
+
+- `async def` makes `slow` a coroutine function. Calling it returns a coroutine object — the body does not execute until the event loop awaits it.
+- `await asyncio.sleep(3)` yields control to the event loop for ~3 seconds, then resumes. Other coroutines could run during the wait.
+- `asyncio.run(slow())` starts the loop, runs the coroutine to completion, returns the result. (In a Jupyter cell, which already has a loop running, write `await slow()` instead.)
+
+**Step 2: two coroutines concurrently, plus cancellation.** A *task* is a coroutine scheduled to run on the loop. `cancel()` interrupts a running task by raising `CancelledError` inside it at the next `await`:
+
+```python
+import itertools
 
 async def spin(msg):
     for char in itertools.cycle(r"\|/-"):
@@ -98,10 +118,6 @@ async def spin(msg):
             await asyncio.sleep(0.1)
         except asyncio.CancelledError:
             break
-
-async def slow():
-    await asyncio.sleep(3)
-    return 42
 
 async def main():
     spinner = asyncio.create_task(spin("thinking"))
@@ -112,7 +128,10 @@ async def main():
 asyncio.run(main())
 ```
 
-No threads, no processes — one thread, one event loop, two coroutines. `await` is the cooperative yield point: while `slow` is awaiting `asyncio.sleep`, the event loop runs `spin`.
+- `asyncio.create_task(spin(...))` schedules `spin` to run on the loop *concurrently* with `main` — `main` does not wait for it. `await slow()` then blocks `main` until `slow` finishes; while it waits, the event loop runs `spin`.
+- `spinner.cancel()` requests cancellation. At the next `await` inside `spin`, the loop raises `asyncio.CancelledError` instead of resuming. The `try`/`except` catches it to exit cleanly — forgetting the `except` would let the error propagate up.
+
+The shape mirrors the threading version — start a worker, wait, stop it — but with `create_task`/`cancel` instead of `Thread`/`Event`, and `await` as the cooperative yield point instead of GIL-managed preemption.
 
 ## The real impact of the GIL {#sec-conc-gil}
 

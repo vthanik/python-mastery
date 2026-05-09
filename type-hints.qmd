@@ -246,12 +246,13 @@ Use `bound=` when "any subclass of X" is the intent; use the constrained form wh
 
 ## Static `Protocol` types {#sec-types-protocol}
 
-`typing.Protocol` is the type-system spelling of duck typing. You declare an interface; any class with matching methods *is* compatible — no inheritance required.
+`typing.Protocol` is the type-system spelling of duck typing. You declare an interface; any class with matching methods *is* compatible — no inheritance required. Build it in three small steps.
+
+**Step 1: declare a protocol.** A `Protocol` subclass with method *signatures* (no bodies — `...` is the placeholder) defines a shape:
 
 ```{python}
-from typing import Protocol, runtime_checkable
+from typing import Protocol
 
-@runtime_checkable
 class Drawable(Protocol):
     def draw(self) -> None: ...
 
@@ -259,24 +260,45 @@ class Circle:
     def draw(self) -> None:
         print("Drawing circle")
 
-class Square:
-    def draw(self) -> None:
-        print("Drawing square")
-
 def render(shape: Drawable) -> None:
     shape.draw()
 
 render(Circle())
-render(Square())
+```
+
+- `class Drawable(Protocol):` declares a *structural* type — anyone with the listed methods qualifies.
+- `def draw(self) -> None: ...` is a method *signature*. The `...` is the body placeholder — the protocol describes the shape, never executes.
+- `Circle` does **not** inherit from `Drawable`. It just happens to have a matching `draw` method, so `render(Circle())` is accepted by the type checker.
+
+**Step 2: see that `isinstance` does not work yet.** A bare `Protocol` is a static-only contract. Try to use it at runtime and Python refuses:
+
+```{python}
+#| error: true
 isinstance(Circle(), Drawable)
 ```
 
-Walking through the moving parts:
+- By default Python won't introspect a protocol — that would be expensive and isn't what the type system needs.
+- `mypy` and other static checkers happily verify `Drawable` compatibility without ever calling `isinstance`. Runtime introspection is opt-in.
 
-- `class Drawable(Protocol):` declares a *structural* type. Any class with the listed methods (here, `draw(self) -> None`) is automatically a `Drawable` — no `class Circle(Drawable):` inheritance line needed.
-- `def draw(self) -> None: ...` is a method *signature* with `...` as the body. It's a placeholder — the protocol only describes the shape, never executes.
-- `def render(shape: Drawable) -> None:` accepts any object whose class satisfies the protocol. `Circle` and `Square` both qualify because they happen to define `draw(self) -> None`.
-- `@runtime_checkable` is the only reason `isinstance(Circle(), Drawable)` works at runtime — it asks Python to actually inspect attributes when asked. Without it, the protocol is purely a static-checker contract.
+**Step 3: opt in with `@runtime_checkable`.** When you genuinely need the runtime check (dispatching on shape, validating untyped input at a boundary), apply the decorator:
+
+```{python}
+from typing import runtime_checkable
+
+@runtime_checkable
+class Drawable(Protocol):
+    def draw(self) -> None: ...
+
+class Square:
+    def draw(self) -> None:
+        print("Drawing square")
+
+isinstance(Square(), Drawable), isinstance("not a shape", Drawable)
+```
+
+- `@runtime_checkable` tells Python "build the introspection machinery so `isinstance` works."
+- The check is **structural** — it asks whether the object has all the named methods. It does *not* verify signatures, so a class with the wrong signature still passes `isinstance` (only `mypy` catches that).
+- Use it sparingly. Most protocols can stay static-only; reach for `@runtime_checkable` only at the boundary between typed and untyped code.
 
 The general pattern: `Protocol` is duck typing made checkable. You write the shape you depend on; any class that fits is accepted; nothing has to inherit from anything. We will return to protocols, ABCs, and the line between them in @sec-protocols-abcs.
 

@@ -163,7 +163,24 @@ The rule: **catch the most specific exception** that fits. Catching `Exception` 
 
 ## Custom exceptions {#sec-err-custom}
 
-Catching `Exception` is too broad; catching `ValueError` everywhere a domain error happens is sloppy. The right move is to define your own hierarchy: a base class for "any error from this app" plus a subclass per logical category. Callers handle specific errors by class, never by string-matching.
+Catching `Exception` is too broad; catching `ValueError` everywhere a domain error happens is sloppy. The right move is to define your own hierarchy: a base class for "any error from this app" plus a subclass per logical category. Callers then handle specific errors by class, never by string-matching. Build it in three small steps.
+
+**Step 1: a custom exception is just a class.** Inherit from `Exception` and you're done — no body required:
+
+```{python}
+class AppError(Exception):
+    """Base exception for this application."""
+
+try:
+    raise AppError("something went wrong")
+except AppError as e:
+    str(e)
+```
+
+- `class AppError(Exception):` declares an empty subclass of `Exception`. The docstring is the whole body — that's enough for a marker class.
+- The string passed to `raise AppError(...)` becomes the message that `str(e)` returns; `Exception.__init__` does that for you.
+
+**Step 2: build a hierarchy.** Add a subclass per category — callers can catch the base for any-of-ours, or a specific one:
 
 ```{python}
 class AppError(Exception):
@@ -174,6 +191,22 @@ class DataError(AppError):
 
 class AuthError(AppError):
     """Raised when authentication fails."""
+
+try:
+    raise DataError("bad row 42")
+except AppError as e:
+    type(e).__name__, str(e)
+```
+
+- `DataError` and `AuthError` extend `AppError`, so any `except AppError:` clause catches both.
+- The exception caught is *exactly* `DataError` — `type(e).__name__` shows the concrete class. `except AppError` matched because `DataError` *is-a* `AppError`.
+- A caller who wants to handle `DataError` differently from `AuthError` writes two `except` clauses, most-specific first.
+
+**Step 3: carry structured data.** Sometimes a message string is not enough — you want fields the caller can inspect (a user id, a reason code). Override `__init__` and call `super().__init__(...)` to set the message:
+
+```{python}
+class AuthError(AppError):
+    """Raised when authentication fails."""
     def __init__(self, user, reason):
         self.user = user
         self.reason = reason
@@ -181,16 +214,15 @@ class AuthError(AppError):
 
 try:
     raise AuthError("alice", "wrong password")
-except AppError as e:
-    str(e)
+except AuthError as e:
+    e.user, e.reason, str(e)
 ```
 
-- `class AppError(Exception):` declares an empty subclass of `Exception`. The docstring is the entire body — that's enough for a marker class.
-- `DataError` and `AuthError` extend `AppError`, so any `except AppError:` clause catches both.
-- `AuthError.__init__` stores extra fields (`user`, `reason`) for programmatic access *and* calls `super().__init__(...)` to set the formatted message that `str(exc)` returns.
-- The `try` raises `AuthError`; the `except AppError as e` clause matches because `AuthError` *is-a* `AppError`.
+- `__init__` stores `user` and `reason` on the instance — callers can read them programmatically without parsing the message.
+- `super().__init__(message)` sets the formatted string that `str(e)` returns. Forgetting this call is the classic bug — `str(e)` would come back empty.
+- Catching code can now branch on `e.reason` instead of string-matching the message.
 
-The general rule: subclass `Exception` for an app-specific base, then add a subclass per error category. Callers can catch the base for "any of our errors" or a specific subclass for surgical handling.
+The general rule: subclass `Exception` for an app-specific base, then add a subclass per error category. Override `__init__` only when you need structured fields beyond a plain message.
 
 ## `with` and context managers {#sec-err-with}
 

@@ -128,19 +128,29 @@ list(itertools.islice(range(100), 5))
 list(itertools.islice(itertools.cycle(["red", "green", "blue"]), 7))
 ```
 
-**`groupby`** — group *consecutive* equal items. Note the warning: it does not pre-sort, so the data must already be sorted by the same key, or you'll get one group per run rather than one per distinct value.
+**`groupby`** — group *consecutive* equal items. The trap: it does not pre-sort the input, so unsorted data gives you one group per run, not one per distinct value. Two cells make the rule visible.
+
+**Step 1: the trap.** Run `groupby` on unsorted data and you get a fresh group every time the key changes — including duplicates:
 
 ```{python}
-data = sorted(["alice", "bob", "adam", "carol", "charlie"], key=lambda x: x[0])
+unsorted = ["alice", "bob", "adam", "carol", "charlie"]
+[(letter, list(g)) for letter, g in itertools.groupby(unsorted, key=lambda x: x[0])]
+```
+
+- `bob` interrupts the `a` run, so `a` shows up as two separate groups instead of one.
+
+**Step 2: sort by the same key first.** With the input sorted, `groupby` collapses each distinct key into a single group:
+
+```{python}
+data = sorted(unsorted, key=lambda x: x[0])
 [(letter, list(g)) for letter, g in itertools.groupby(data, key=lambda x: x[0])]
 ```
 
 - `sorted(..., key=lambda x: x[0])` sorts by first letter — required preprocessing.
 - `itertools.groupby(data, key=...)` walks the sorted list and yields `(key, group_iterator)` pairs whenever the key changes.
-- `list(g)` materialises each group iterator — necessary because `groupby` reuses internal state and the group iterator becomes invalid as soon as you advance.
-- The result is a list of `(first_letter, [names_with_that_letter])` pairs.
+- `list(g)` materialises each group iterator *before* moving on — necessary because `groupby` reuses internal state, and the previous group iterator becomes invalid the moment you advance.
 
-The general rule: `groupby` is the SQL-style group-by, but you sort first and you consume each group before moving on.
+The general rule: `groupby` is the SQL-style group-by, but **you sort first**, and you consume each group before moving on.
 
 **`accumulate`** — running totals:
 
