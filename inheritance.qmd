@@ -82,6 +82,26 @@ class D(B, C):
 D.__mro__
 ```
 
+::: {layout-ncol=2}
+
+```{mermaid}
+graph TD
+  D --> B
+  D --> C
+  B --> A
+  C --> A
+  A --> O[object]
+```
+
+```{mermaid}
+graph LR
+  D --> B --> C --> A --> O[object]
+```
+
+:::
+
+The left graph is the inheritance graph; the right is its *linearization* — the order Python actually walks for attribute lookup. C3 guarantees this is a consistent total order over the graph; that's why `super()` works predictably.
+
 The MRO is `D → B → C → A → object`. When you call `D().pong()`, Python walks this chain and picks the first match — `B.pong`. When you call `D().ping()`, it calls our override; `super().ping()` then looks past `D` in the MRO and finds `A.ping`.
 
 ```{python}
@@ -148,6 +168,26 @@ Each link in the chain does its small job and delegates upward.
 6. **Avoid subclassing concrete classes.** Prefer interfaces (`Protocol`, ABC) as the base type.
 
 These are guidelines, not rules. The trap they're protecting you from is the *fragile base class problem*: a small change to a parent class silently breaks a distant subclass. Composition contains that radius; inheritance widens it.
+
+::: {.callout-note}
+## Modern alternative: `__init_subclass__`
+For the common case of "every subclass should do X on creation", you don't need a metaclass or even multiple inheritance — `__init_subclass__` is the hook:
+
+```{python}
+class Plugin:
+    registry = []
+    def __init_subclass__(cls, **kw):
+        super().__init_subclass__(**kw)
+        Plugin.registry.append(cls)
+
+class A(Plugin): pass
+class B(Plugin): pass
+
+[c.__name__ for c in Plugin.registry]
+```
+
+Runs once per subclass at class-creation time. Covers most of what people used to reach for metaclasses for. The full machinery is in @sec-metaclasses.
+:::
 
 ::: {.callout-tip}
 ## Why this matters

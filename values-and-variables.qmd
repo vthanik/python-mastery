@@ -87,6 +87,14 @@ The remainder `%` is consistent with `//`: `(-7 // 2) * 2 + (-7 % 2) == -7`.
 
 In-place updates have shorthand: `x += 1`, `x -= 1`, `x *= 2`. They modify the variable and are equivalent to `x = x + 1`, etc.
 
+`round()` uses **banker's rounding** — ties round to the nearest *even* integer, not always up:
+
+```{python}
+[round(0.5), round(1.5), round(2.5), round(3.5)]
+```
+
+`0.5 → 0`, `1.5 → 2`, `2.5 → 2`, `3.5 → 4`. This avoids the systematic bias you get from "round half up" when summing many rounded values. The deeper reason is the floating-point representation of `2.5`; for exact decimal rounding, use `decimal.Decimal`.
+
 ## Truthiness {#sec-values-truthiness}
 
 In an `if` or `while`, *any* value can be evaluated as a boolean. Python defines a small set of **falsy** values; everything else is **truthy**.

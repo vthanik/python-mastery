@@ -31,6 +31,17 @@ next(it)
 
 `iter(s)` calls `s.__iter__()` and returns an *iterator*. `next(it)` calls `it.__next__()`. When the iterator is exhausted, it raises `StopIteration`, which `for` catches silently.
 
+```{mermaid}
+flowchart TB
+  A["for x in obj:"] --> B["it = iter(obj)"]
+  B --> C{"next(it)"}
+  C -- value --> D["x = value<br/>run loop body"]
+  D --> C
+  C -- StopIteration --> E["loop ends"]
+```
+
+Every `for` loop is this dance. Custom iterables only need to answer two questions: how do I produce an iterator (`__iter__`)? how does that iterator yield the next value (`__next__`)?
+
 A useful side form: `iter(callable, sentinel)` creates an iterator that calls `callable()` until the result equals the sentinel.
 
 ```{python}
@@ -157,11 +168,36 @@ list(itertools.combinations("ABC", 2)), list(itertools.permutations("ABC", 2))
 list(itertools.islice(itertools.cycle("ABC"), 7))
 ```
 
+Two more daily idioms — keep `filterfalse` for "the rejected items" and `starmap` for "the same function on tuples":
+
+```{python}
+list(itertools.filterfalse(lambda x: x % 2, range(10)))
+```
+
+```{python}
+list(itertools.starmap(pow, [(2, 3), (3, 2), (10, 3)]))
+```
+
 The reduction functions — `all`, `any`, `sum`, `max`, `min`, `functools.reduce` — consume an iterable and return a single value:
 
 ```{python}
 all([1, 2, 3]), any([0, 0, 1]), sum([1, 2, 3]), functools.reduce(operator.add, [1, 2, 3, 4, 5])
 ```
+
+## Walrus in iteration {#sec-iter-walrus}
+
+The walrus operator `:=` (3.8+) is the cleanest way to write "read until empty":
+
+```{python}
+import io
+buf = io.BytesIO(b"abcdefghij")
+chunks = []
+while (chunk := buf.read(3)):
+    chunks.append(chunk)
+chunks
+```
+
+The condition reads "while the next chunk, bound to `chunk`, is truthy." Replaces the `while True / if not …: break` pattern.
 
 ## `yield from` {#sec-iter-yield-from}
 
@@ -194,58 +230,9 @@ list(depth_first(t))
 
 `yield from depth_first(child)` is the natural way to flatten a recursive iterator.
 
-## Classic coroutines {#sec-iter-coroutines}
+## A note on classic coroutines {#sec-iter-coroutines}
 
-A *classic coroutine* is a generator that receives values via `send()`. The yield expression on the right of `=` is the receive point:
-
-```{python}
-def averager():
-    total = 0.0
-    count = 0
-    average = None
-    while True:
-        term = yield average
-        total += term
-        count += 1
-        average = total / count
-
-avg = averager()
-next(avg)         # prime: run to first yield
-avg.send(10), avg.send(30), avg.send(5)
-```
-
-Calling `next(avg)` advances to the first `yield` and returns `None` (the initial `average`). Each `send(value)` sends `value` *into* the coroutine — it becomes `term` — and runs until the next `yield`, which returns the new average.
-
-To return a value, raise `StopIteration` with `value`:
-
-```{python}
-from collections import namedtuple
-Result = namedtuple("Result", "count average")
-
-def averager_with_result():
-    total = 0.0
-    count = 0
-    average = None
-    while True:
-        term = yield
-        if term is None:
-            break
-        total += term
-        count += 1
-        average = total / count
-    return Result(count, average)
-
-coro = averager_with_result()
-next(coro)
-coro.send(10)
-coro.send(30)
-try:
-    coro.send(None)
-except StopIteration as exc:
-    print(exc.value)
-```
-
-This is the foundation that *native coroutines* (`async def` / `await`) build on; we'll meet them in @sec-async.
+Generators can also *receive* values via `gen.send(x)` — a generator-based form of *coroutine* that predates `async`/`await`. It's still a useful internal mechanism (it's how `yield from` forwards `send` and `throw`), but day-to-day asynchronous code uses native coroutines instead. The deep treatment of `async def` / `await` is in @sec-async.
 
 ::: {.callout-tip}
 ## Why this matters
@@ -260,9 +247,7 @@ Every Python `for` loop is secretly: `it = iter(obj); next(it)` in a loop. Every
 
 3. **`itertools.tee`.** Read its docs. Use it to iterate over the same generator twice without re-running it. What's the memory cost?
 
-4. **Coroutine for streaming.** Write a coroutine that accepts integers via `send` and yields the running median.
-
-5. **`yield from` is more than a loop.** Demonstrate that `yield from` forwards `throw()` to the inner generator. (Hint: write a generator that catches a particular exception.)
+4. **`yield from` is more than a loop.** Demonstrate that `yield from` forwards `throw()` to the inner generator. (Hint: write a generator that catches a particular exception.)
 
 ## Summary {#sec-iter-summary}
 

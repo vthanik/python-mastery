@@ -62,6 +62,15 @@ The format spec is `{value:[align][width][.precision][type]}`:
 ]
 ```
 
+Since Python 3.12 (PEP 701) the parser handles f-strings with the *same* quote character nested inside — and arbitrary expressions of any depth. You no longer need to swap quote styles to nest f-strings:
+
+```{python}
+vals = [1.234, 5.678, 9.012]
+f"{','.join([f'{x:.1f}' for x in vals])}"
+```
+
+The inner f-string and the outer f-string can both use single quotes, and the comprehension can span the expression slot freely. Pre-3.12 this was a syntax error.
+
 ## Indexing and slicing {#sec-strings-slicing}
 
 A string is a sequence of characters, indexed from `0`. Negative indices count from the end.

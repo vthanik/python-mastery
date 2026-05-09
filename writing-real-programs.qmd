@@ -109,6 +109,19 @@ def get_items(count: int, price: float) -> list[dict]:
 [greet("Alice"), get_items(2, 9.99)]
 ```
 
+Use the abstract types from `collections.abc` for *parameter* hints — `Iterable`, `Mapping`, `Callable`, `Sequence`. They accept any conforming type (a plain dict, a `defaultdict`, a custom class) without locking the caller into one concrete container:
+
+```{python}
+from collections.abc import Mapping
+
+def total_price(prices: Mapping[str, float]) -> float:
+    return sum(prices.values())
+
+total_price({"apple": 1.0, "pear": 0.5})
+```
+
+Concrete types like `list[int]` are right for *return* types — you commit to what you produce, but stay flexible about what you accept.
+
 Common forms:
 
 ```python
@@ -131,6 +144,36 @@ def upper_all(items: Iterable[str]) -> list[str]:
 def apply(func: Callable[[int], str], xs: list[int]) -> list[str]:
     return [func(x) for x in xs]
 ```
+
+Two recent typing features pay off immediately. Python 3.12 (PEP 695) adds inline syntax for generic functions — no `TypeVar` import, no module-level boilerplate:
+
+```{python}
+def first[T](xs: list[T]) -> T:
+    return xs[0]
+
+[first([1, 2, 3]), first(["a", "b"])]
+```
+
+The `[T]` after the function name declares `T` as a fresh type parameter scoped to this function. Same shape for classes: `class Box[T]: ...`.
+
+Python 3.12 also adds `@typing.override` — an explicit marker that a method is overriding a parent's method. Type-checkers will flag a typo or a renamed parent method that the marker no longer matches:
+
+```{python}
+from typing import override
+
+class Animal:
+    def speak(self) -> str:
+        return "generic"
+
+class Dog(Animal):
+    @override
+    def speak(self) -> str:
+        return "woof"
+
+Dog().speak()
+```
+
+At runtime `@override` is a no-op; its value is the static check. Apply it to every overriding method in a non-trivial class hierarchy.
 
 The deep treatment of type hints — `Protocol`, generics, variance, `TypeVar` — is in @sec-type-hints and @sec-advanced-typing.
 

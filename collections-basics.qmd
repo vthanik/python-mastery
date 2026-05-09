@@ -145,6 +145,14 @@ Counter(text).most_common(2)
 
 `defaultdict(list)` auto-creates an empty list for missing keys; `Counter` counts occurrences. Both live in `collections`.
 
+Two dicts can be merged with the union operator `|` (Python 3.9+). Right-hand keys win on conflict — the idiom for "defaults plus overrides":
+
+```{python}
+defaults = {"host": "localhost", "port": 5432, "ssl": False}
+overrides = {"port": 6543, "ssl": True}
+defaults | overrides
+```
+
 The deep dive — including hashing, dict ordering, and dict views — is in @sec-dicts-sets.
 
 ## Sets {#sec-coll-sets}
@@ -198,6 +206,18 @@ total
 ```
 
 That `sum` never builds the million-item list. Generator expressions are how you scale comprehensions to large or infinite data; the deep dive is in @sec-iterators.
+
+The walrus operator `:=` (Python 3.8+) lets a comprehension *capture* a per-item value once and reuse it — useful when a filter and a map both need the same expensive computation:
+
+```{python}
+import re
+
+lines = ["score: 95", "noise", "score: 87", "noise", "score: 72"]
+nums = [int(m.group(1)) for line in lines if (m := re.match(r"score: (\d+)", line))]
+nums
+```
+
+`m` is bound only when the regex matches; the body then uses `m.group(1)` without re-running the match. Without the walrus you'd either match twice or fall back to a regular `for` loop.
 
 ## Choosing the right collection {#sec-coll-choosing}
 

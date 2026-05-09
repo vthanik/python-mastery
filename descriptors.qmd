@@ -23,6 +23,23 @@ A *descriptor* is an object that lives on a class and intercepts attribute acces
 
 A descriptor with `__set__` (or `__delete__`) is a *data* (or *overriding*) descriptor — it shadows the instance dict. Without `__set__`, it's a *non-data* descriptor — the instance dict can shadow it.
 
+The lookup priority Python applies for `obj.attr`:
+
+```{mermaid}
+flowchart TB
+    A["obj.attr"] --> B{"data descriptor<br/>on the class?"}
+    B -- yes --> G["call __get__"]
+    B -- no --> C{"attr in instance __dict__?"}
+    C -- yes --> R["return that"]
+    C -- no --> D{"non-data descriptor<br/>on the class?"}
+    D -- yes --> G
+    D -- no --> E{"plain class attribute?"}
+    E -- yes --> R
+    E -- no --> X["AttributeError"]
+```
+
+Data descriptors win over the instance dict; non-data descriptors lose to it. That single rule explains why `@property` (a data descriptor) cannot be shadowed by an instance attribute, but a plain method (non-data descriptor) can.
+
 ## A validating descriptor {#sec-desc-quantity}
 
 Reusable per-attribute validation, the descriptor way:
@@ -125,6 +142,16 @@ C.method, C().method
 
 `C.method` is the function. `C().method` is a *bound method* — a small wrapper that pre-binds the instance as the first argument. The whole "implicit `self`" of Python is just the descriptor protocol wrapping a function.
 
+You can call `__get__` directly to see the binding happen:
+
+```{python}
+c = C()
+bound = C.method.__get__(c, C)
+bound, bound() == c.method()
+```
+
+`bound` is `c.method`. Python performs exactly this call every time you write `c.method`.
+
 The same mechanism explains `@classmethod` and `@staticmethod`:
 
 - `@classmethod` is a descriptor whose `__get__` binds the *class* (not the instance).
@@ -184,6 +211,8 @@ Order("", 3)
 ```
 
 The descriptor handles all the boring storage-and-retrieval work; subclasses just implement `validate`. This is the right structure when the same validation pattern repeats across attributes or classes.
+
+For library authors: `typing.dataclass_transform` (PEP 681, 3.11) tells type-checkers that a descriptor-based decorator behaves like `@dataclass` — so mypy and pyright recognize the synthesized `__init__`. Reach for it only when shipping a public API that wants ORM-style ergonomics.
 
 ::: {.callout-tip}
 ## Why this matters

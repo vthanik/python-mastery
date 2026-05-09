@@ -79,6 +79,38 @@ list(work.glob("**/*.txt"))
 
 `**/*.txt` recursively matches every `.txt` file. `Path.exists()`, `.is_file()`, `.is_dir()`, `.unlink()`, `.rename()`, `.mkdir()` round out the common operations.
 
+For a recursive walk that gives you each directory's children separately — like `os.walk` but with `Path` objects — use `Path.walk()` (Python 3.12+):
+
+```{python}
+(work / "logs").mkdir(exist_ok=True)
+(work / "logs" / "app.log").write_text("ok\n", encoding="utf-8")
+
+for root, dirs, files in work.walk():
+    print(root.name or root, sorted(dirs), sorted(files))
+```
+
+`root` is a `Path`; `dirs` and `files` are lists of names you can mutate to prune the walk. Reach for `Path.walk()` when you need to act per-directory; reach for `Path.glob("**/*")` when you just want the flat list of matches.
+
+## Reading TOML config: `tomllib` {#sec-io-tomllib}
+
+Python 3.11 added `tomllib` — a TOML parser in the standard library. TOML is the format for `pyproject.toml` and most modern Python tooling configs. `tomllib` is read-only and binary-mode:
+
+```{python}
+import tomllib
+
+snippet = b"""
+[project]
+name = "myapp"
+version = "0.1.0"
+dependencies = ["httpx", "pydantic"]
+"""
+
+config = tomllib.loads(snippet.decode("utf-8"))
+config["project"]["name"], config["project"]["dependencies"]
+```
+
+To read from disk, open the file in binary mode and call `tomllib.load(f)`. For *writing* TOML, you need a third-party package (`tomli-w` or `tomlkit`).
+
 ## CSV {#sec-io-csv}
 
 CSV (comma-separated values) is the most common tabular format. Always use the `csv` module — never parse it by hand.

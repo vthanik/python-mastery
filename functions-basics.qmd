@@ -155,6 +155,34 @@ c = make_counter()
 
 `nonlocal` says "I want to *modify* the enclosing `count`, not create a new local." The function `increment` is a **closure** — it carries `count` with it after `make_counter` returns.
 
+A closure can hold more than a single counter. Here's a running-average factory — the inner function remembers its own list of samples between calls:
+
+```{python}
+def make_averager():
+    samples = []
+    def averager(value):
+        samples.append(value)
+        return sum(samples) / len(samples)
+    return averager
+
+avg = make_averager()
+[avg(10), avg(20), avg(30)]
+```
+
+Each call to `make_averager()` returns a *fresh* `averager` with its own `samples` list. That's the closure: `samples` lives as long as the returned function does.
+
+The picture for "where does Python find a name?":
+
+```{mermaid}
+flowchart LR
+    L[Local<br/>current function] --> E[Enclosing<br/>any wrapping function]
+    E --> G[Global<br/>module level]
+    G --> B[Built-in<br/>len, range, print, ...]
+    B --> X[NameError]
+```
+
+Python walks left to right and stops at the first scope that defines the name. `global x` skips straight to the global cell; `nonlocal x` binds to the nearest enclosing cell.
+
 ## Functions are objects {#sec-fn-first-class}
 
 You can assign, store, and pass functions like any other value:
@@ -177,7 +205,25 @@ sorted(["banana", "Apple", "cherry"], key=str.lower)
 sorted([("apple", 3), ("banana", 1), ("cherry", 2)], key=lambda pair: pair[1])
 ```
 
-Use `lambda` only for trivial expressions. If it needs a comment to explain it, use `def` and give it a name. The full treatment of first-class functions, callables, and higher-order patterns is in @sec-first-class-functions.
+Use `lambda` only for trivial expressions. If it needs a comment to explain it, use `def` and give it a name. Compare:
+
+```{python}
+records = [{"name": "Alice", "score": 95}, {"name": "Bob", "score": 87}]
+
+# Trivial — lambda is fine:
+sorted(records, key=lambda r: r["score"])
+```
+
+```{python}
+# Needs a comment to explain — promote to a named def:
+def by_score_then_name(record):
+    """Sort key: descending score, then name ascending for ties."""
+    return (-record["score"], record["name"])
+
+sorted(records, key=by_score_then_name)
+```
+
+The named version reads itself; the equivalent lambda would force a comment above the `sorted` call. The full treatment of first-class functions, callables, and higher-order patterns is in @sec-first-class-functions.
 
 ## A first decorator {#sec-fn-decorator}
 

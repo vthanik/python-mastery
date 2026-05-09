@@ -16,7 +16,18 @@ In this chapter you will learn to:
 
 ## Gradual typing in practice {#sec-types-gradual}
 
-A function without hints is still legal. Hints are added when they earn their keep — usually at API boundaries:
+A function without hints is still legal:
+
+```{python}
+def show_count(count, word):
+    if count == 1:
+        return f"1 {word}"
+    return f"{count or 'no'} {word}s"
+
+show_count(3, "cat")
+```
+
+Hints are added when they earn their keep — usually at API boundaries:
 
 ```{python}
 def show_count(count: int, word: str) -> str:
@@ -90,13 +101,22 @@ def normalize_label(label: int | str) -> str:
 normalize_label(42), normalize_label("forty-two")
 ```
 
-For collections, since Python 3.9 you can subscript the built-ins directly — no `from typing import List` needed:
+For collections, since Python 3.9 you can subscript the built-ins directly — `list[int]`, `dict[str, int]`, `tuple[int, ...]` all work without `from typing import List, Dict, Tuple`:
 
 ```{python}
 def tokenize(text: str) -> list[str]:
     return text.upper().split()
 
 tokenize("hello world")
+```
+
+```{python}
+from collections.abc import Iterable
+
+def word_lengths(words: Iterable[str]) -> dict[str, int]:
+    return {w: len(w) for w in words}
+
+word_lengths(["hi", "hello"])
 ```
 
 ```{python}
@@ -107,6 +127,11 @@ divmod_pair(17, 5)
 ```
 
 `tuple[int, int]` is a fixed-length tuple. `tuple[int, ...]` (with the literal `...`) is a variable-length homogeneous tuple.
+
+::: {.callout-tip}
+## `from __future__ import annotations`
+Putting this at the top of a module turns *all* annotations into strings (PEP 563 — postponed evaluation). Two practical wins: forward references work without quoting (`def f() -> "MyClass":` becomes `def f() -> MyClass:`), and there is zero runtime cost for evaluating the annotation expression. Tools like `mypy` still type-check normally; introspection-heavy libraries (`pydantic`, `dataclasses` in some modes) need to opt in.
+:::
 
 For a callable parameter, use `collections.abc.Callable`:
 
@@ -140,6 +165,15 @@ total([1, 2, 3]), total(range(4)), total(n*n for n in range(5))
 
 `total` accepts any iterable — `list`, `range`, generator. If the parameter were `list[int]`, the generator wouldn't type-check.
 
+`Mapping[K, V]` is the read-only dict shape — accept a `dict`, a `ChainMap`, anything with `__getitem__` and `keys`:
+
+```{python}
+def lookup(table: Mapping[str, int], key: str) -> int:
+    return table.get(key, 0)
+
+lookup({"a": 1, "b": 2}, "a")
+```
+
 The opposite rule applies to *return types*: be concrete. Returning `list[int]` is more useful than returning `Iterable[int]`, because the caller can rely on indexing and length.
 
 ## `TypeVar` and parameterized generics {#sec-types-typevar}
@@ -159,7 +193,7 @@ first([1, 2, 3]), first(["a", "b"])
 
 `mypy` infers `first([1, 2, 3])` as `int` and `first(["a", "b"])` as `str`. The single function is generic over the element type.
 
-A *bounded* `TypeVar` restricts the choice of types:
+A *constrained* `TypeVar` lists allowed types — the value must be exactly one of them:
 
 ```{python}
 from decimal import Decimal
@@ -174,7 +208,18 @@ def average(data: Iterable[NumberT]) -> NumberT:
 average([1.0, 2.0, 3.0])
 ```
 
-Now `average` works on any of the three numeric types but not, say, on `str`.
+A *bounded* `TypeVar` (using `bound=`) accepts the type *or any subclass*:
+
+```{python}
+from numbers import Real
+RealT = TypeVar("RealT", bound=Real)
+def clamp(x: RealT, lo: RealT, hi: RealT) -> RealT:
+    return max(lo, min(x, hi))
+
+clamp(5, 0, 10), clamp(3.14, 0.0, 1.0)
+```
+
+Use `bound=` when "any subclass of X" is the intent; use the constrained form when only a closed set of types is allowed.
 
 ## Static `Protocol` types {#sec-types-protocol}
 

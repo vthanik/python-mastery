@@ -30,6 +30,18 @@ Foo.__name__, Foo.__mro__, Foo.__module__
 
 You can pass classes around, store them in lists and dicts, and pick one at runtime to instantiate. None of that is "metaprogramming" — it's just the data model.
 
+The class-of-a-class chain bottoms out at `type`, which is its own metaclass:
+
+```{mermaid}
+flowchart LR
+    I[instance] -->|__class__| C[class]
+    C -->|__class__| M[metaclass]
+    M -->|__class__| T[type]
+    T -->|__class__| T
+```
+
+PEP 695's `class C[T]:` syntax (Python 3.12) uses an internal metaclass mechanism to bind the type parameters — it's there, but you never see it.
+
 ## `type` as a class factory {#sec-meta-type-factory}
 
 `type` has a three-argument form that *creates* a class:
@@ -155,6 +167,8 @@ class Quiet(metaclass=Loud):
 
 `metaclass=Loud` says "use `Loud` as the class factory for `Quiet`." `Loud.__new__` runs at the moment `Quiet` is being created — a step earlier than `__init_subclass__`, and one with broader scope.
 
+Metaclasses can also implement `__prepare__` to swap the class namespace dict for something else (an `OrderedDict` subclass, a tracking dict). This is rarely needed and `__init_subclass__` covers the common cases — mention only.
+
 Modern features have largely replaced metaclasses:
 
 | Old reason for a metaclass | Modern replacement |
@@ -164,7 +178,15 @@ Modern features have largely replaced metaclasses:
 | Customize class namespace | rarely needed; sometimes class decorators |
 | Generate `__init__`/`__repr__`/`__eq__` | `@dataclass` |
 
-The rule, in plain English: if you think you need a metaclass, you probably don't. Try `__init_subclass__` first; try a class decorator second; reach for a metaclass only when both fail.
+The rule, in plain English: if you think you need a metaclass, you probably don't. Walk down the ladder of complexity until something fits:
+
+1. **`@dataclass`** — generates `__init__`/`__repr__`/`__eq__`. The right answer 80% of the time.
+2. **A class decorator** — `@register`, `@checked`, `@final`. Runs once, no inheritance contract.
+3. **`__init_subclass__`** — fires on every subclass without writing a metaclass.
+4. **`__set_name__`** on a descriptor — when the customization is per-attribute, not per-class.
+5. **A metaclass** — last resort. Reserved for framework authors.
+
+Reach for the simplest tool that solves the problem.
 
 ::: {.callout-tip}
 ## Why this matters — and the final insight of the whole book

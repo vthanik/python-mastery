@@ -75,6 +75,21 @@ for name, score in zip(names, scores):
 
 `zip` stops at the shortest iterable. `enumerate` gives `(index, value)` pairs.
 
+Under the hood, `for x in iterable:` desugars into a small protocol: ask the object for an iterator, then keep calling `next()` on it until it signals exhaustion.
+
+```{mermaid}
+flowchart TD
+    A["for x in iterable:"] --> B["iter(iterable)<br/>calls __iter__"]
+    B --> C[iterator object]
+    C --> D["next(iterator)<br/>calls __next__"]
+    D --> E{value or<br/>StopIteration?}
+    E -- value --> F["bind to x<br/>run loop body"]
+    F --> D
+    E -- StopIteration --> G[loop ends]
+```
+
+Anything implementing `__iter__` works in `for`. That single rule is why lists, strings, files, dicts, sets, and your own classes all loop with the same syntax. The deep dive is @sec-iterators.
+
 ## `while` {#sec-cf-while}
 
 Use `while` when you don't know the number of iterations in advance.
@@ -112,6 +127,33 @@ for x in [3, -1, 4, -2, 5]:
     total += x
 total
 ```
+
+## Walrus assignment {#sec-cf-walrus}
+
+The **walrus operator** `:=` (Python 3.8+) assigns *and* returns a value in a single expression. Use it where you'd otherwise call something twice — once to test it, once to use the result.
+
+```{python}
+import re
+
+lines = ["score: 95", "skip", "score: 87", "score: 72"]
+scores = []
+for line in lines:
+    if (m := re.match(r"score: (\d+)", line)):
+        scores.append(int(m.group(1)))
+scores
+```
+
+Without the walrus you'd run the regex twice, or assign on a separate line first. The same pattern collapses a `while` loop that processes input until exhausted:
+
+```{python}
+chunks = iter(["one\n", "two\n", "three\n", ""])
+out = []
+while (chunk := next(chunks)):
+    out.append(chunk.rstrip())
+out
+```
+
+The condition reads "while the next chunk, bound to `chunk`, is truthy." Don't reach for `:=` everywhere — it's earned its place when it removes a duplicate call.
 
 ## A note on the `match` statement {#sec-cf-match}
 

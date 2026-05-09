@@ -119,26 +119,7 @@ v * 3, 3 * v, v * True
 
 `v * True` works because `True` is `1` numerically — `float(True)` is `1.0`. `v * "spam"` would return `NotImplemented` (the `float()` call fails), and Python would raise `TypeError`.
 
-## The `@` operator {#sec-operator-matmul}
-
-Python 3.5 added `@` as the matrix-multiplication operator. The dunder is `__matmul__` (and the reflected form is `__rmatmul__`):
-
-```{python}
-from collections import abc
-
-class Vector(Vector):
-    def __matmul__(self, other):
-        if isinstance(other, abc.Sized) and isinstance(other, abc.Iterable):
-            if len(self) == len(other):
-                return sum(a * b for a, b in zip(self, other))
-        return NotImplemented
-
-va = Vector([1, 2, 3])
-vb = Vector([5, 6, 7])
-va @ vb
-```
-
-The dot product `1*5 + 2*6 + 3*7 = 38`. NumPy uses this same operator for matrix multiplication, which is why it was introduced.
+Python 3.5 also added `@` for matrix multiplication via `__matmul__` / `__rmatmul__`. Rarely overloaded outside NumPy and friends — mention only.
 
 ## Rich comparison {#sec-operator-compare}
 
@@ -179,32 +160,7 @@ a < b, a >= b, a != b, sorted([Angle(45), Angle(30), Angle(60)], key=lambda x: x
 
 ## Augmented assignment {#sec-operator-augmented}
 
-`+=` is *not* the same as `+`. By default, `x += y` is `x = x + y` — a fresh object. If you define `__iadd__`, Python uses it for in-place mutation:
-
-```{python}
-class MutableVector:
-    typecode = "d"
-    def __init__(self, components):
-        self._components = array(self.typecode, components)
-    def __iadd__(self, other):
-        try:
-            pairs = itertools.zip_longest(self, other, fillvalue=0.0)
-            self._components = array(self.typecode, (a + b for a, b in pairs))
-        except TypeError:
-            return NotImplemented
-        return self
-    def __iter__(self):
-        return iter(self._components)
-    def __repr__(self):
-        return f"MutableVector({list(self._components)})"
-
-v = MutableVector([1, 2, 3])
-before = id(v)
-v += MutableVector([10, 20, 30])
-id(v) == before, v
-```
-
-Same object (`id` unchanged), updated contents. *Immutable* types should not implement `__iadd__` — let Python fall back to `__add__` and create a new object.
+`+=` is *not* the same as `+`. By default, `x += y` is `x = x + y` — a fresh object. Mutable types may implement `__iadd__` to mutate in place and return `self`; immutable types should not, so Python falls back to `__add__` (and rebinds the name to the new object). Lists already do this — `xs += [4]` mutates `xs` and keeps the same `id`.
 
 ::: {.callout-tip}
 ## Why this matters
@@ -218,10 +174,6 @@ The key insight: return `NotImplemented`, don't raise `TypeError`. Returning `No
 2. **Scalar division.** Implement `__truediv__` so `v / 2` works. Should `2 / v` work? Argue why or why not.
 
 3. **`@total_ordering` quirks.** Try implementing `__eq__` and `__lt__` *without* `@total_ordering` on `Angle`. What does `a > b` do? Why?
-
-4. **`__iadd__` correctness.** Add `__iadd__` to a *frozen* dataclass. Predict whether it's allowed. Try it and explain.
-
-5. **The `@` shape.** Define `Matrix` as a list of `Vector` rows. Implement `__matmul__` so `m1 @ m2` returns the matrix product. (Be careful with shapes — what should `__matmul__` return for incompatible matrices?)
 
 ## Summary {#sec-operator-summary}
 

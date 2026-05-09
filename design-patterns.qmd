@@ -63,6 +63,23 @@ Order(ann, cart, FidelityPromo()).due()
 
 This is the pattern as it appears in *Design Patterns* (Gamma et al., 1994) — the form you'd write in Java or C++.
 
+```{mermaid}
+flowchart LR
+    subgraph OOP["OOP Strategy"]
+        P["Promotion (ABC)"]
+        P --> F1["FidelityPromo"]
+        P --> F2["BulkItemPromo"]
+        P --> F3["LargeOrderPromo"]
+    end
+    subgraph FN["Function Strategy"]
+        f1["fidelity_promo"]
+        f2["bulk_item_promo"]
+        f3["large_order_promo"]
+        M["best_promo = max(p(order) for p in promos)"]
+    end
+    OOP -.collapses to.-> FN
+```
+
 ## Strategy as plain functions {#sec-patterns-strategy-functions}
 
 In Python a *function* is a callable. The whole class hierarchy collapses to one function per strategy:

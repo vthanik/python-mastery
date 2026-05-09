@@ -133,6 +133,27 @@ f"sequential: {seq:.3f}s, two threads: {threaded:.3f}s"
 
 Two threads doing CPU work take about the same time as the sequential version — the GIL serializes them. For *real* parallelism on CPU work you need processes.
 
+(Python 3.12 introduced per-interpreter GILs (PEP 684) and 3.13 added the experimental `interpreters` module — true Python parallelism in one process is on the horizon, but tooling is still maturing.)
+
+```{mermaid}
+flowchart LR
+  subgraph T["Threading"]
+    T1["shared memory"] --> T2["OS-scheduled"]
+    T2 --> T3["GIL: serial bytecode"]
+    T3 --> T4["best for I/O-bound"]
+  end
+  subgraph P["Multiprocessing"]
+    P1["separate memory"] --> P2["OS-scheduled"]
+    P2 --> P3["no GIL contention"]
+    P3 --> P4["best for CPU-bound"]
+  end
+  subgraph A["Asyncio"]
+    A1["one thread"] --> A2["cooperative await"]
+    A2 --> A3["GIL irrelevant"]
+    A3 --> A4["best for I/O at scale"]
+  end
+```
+
 The picture flips for I/O-bound work. A thread blocked on a network read releases the GIL. So two threads each waiting on a download *do* progress in parallel — not because Python runs in parallel, but because the OS does the waiting and only one thread is ever running Python.
 
 ::: {.callout-tip}

@@ -199,6 +199,43 @@ with timer("compute"):
 total
 ```
 
+For the common case "swallow this specific exception silently," `contextlib.suppress` is more concise than a `try` / `except` that does nothing:
+
+```{python}
+from contextlib import suppress
+from pathlib import Path
+
+# Delete a file if it exists; do nothing if it doesn't:
+target = Path("/tmp/does-not-exist-xyz")
+with suppress(FileNotFoundError):
+    target.unlink()
+"continued without error"
+```
+
+Use it sparingly — silently ignored exceptions are bugs in disguise. It earns its place when the *absence* of the resource is genuinely a no-op.
+
+## Multiple exceptions at once: `ExceptionGroup` {#sec-err-groups}
+
+Sometimes a single operation produces several independent failures — a parallel task fan-out, a batch validation, a multi-file write. Python 3.11 added **`ExceptionGroup`** to bundle them, and **`except*`** to catch by type *without unbundling the rest*:
+
+```{python}
+#| error: true
+def validate_all():
+    raise ExceptionGroup("invalid input", [
+        ValueError("age out of range"),
+        TypeError("name must be a string"),
+    ])
+
+try:
+    validate_all()
+except* ValueError as eg:
+    print("value problems:", [str(e) for e in eg.exceptions])
+except* TypeError as eg:
+    print("type problems:", [str(e) for e in eg.exceptions])
+```
+
+The `*` says "match any leaf exception of this type inside the group." Both `except*` clauses run; you don't have to choose one. For everyday single-error code, plain `except` is still the right tool — `ExceptionGroup` is for genuinely concurrent or batch failures, where reporting *all* problems is the point.
+
 The deep treatment of `with`, including the `__enter__` / `__exit__` protocol and `contextlib.suppress`, is in @sec-with-match-else.
 
 ::: {.callout-tip}

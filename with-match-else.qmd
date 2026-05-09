@@ -107,7 +107,22 @@ with contextlib.redirect_stdout(buf):
 buf.getvalue()
 ```
 
-`contextlib.ExitStack` lets you stack a *dynamic* number of context managers — useful when the count isn't known at write time.
+`contextlib.ExitStack` lets you stack a *dynamic* number of context managers — useful when the count isn't known at write time:
+
+```{python}
+import io
+from contextlib import ExitStack
+
+sources = ["one\n", "two\n", "three\n"]
+with ExitStack() as stack:
+    files = [stack.enter_context(io.StringIO(s)) for s in sources]
+    contents = [f.read() for f in files]
+contents
+```
+
+Every `enter_context` is closed on exit — even if any of them raises.
+
+Day to day, the `@contextmanager` form is what most Python code writes. The class form is reserved for libraries and the rare context manager that needs internal state.
 
 ## `else` blocks {#sec-else}
 
@@ -177,6 +192,39 @@ The `with` statement is Python's universal resource management tool. `@contextma
 ## Further reading
 Beazley, *Python Distilled* §3 ("Program Structure and Control Flow") collects the operational `try` / `finally` / `with` idioms that show up in production Python — context managers for locks, transactions, and resource pools.
 :::
+
+## Multiple exceptions at once: `ExceptionGroup` {#sec-with-exception-group}
+
+Python 3.11 added `ExceptionGroup` and the `except*` syntax for catching by type *without unbundling the rest* — exactly what `asyncio.TaskGroup` needs.
+
+```{python}
+#| error: true
+try:
+    raise ExceptionGroup(
+        "two problems",
+        [ValueError("bad value"), TypeError("bad type")],
+    )
+except* ValueError as eg:
+    print("values:", [str(e) for e in eg.exceptions])
+except* TypeError as eg:
+    print("types:", [str(e) for e in eg.exceptions])
+```
+
+Both `except*` clauses run; you don't have to choose one. For everyday single-error code, plain `except` is still right — `ExceptionGroup` is for genuinely concurrent or batch failures.
+
+The control flow of `try` / `except` / `else` / `finally`:
+
+```{mermaid}
+flowchart TB
+  A["try block"] --> B{"raised?"}
+  B -- no --> C["else block"]
+  B -- yes --> D["matching except"]
+  C --> E["finally"]
+  D --> E
+  E --> F["continue"]
+```
+
+`else` runs only on the success path; `finally` always runs. That's why cleanup belongs in `finally` and the *use the result* logic belongs in `else` — never in the `try` itself.
 
 ## Summary {#sec-with-summary}
 

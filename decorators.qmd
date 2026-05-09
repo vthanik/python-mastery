@@ -29,6 +29,17 @@ def target(): ...
 target = decorate(target)
 ```
 
+```{mermaid}
+flowchart LR
+    subgraph Sugar["@decorate (sugar)"]
+        A1["def target()"] --> A2["@decorate"]
+        A2 --> A3["target = decorate(target)"]
+    end
+    subgraph Plain["plain assignment (desugared)"]
+        B1["def target()"] --> B2["target = decorate(target)"]
+    end
+```
+
 The decorator is a function that takes a function and returns *something* (usually a function):
 
 ```{python}
@@ -195,7 +206,7 @@ def clock(func):
 def factorial(n):
     return 1 if n < 2 else n * factorial(n - 1)
 
-factorial(5)
+factorial(6)
 ```
 
 `@functools.wraps(func)` is the small detail that matters. Without it, `clocked` would *replace* `factorial` — its `__name__`, `__doc__`, and `__wrapped__` would all point to the wrapper, not the original. With it, the wrapper looks like the wrapped function to the outside world.
@@ -204,7 +215,7 @@ factorial(5)
 
 `functools` ships three decorators you'll reach for routinely.
 
-**`@cache`** — memoize without a size limit:
+**`@cache`** (Python 3.9+) — memoize without a size limit, no eviction. Equivalent to `@lru_cache(maxsize=None)`:
 
 ```{python}
 @functools.cache
@@ -216,7 +227,9 @@ fibonacci(30)
 
 The recursion that's `O(2^n)` without caching becomes `O(n)` with it.
 
-**`@lru_cache(maxsize=...)`** — memoize with eviction. Use this when your input space is unbounded.
+**`@lru_cache(maxsize=N)`** — bounded memoization. When the cache fills, the *least recently used* entry is evicted. Use `@cache` when keys are bounded (small integers, an enum); use `@lru_cache(maxsize=N)` when the input space is open-ended and you want a memory ceiling.
+
+**`@functools.cached_property`** — a related tool: compute an expensive instance attribute once on first access, store it on the instance, return the stored value thereafter. Like `@cache` but per-instance and tied to attribute access.
 
 **`@singledispatch`** — write a "generic function" that dispatches on the first argument's type:
 
@@ -287,6 +300,8 @@ def clock(fmt=DEFAULT_FMT):
             t0 = time.perf_counter()
             result = func(*args, **kwargs)
             elapsed = time.perf_counter() - t0
+            # Ramalho's original spells this `fmt.format(**locals())`; the
+            # explicit kwargs below name only the placeholders fmt actually uses.
             print(fmt.format(
                 elapsed=elapsed,
                 name=func.__name__,

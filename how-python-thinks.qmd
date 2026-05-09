@@ -54,6 +54,16 @@ xs
 
 `ys.append(4)` modified the one list both names point to. We revisit this in detail in @sec-references-mutability.
 
+The picture to keep in mind is two name tags tied to one heap object:
+
+```{mermaid}
+flowchart LR
+    x((x)) --> obj["42<br/>type: int<br/>id: 0x..."]
+    y((y)) --> obj
+```
+
+Both `x` and `y` are *labels* — they are not boxes that each hold their own copy of `42`. They point at the same object.
+
 ## Protocols, not types — the duck-typing rule {#sec-how-python-thinks-duck}
 
 Python rarely asks "what type is this object?" It asks "can this object *do* what I need?" That question is answered by *protocols* — sets of special methods like `__iter__`, `__len__`, `__getitem__`.

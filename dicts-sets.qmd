@@ -259,6 +259,21 @@ hash([1, 2, 3])
 
 This is why dict keys and set elements must be hashable: the hash table needs a stable bucket. We'll come back to `__hash__` in @sec-pythonic-objects when we make our own class hashable.
 
+The lookup itself is a short loop:
+
+```{mermaid}
+flowchart TD
+  K["key"] --> H["hash(key)"]
+  H --> B["bucket index"]
+  B --> Q{"slot occupied<br/>and __eq__ matches?"}
+  Q -- "yes" --> V["return value"]
+  Q -- "no, slot empty" --> KE["KeyError"]
+  Q -- "collision" --> P["probe next slot"]
+  P --> Q
+```
+
+Hash collisions resolve via *open addressing* — the implementation probes nearby slots until it finds the key or an empty slot. The amortized cost stays `O(1)` because the load factor is kept low by resizing.
+
 ## Exercises {#sec-dicts-exercises}
 
 1. **`setdefault` vs `defaultdict`.** Rewrite the index-building example using `setdefault` instead of `defaultdict`. Which is more readable to you?

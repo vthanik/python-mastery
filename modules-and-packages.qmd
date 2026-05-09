@@ -170,6 +170,24 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 ```
 
+Since Python 3.11, `tomllib` reads TOML files from the standard library. That means a tool — your own script, a release helper, a CI step — can introspect the project's own metadata without any third-party dependency:
+
+```{python}
+import tomllib
+
+pyproject = """
+[project]
+name = "myapp"
+version = "0.1.0"
+dependencies = ["httpx", "pydantic"]
+"""
+
+config = tomllib.loads(pyproject)
+config["project"]["name"], config["project"]["version"], config["project"]["dependencies"]
+```
+
+Use `tomllib.load(f)` with a binary-mode file (`open(path, "rb")`) for the on-disk version. `tomllib` is read-only by design; for *writing* TOML you reach for `tomli-w` or `tomlkit`.
+
 ## Virtual environments {#sec-mod-venv}
 
 A virtual environment is a *per-project* isolated Python installation. Without one, every `pip install` pollutes the system Python — and projects can't have conflicting dependencies. Always use one.

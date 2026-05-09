@@ -14,6 +14,23 @@ In this chapter you will learn to:
 5. Use `__slots__` to save memory when you have many instances.
 6. Choose between `@classmethod` and `@staticmethod` (hint: usually `@classmethod`).
 
+The chapter wires up the left column of this dispatch picture; the right column is what makes built-ins reach into your class:
+
+```{mermaid}
+flowchart LR
+  repr["repr(v)"] --> r["__repr__"]
+  str["str(v)"] --> s["__str__"]
+  abs["abs(v)"] --> a["__abs__"]
+  bool["bool(v)"] --> b["__bool__"]
+  iter["iter(v)"] --> it["__iter__"]
+  fmt["format(v, '.2f')"] --> f["__format__"]
+  add["v1 + v2"] --> ad["__add__"]
+  eq["v1 == v2"] --> e["__eq__"]
+  hash["hash(v)"] --> h["__hash__"]
+```
+
+`__add__` is implemented in @sec-operator-overload; the rest are wired in this chapter.
+
 ## Object representations {#sec-pythonic-repr}
 
 Python has two string-conversion dunders. `__repr__` is for developers — it should be unambiguous and ideally `eval()`-able. `__str__` is for users — readable.
@@ -88,6 +105,8 @@ Vector2dV2.frombytes(b)
 ```
 
 `cls(*memv)` is the point — by referring to `cls`, the alternative constructor works in subclasses too. A `@staticmethod` has no special first argument; it's just a plain function that happens to live in the class namespace. Use `@classmethod` by default; reach for `@staticmethod` rarely.
+
+`__bytes__` is the dunder for `bytes(v)`. Modern code typically serializes through `json`/`pickle`/`struct` instead — exercise 2 has you implement it.
 
 ## Formatted displays {#sec-pythonic-format}
 
@@ -167,6 +186,11 @@ sys.getsizeof(Vector2dSlots(3, 4)), sys.getsizeof(V2dDict(3, 4)) + sys.getsizeof
 The slotted version is dramatically smaller. The cost: instances can't grow new attributes (`v.z = 7` raises `AttributeError`), and subclasses must also define `__slots__` to keep the saving.
 
 Reach for `__slots__` only when you have *millions* of instances. For everything else, the dict is fine and the flexibility is worth the bytes.
+
+::: {.callout-note}
+## Modern alternative: `@dataclass(slots=True)`
+Python 3.10 added `slots=True` to `@dataclass` — it generates the `__slots__` declaration for you, so you don't write the manual recipe above. The full treatment is in @sec-dataclasses.
+:::
 
 ## Class attributes and overriding them {#sec-pythonic-class-attrs}
 

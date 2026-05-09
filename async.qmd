@@ -45,6 +45,19 @@ await main()
 
 `await asyncio.sleep(...)` is the canonical "do nothing for a while *but yield control*" call. It's the simplest awaitable.
 
+```{mermaid}
+flowchart TB
+  L["EventLoop"]
+  L -->|schedule| C1["coroutine A"]
+  L -->|schedule| C2["coroutine B"]
+  L -->|schedule| C3["coroutine C"]
+  C1 -. "await asyncio.sleep" .-> L
+  C2 -. "await asyncio.sleep" .-> L
+  C3 -. "await asyncio.sleep" .-> L
+```
+
+`await` hands control back to the loop; the loop runs whatever else is ready. That's the entire mechanism behind concurrent I/O on a single thread.
+
 ## Running coroutines concurrently {#sec-async-gather}
 
 To run several coroutines concurrently, schedule them with `asyncio.create_task` or collect them with `asyncio.gather`:
@@ -76,6 +89,40 @@ async def main():
 
 await main()
 ```
+
+## Structured concurrency with `TaskGroup` {#sec-async-taskgroup}
+
+Python 3.11 added `asyncio.TaskGroup` — the modern replacement for `gather` when you want *structured concurrency*. If any task raises, sibling tasks are cancelled and the group re-raises an `ExceptionGroup`. Prefer it for new code.
+
+```{python}
+async def main():
+    async with asyncio.TaskGroup() as tg:
+        t1 = tg.create_task(hello("a", 0.1))
+        t2 = tg.create_task(hello("b", 0.1))
+        t3 = tg.create_task(hello("c", 0.1))
+    return [t1.result(), t2.result(), t3.result()]
+
+await main()
+```
+
+The block exits only when every task finishes. Errors compose into an `ExceptionGroup` (see @sec-with-exception-group), which `except*` matches by type.
+
+## Deadlines with `asyncio.timeout` {#sec-async-timeout}
+
+`asyncio.timeout` (3.11) is a context manager — anything awaited inside the block is bounded by the deadline. Cleaner than `wait_for` and composes with `TaskGroup`.
+
+```{python}
+async def main():
+    try:
+        async with asyncio.timeout(0.05):
+            await asyncio.sleep(0.5)
+    except TimeoutError:
+        return "timed out"
+
+await main()
+```
+
+Inside the block, *any* `await` that exceeds the deadline raises `TimeoutError`. Outside, the timer is gone — no cleanup needed.
 
 ## Iterating as coroutines complete {#sec-async-as-completed}
 

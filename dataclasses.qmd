@@ -182,6 +182,61 @@ class Card:
 Card(2, "hearts") < Card(3, "spades")
 ```
 
+## Modern `@dataclass` features {#sec-dataclasses-modern}
+
+Three flags and one helper, all from Python 3.10+, cover the configurations worth knowing beyond `frozen` and `order`.
+
+**`slots=True`** generates `__slots__` for the class — instances skip the per-object `__dict__`, save memory, and reject undeclared attributes:
+
+```{python}
+@dataclass(slots=True)
+class Point:
+    x: float
+    y: float
+
+p = Point(1.0, 2.0)
+p.__slots__, p.x
+```
+
+```{python}
+#| error: true
+p.z = 3.0
+```
+
+**`kw_only=True`** forces every field to be passed by keyword. This pays off when the field order in `__init__` is incidental — keyword-only calls survive field reorderings without breaking callers:
+
+```{python}
+@dataclass(kw_only=True)
+class Window:
+    width: int
+    height: int
+
+Window(width=800, height=600)
+```
+
+```{python}
+#| error: true
+Window(800, 600)
+```
+
+**`dataclasses.replace`** is the canonical way to "modify" a `frozen=True` instance — it returns a new instance with the requested fields changed:
+
+```{python}
+from dataclasses import replace
+
+@dataclass(frozen=True)
+class Config:
+    host: str
+    port: int
+    tls: bool = False
+
+prod = Config("example.com", 443, tls=True)
+staging = replace(prod, host="staging.example.com")
+prod, staging
+```
+
+The original `prod` is unchanged; `staging` is a new immutable instance.
+
 ## Pattern matching dataclass instances {#sec-dataclasses-match}
 
 Class patterns in `match`/`case` work cleanly with dataclasses, because the class already exposes its field names:

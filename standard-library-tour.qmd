@@ -29,7 +29,13 @@ c = Counter(words)
 [c["the"], c["missing"], c.most_common(2)]
 ```
 
-`Counter` arithmetic merges two counters: `c + c2`, `c - c2`. Missing keys return `0`, never `KeyError`.
+`Counter` arithmetic merges two counters: `c + c2` adds, `c - c2` subtracts (negative counts are dropped). Missing keys return `0`, never `KeyError`:
+
+```{python}
+a = Counter("aabb")
+b = Counter("abc")
+[a + b, a - b, a["zzz"]]
+```
 
 **`defaultdict`** auto-creates a default value for missing keys:
 
@@ -54,6 +60,17 @@ list(queue)
 ```
 
 A list's `pop(0)` is O(n); `deque.popleft()` is O(1). Use `deque` for queues and sliding windows.
+
+`deque(maxlen=N)` is a **bounded** deque — appends past the limit silently drop from the other end. That's exactly the data structure for a fixed-size sliding window:
+
+```{python}
+window = deque(maxlen=3)
+for x in [1, 2, 3, 4, 5]:
+    window.append(x)
+    print(list(window))
+```
+
+Three-line sliding window, no manual bookkeeping.
 
 **`namedtuple`** — a tuple with named fields:
 
@@ -174,6 +191,13 @@ import operator
 
 **`wraps`** — preserve a function's name and docstring inside a decorator. We saw this in @sec-functions-basics; the deep treatment is @sec-decorators.
 
+A side note on the `statistics` module: for plain numerical means, `statistics.fmean` (Python 3.8+) is faster than `statistics.mean` because it converts to `float` up front instead of preserving exact `Fraction` arithmetic. Reach for `mean` only when you need exactness across `Decimal` or `Fraction` data:
+
+```{python}
+import statistics
+[statistics.fmean([1, 2, 3, 4, 5]), statistics.fmean(range(1_000_000))]
+```
+
 ## `datetime` {#sec-stdlib-datetime}
 
 ```{python}
@@ -202,7 +226,17 @@ Formatting and parsing use `strftime` / `strptime`:
 ]
 ```
 
-For anything time-zone-sensitive, always include `tzinfo` (`timezone.utc` for UTC, `zoneinfo.ZoneInfo("Europe/London")` for local zones — Python 3.9+).
+For anything time-zone-sensitive, always include `tzinfo`. Use `timezone.utc` for UTC; for named zones, use `zoneinfo.ZoneInfo` (Python 3.9+) — backed by the system's IANA database, so it handles DST correctly:
+
+```{python}
+from zoneinfo import ZoneInfo
+
+london = datetime(2024, 6, 1, 12, 0, tzinfo=ZoneInfo("Europe/London"))
+new_york = london.astimezone(ZoneInfo("America/New_York"))
+[london.isoformat(), new_york.isoformat()]
+```
+
+`astimezone` converts; the underlying instant is unchanged. Always store and pass datetimes as timezone-aware — naive datetimes are the source of nearly every "off by an hour twice a year" bug.
 
 ## `re` — regular expressions {#sec-stdlib-re}
 

@@ -26,6 +26,15 @@ Python supports four typing styles, and they coexist in the same codebase:
 
 The right choice depends on *who* checks the contract and *when*. We'll walk through the four in order.
 
+```{mermaid}
+flowchart TB
+  Q["Need to constrain a value's shape?"]
+  Q --> Duck["Duck typing<br/>just call the method<br/>no check"]
+  Q --> Goose["Goose typing<br/>isinstance(x, ABC)<br/>runtime"]
+  Q --> Static["Static typing<br/>mypy / pyright<br/>at type-check time"]
+  Q --> Runtime["Runtime Protocol<br/>isinstance(x, P)<br/>P decorated @runtime_checkable"]
+```
+
 ## Duck typing: Python digs sequences {#sec-protocols-duck}
 
 Duck typing is the original Python style: don't ask what something *is*; try to use it. The standard-library ABCs are written so that anything implementing the right methods passes `isinstance` *automatically*:
@@ -131,14 +140,20 @@ Half()
 
 Trying to instantiate raises `TypeError`. The ABC enforces the contract.
 
-ABCs also support *virtual subclasses* — registering an unrelated class as a subclass without inheritance:
+ABCs also support *virtual subclasses* — registering an unrelated class as a subclass without inheritance. The standard library pre-registers `tuple` and `list` as `Sequence`. You can do the same for your own type with `@Sequence.register`:
 
 ```{python}
 from collections.abc import Sequence
-issubclass(tuple, Sequence)
+
+@Sequence.register
+class FakeSeq:
+    def __len__(self): return 0
+    def __getitem__(self, i): raise IndexError
+
+issubclass(FakeSeq, Sequence), issubclass(tuple, Sequence)
 ```
 
-The standard library has already registered `tuple` and `list` as `Sequence` subclasses.
+`register` is rarely needed — duck typing or `Protocol` covers most cases. It exists for retrofitting a class you don't control.
 
 ## Static `Protocol` types {#sec-protocols-protocol}
 

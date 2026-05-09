@@ -9,7 +9,7 @@ In this chapter you will learn to:
 
 1. Treat a function as an object — assign it, pass it, inspect it.
 2. Use higher-order functions (`map`, `filter`, `sorted`, `reduce`) and recognize when a comprehension is more readable.
-3. Recognize the *nine* kinds of callable in Python.
+3. Recognize the kinds of callable you'll meet in practice.
 4. Make an instance callable with `__call__`.
 5. Use `*`, `**`, and `/` to define flexible parameter signatures.
 6. Replace one-line lambdas with `operator` and `functools.partial`.
@@ -103,7 +103,26 @@ When a lambda is hard to read:
 The named version is almost always easier to read.
 :::
 
-## The nine callables {#sec-functions-callables}
+A worked example. This sort key — "profit per unit minus cost" — packs three operations into one line:
+
+```{python}
+data = [("widget", 10, 5, 2), ("gizmo", 8, 4, 1), ("gadget", 12, 6, 5)]
+sorted(data, key=lambda r: r[1] * r[2] - r[3])
+```
+
+Apply the recipe — give the expression a name:
+
+```{python}
+def profit(record):
+    name, units, margin, cost = record
+    return units * margin - cost
+
+sorted(data, key=profit)
+```
+
+The `def` form documents what the key *means*. Reach for `lambda` only when the expression is short *and* obvious.
+
+## The kinds of callable {#sec-functions-callables}
 
 `callable()` reports whether an object can be called:
 
@@ -111,19 +130,28 @@ The named version is almost always easier to read.
 callable(abs), callable([])
 ```
 
-Python has nine kinds of callable. You don't memorize the list, but it's worth knowing it exists:
+In practice you'll meet six kinds. Python's reference manual splits these further (built-in vs user, generator vs coroutine vs async generator) — the practical taxonomy is:
 
-1. User-defined functions (`def` and `lambda`)
-2. Built-in functions (`len`, `abs`, …)
-3. Built-in methods (`dict.get`, `list.append`)
-4. Methods (functions defined in a class body)
-5. Classes (calling a class creates an instance)
-6. Class instances (if `__call__` is defined)
-7. Generator functions (use `yield`)
-8. Native coroutine functions (`async def`)
-9. Asynchronous generator functions
+| Kind | Example |
+| --- | --- |
+| `def` / built-in / method | `factorial`, `len`, `list.append` |
+| `lambda` | `lambda x: x * 2` |
+| Class | `BingoCage(...)` — calling a class instantiates it |
+| `__call__` instance | `bingo()` — *classes whose instances are callable* |
+| Generator function | `def gen(): yield ...` |
+| `async def` (coroutine / async generator) | `async def fetch(): ...` |
 
-Item 6 — *classes whose instances are callable* — is the trick that makes a class as flexible as a function with state.
+```{mermaid}
+flowchart LR
+    C(("callable()"))
+    C --> A["def / lambda"]
+    C --> B["class"]
+    C --> D["__call__ instance"]
+    C --> E["generator (yield)"]
+    C --> F["async def"]
+```
+
+The fourth row — instances callable via `__call__` — is the trick that makes a class as flexible as a function with state.
 
 ## User-defined callable types {#sec-functions-callable-class}
 
@@ -197,6 +225,17 @@ Reading the signature `def tag(name, /, *content, class_=None, **attrs)`:
 
 The trailing underscore on `class_` avoids a clash with Python's reserved word `class`.
 
+To see `/` in isolation — this is how built-ins like `divmod` are spelled in pure Python:
+
+```{python}
+#| error: true
+def divmod_(a, b, /):
+    return a // b, a % b
+
+divmod_(7, 3)         # ok
+divmod_(a=7, b=3)     # TypeError — a, b are positional-only
+```
+
 ## The `operator` module {#sec-functions-operator}
 
 `operator` exports the arithmetic, comparison, and access operators as named functions, so you don't have to write a one-line lambda for them:
@@ -220,9 +259,14 @@ for city in sorted(metro_data, key=itemgetter(2), reverse=True):
     print(city[0], city[2])
 ```
 
-`itemgetter` accepts multiple indices and returns a tuple — useful for sort keys with tie-breakers.
+`itemgetter` accepts multiple indices and returns a tuple — useful for sort keys with tie-breakers, or to project a few fields out of a record:
 
-`attrgetter` is the same trick for attribute access — and it understands dotted paths:
+```{python}
+cc_name = itemgetter(1, 0)
+cc_name(metro_data[0])
+```
+
+`attrgetter` is the same trick for attribute access. It understands dotted paths and accepts multiple fields:
 
 ```{python}
 from collections import namedtuple
@@ -233,16 +277,11 @@ cities = [
     City("Tokyo", 36.933, Coord(35.69, 139.69)),
     City("Lagos", 13.46, Coord(6.45, 3.40)),
 ]
-get_lat = attrgetter("coord.lat")
-sorted(cities, key=get_lat)[0].name
+name_lat = attrgetter("name", "coord.lat")
+name_lat(cities[0])
 ```
 
-`methodcaller` calls a named method, with optional bound arguments:
-
-```{python}
-hyphenate = methodcaller("replace", " ", "-")
-hyphenate("hello world")
-```
+`methodcaller("replace", " ", "-")` is the third sibling — it freezes a method name and arguments. You'll reach for `attrgetter` and `itemgetter` daily; `methodcaller` only occasionally.
 
 ## Freezing arguments with `partial` {#sec-functions-partial}
 

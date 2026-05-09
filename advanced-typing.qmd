@@ -132,6 +132,97 @@ The rule of thumb:
 
 You don't need this most days. You'll need it when you write a generic library and `mypy` rejects what you thought was an obvious assignment.
 
+## Modern type hints (Python 3.11–3.13) {#sec-typing-modern}
+
+Three PEPs reshape how you write generics and class hierarchies. They're strictly additive — the older forms still work — but new code should prefer the new syntax.
+
+### PEP 695 generic syntax (3.12)
+
+The classic `TypeVar` form:
+
+```{python}
+from typing import TypeVar
+T_old = TypeVar("T_old")
+
+def first_old(xs: list[T_old]) -> T_old:
+    return xs[0]
+```
+
+The 3.12 form drops the boilerplate — type parameters live on the `def` itself:
+
+```{python}
+def first[T](xs: list[T]) -> T:
+    return xs[0]
+
+first([1, 2, 3]), first(["a", "b"])
+```
+
+The same syntax works for classes:
+
+```{python}
+class Box[T]:
+    def __init__(self, item: T) -> None:
+        self.item = item
+
+Box(7).item
+```
+
+Type aliases get a `type` statement:
+
+```{python}
+type Vector = list[float]
+type StrOrInt = str | int
+```
+
+For *covariance* and *contravariance*, the explicit `TypeVar(..., covariant=True)` form is still needed (variance markers in PEP 695 are deferred). The variance section above stays as-is.
+
+### `Self` (PEP 673, 3.11) for fluent builders
+
+Use `Self` to mean "instance of the class this method is defined on" — it *follows subclasses*, which `"QueryBuilder"` (the string forward-reference) does not.
+
+```{python}
+from typing import Self
+
+class QueryBuilder:
+    def __init__(self) -> None:
+        self.parts: list[str] = []
+    def where(self, clause: str) -> Self:
+        self.parts.append(clause)
+        return self
+
+QueryBuilder().where("a=1").where("b=2").parts
+```
+
+### `@override` (PEP 698, 3.12)
+
+Mark methods that *intend* to override a parent. The type checker errors if no parent has that method — useful when refactoring.
+
+```{python}
+from typing import override
+
+class Animal:
+    def speak(self) -> str: return "..."
+
+class Dog(Animal):
+    @override
+    def speak(self) -> str: return "woof"
+
+Dog().speak()
+```
+
+### `Never` and `LiteralString` (one-line each)
+
+`Never` annotates a function that doesn't return — `raise` or infinite loop. `LiteralString` accepts only strings the type checker can prove are literal — useful for SQL/shell APIs that must refuse user-supplied strings.
+
+```{python}
+from typing import Never, LiteralString
+
+def fail(msg: str) -> Never:
+    raise RuntimeError(msg)
+
+def run_query(q: LiteralString) -> None: ...
+```
+
 ## Reading hints at runtime {#sec-typing-runtime}
 
 `typing.get_type_hints` reads the `__annotations__` of a function or class and resolves any forward references:

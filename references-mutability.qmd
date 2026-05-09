@@ -27,6 +27,14 @@ a
 
 `a` and `b` are two labels on the same list. The `append` mutated the list — both labels see the change.
 
+```{mermaid}
+flowchart LR
+  A(("a")) --> L["[1, 2, 3, 4]"]
+  B(("b")) --> L
+```
+
+Two labels, one list — mutation through either label is visible through both.
+
 ```{python}
 a is b
 ```
@@ -198,6 +206,31 @@ print(wref())
 ```
 
 Once the only strong reference is gone, the weak reference returns `None`. This is the building block for caches, observers, and any structure that should not extend an object's lifetime.
+
+`weakref.WeakValueDictionary` is the everyday tool — a dict whose values are weak. Entries vanish as soon as their last strong reference dies, so the dict can never extend an object's lifetime:
+
+```{python}
+class Cheese:
+    def __init__(self, kind):
+        self.kind = kind
+    def __repr__(self):
+        return f"Cheese({self.kind!r})"
+
+stock = weakref.WeakValueDictionary()
+catalog = [Cheese("Red Leicester"), Cheese("Tilsit"), Cheese("Brie")]
+for cheese in catalog:
+    stock[cheese.kind] = cheese
+sorted(stock.keys())
+```
+
+```{python}
+del catalog
+del cheese          # the for-loop's leftover binding
+gc.collect()
+sorted(stock.keys())
+```
+
+Once nothing else holds the cheeses, `stock` empties itself. Caches that should *not* extend an object's lifetime use this exactly.
 
 ## Tricks Python plays with immutables {#sec-references-interning}
 
