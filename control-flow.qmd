@@ -1,0 +1,15 @@
+# Control Flow and Concurrency {#sec-part-control-flow .unnumbered}
+
+This part is about the moments when Python's control flow stops being plain `if`/`for`/`while` and starts being something else: an iterator's `__next__`, a context manager's `__enter__`/`__exit__`, a coroutine's `await`, a thread's `Lock`. Each one is a contract; this part is about what each contract promises.
+
+- @sec-operator-overload is the practical guide to making `+`, `-`, `*`, and `==` work on your own classes. The trick is the *reflected* methods — `__radd__`, `__rmul__` — that let `2 * vec` work even when `vec` doesn't know about `int`.
+
+- @sec-iterators is the engine room. Generators, `yield from`, lazy evaluation, the `itertools` module, and the duality between iterators and classic coroutines.
+
+- @sec-with-match-else covers three pieces of Python control flow that don't appear in many other languages: context managers (`with`), structural pattern matching (`match`), and the `else` clause on `for`/`while`/`try`.
+
+- @sec-concurrency is the conceptual chapter. Threads vs. processes vs. coroutines; the GIL; what it means for I/O-bound vs. CPU-bound work. Read it before the next two.
+
+- @sec-executors covers `concurrent.futures` — the high-level pool API that hides most of the locking and process management you'd otherwise write by hand.
+
+- @sec-async closes the part with `asyncio` itself: `async def`, `await`, the event loop, and the patterns (gather, semaphore, async for, async with) you reach for once you're past `Hello, World`.

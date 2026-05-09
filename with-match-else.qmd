@@ -1,0 +1,10 @@
+# `with`, `match`, and `else` Blocks {#sec-with-match-else}
+
+::: {.callout-note}
+## Core idea
+Three often-underused Python blocks: `with` (context managers), `match` (structural pattern matching), and `else` after `for`/`while`/`try` (the "no exception" / "no break" block).
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

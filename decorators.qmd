@@ -1,0 +1,10 @@
+# Decorators and Closures {#sec-decorators}
+
+::: {.callout-note}
+## Core idea
+Decorators are functions that wrap other functions. To truly understand them you must understand closures and how Python resolves variable names. Once you do, decorators become trivial — and powerful.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

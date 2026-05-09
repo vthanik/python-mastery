@@ -1,0 +1,10 @@
+# Inheritance: For Better or for Worse {#sec-inheritance}
+
+::: {.callout-note}
+## Core idea
+Inheritance is frequently misused. Multiple inheritance in particular has real complexity costs. Know when to use it, when to avoid it, and how Python resolves method order when you do use it.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

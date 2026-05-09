@@ -1,0 +1,10 @@
+# A Pythonic Object {#sec-pythonic-objects}
+
+::: {.callout-note}
+## Core idea
+Build a complete, idiomatic Python class by implementing just the right special methods. The `Vector2d` class in this chapter is the canonical example — it shows what a well-designed Python object looks like.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

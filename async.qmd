@@ -1,0 +1,10 @@
+# Asynchronous Programming {#sec-async}
+
+::: {.callout-note}
+## Core idea
+`asyncio` enables high-concurrency I/O in a single thread via native coroutines. The key: `await` suspends the current coroutine and gives control to the event loop, which runs other coroutines while I/O waits.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

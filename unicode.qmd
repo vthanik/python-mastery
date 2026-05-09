@@ -1,0 +1,10 @@
+# Unicode Text Versus Bytes {#sec-unicode}
+
+::: {.callout-note}
+## Core idea
+Python 3 has a hard separation: `str` is text (Unicode code points), `bytes` is binary data. Encode to go from `str → bytes`. Decode to go `bytes → str`. Handle this at the I/O boundary; work with `str` inside.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub. Full content will follow once the @sec-data-model, @sec-sequences, and @sec-dicts-sets chapters are reviewed.

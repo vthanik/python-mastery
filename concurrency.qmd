@@ -1,0 +1,10 @@
+# Concurrency Models in Python {#sec-concurrency}
+
+::: {.callout-note}
+## Core idea
+Python has three concurrency models. The GIL means threads can't run Python bytecodes in parallel — but they CAN overlap during I/O. Processes bypass the GIL entirely. `asyncio` handles I/O concurrency in a single thread via coroutines.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

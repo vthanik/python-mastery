@@ -1,0 +1,10 @@
+# Interfaces, Protocols, and ABCs {#sec-protocols-abcs}
+
+::: {.callout-note}
+## Core idea
+Python has four typing approaches (duck, goose, static, runtime). ABCs define formal interfaces. Protocols define structural interfaces. Both are tools — use the right one for the job.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

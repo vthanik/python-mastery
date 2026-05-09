@@ -1,0 +1,305 @@
+# An Array of Sequences {#sec-sequences}
+
+::: {.callout-note}
+## Core idea
+Python sequences are deeply unified. Once you understand the one taxonomy (container vs flat, mutable vs immutable), the whole chapter of sequence features clicks into place.
+:::
+
+In this chapter you will learn to:
+
+1. Place every Python sequence type into the two-by-two taxonomy of *container/flat* and *mutable/immutable*.
+2. Write list comprehensions and generator expressions, and pick between them based on memory.
+3. Use tuples as records — and unpack them, including with `*rest` patterns.
+4. Use structural pattern matching to dispatch on the *shape* of a sequence.
+5. Slice, including with named `slice` objects, and assign through slices.
+6. Avoid the classic `[[0]*3]*3` aliasing bug.
+7. Choose between `list`, `tuple`, `array.array`, `deque`, and `memoryview` for a given task.
+
+## The sequence taxonomy {#sec-sequences-taxonomy}
+
+Python's sequence types fall into a small grid. Memorize this grid and the rest of the chapter is consequences.
+
+| | **Container** (any type, holds references) | **Flat** (one type, holds values) |
+|---|---|---|
+| **Mutable** | `list`, `collections.deque` | `bytearray`, `array.array` |
+| **Immutable** | `tuple` | `str`, `bytes` |
+
+A *container* sequence holds references to objects of any type — the `list` `[1, "two", 3.0]` is a list of three pointers. A *flat* sequence packs values directly into contiguous memory, so it can only hold one type, but it's smaller and faster.
+
+The mutable/immutable split decides which methods exist. `list.append`, `bytearray.extend`, `deque.appendleft` exist on the mutable types and not the immutable ones — that's the only difference at the API level.
+
+`memoryview` is the odd one out: a *view* (zero-copy) into the bytes of any object that exposes the buffer protocol. We'll see it at the end of this chapter.
+
+## List comprehensions and generator expressions {#sec-sequences-comprehensions}
+
+Comprehensions are the most-recommended way to build a list, set, or dict from another iterable. They are *expressions*, so they return a value; they are *deterministic*, so they don't produce side effects you have to reason about.
+
+```{python}
+symbols = "$¢£¥€¤"
+codes = [ord(symbol) for symbol in symbols]
+codes
+```
+
+The list comprehension reads almost as English: "for every symbol in symbols, give me its `ord`." The output is a `list`. Filter with `if`:
+
+```{python}
+beyond_ascii = [ord(s) for s in symbols if ord(s) > 127]
+beyond_ascii
+```
+
+Cartesian product comes for free with two `for` clauses:
+
+```{python}
+colors = ["black", "white"]
+sizes  = ["S", "M", "L"]
+tshirts = [(color, size) for color in colors for size in sizes]
+tshirts
+```
+
+Replace the `[ ]` with `( )` and you get a *generator expression* — the same syntax, but the result is lazy. Nothing is computed until you iterate.
+
+```{python}
+for tshirt in (f"{c} {s}" for c in colors for s in sizes):
+    print(tshirt)
+```
+
+The genexp form is what you reach for when the intermediate list is large or when only one pass is needed:
+
+```{python}
+import array
+arr = array.array("I", (ord(s) for s in symbols))
+arr
+```
+
+Here `array.array` consumes the genexp directly — the intermediate list is never built.
+
+::: {.callout-tip}
+## When to use a comprehension
+
+If the result is the *value* you want, use a comprehension or genexp. If the loop is for *side effects* (writing to a database, printing), use a regular `for`. The two read differently for a reason.
+:::
+
+## Tuples are not just immutable lists {#sec-sequences-tuples}
+
+`tuple` plays two roles in Python: an immutable list, and a *record* in which position carries meaning.
+
+```{python}
+lax_coordinates = (33.9425, -118.408056)
+city, year, pop, chg, area = ("Tokyo", 2003, 32_450, 0.66, 8014)
+year, pop
+```
+
+Notice the second line: a tuple on the right, a comma-separated list of names on the left, and Python *unpacks* element-wise. This is the same operation as the famous swap idiom:
+
+```{python}
+a, b = 1, 2
+a, b = b, a
+a, b
+```
+
+Unpacking can nest:
+
+```{python}
+metro_areas = [
+    ("Tokyo", "JP", 36.933, (35.689722, 139.691667)),
+    ("Delhi NCR", "IN", 21.935, (28.613889, 77.208889)),
+]
+for name, _, _, (lat, lon) in metro_areas:
+    print(f"{name:15} | {lat:9.4f} | {lon:9.4f}")
+```
+
+The `_` is a conventional throwaway. The `(lat, lon)` on the left destructures the inner tuple in the same step.
+
+`*` collects excess items, on either side:
+
+```{python}
+a, b, *rest = range(5)
+a, b, rest
+```
+
+```{python}
+first, *body, last = range(5)
+first, body, last
+```
+
+## Pattern matching with sequences {#sec-sequences-match}
+
+Since Python 3.10, `match`/`case` lets you dispatch on the *shape* of a value rather than checking it with a chain of `if isinstance`. For sequences:
+
+```{python}
+def handle_command(message):
+    match message:
+        case ["QUIT"]:
+            return "Quitting"
+        case ["GO", direction]:
+            return f"Going {direction}"
+        case ["GET", obj, location]:
+            return f"Getting {obj} from {location}"
+        case ["DROP", *objects]:
+            return f"Dropping: {objects}"
+        case _:
+            return f"Unknown: {message!r}"
+
+print(handle_command(["GO", "north"]))
+print(handle_command(["DROP", "ax", "bow"]))
+print(handle_command(["WHAT"]))
+```
+
+Each `case` is a pattern, not an expression. Names like `direction`, `obj`, `*objects` are *bound* by the match if the structure fits. We will see pattern matching applied to mappings in @sec-dicts-sets and to classes in @sec-with-match-else.
+
+## Slicing {#sec-sequences-slicing}
+
+Why is the *stop* index of a slice exclusive? Because then `stop - start` is the length of the slice. That single rule explains every slicing convention:
+
+```{python}
+l = [10, 20, 30, 40, 50]
+l[:2], l[2:], l[1:4]
+```
+
+`slice` objects let you give a slice a name:
+
+```{python}
+invoice = """\
+0.....6.................................40........52...55........
+1909  Pimoroni PiBrella                     $17.50    3    $52.50
+1489  6MM Tactile Switch x20                 $4.95    2     $9.90
+"""
+SKU   = slice(0, 6)
+DESC  = slice(6, 40)
+UNIT  = slice(40, 52)
+QTY   = slice(52, 55)
+PRICE = slice(55, None)
+
+for item in invoice.split("\n")[1:-1]:
+    print(item[DESC].rstrip(), "|", item[UNIT].strip(), "|", item[QTY].strip())
+```
+
+Mutable sequences accept assignment *through* a slice — the lengths don't have to match:
+
+```{python}
+l = list(range(10))
+l[2:5] = [20, 30]
+l
+```
+
+```{python}
+del l[5:7]
+l
+```
+
+## `+` and `*` on sequences {#sec-sequences-plus-star}
+
+`+` concatenates and returns a new sequence. `*` repeats.
+
+```{python}
+[1, 2] + [3, 4], [0] * 5, "abc" * 3
+```
+
+The classic gotcha is using `*` on a list of mutables:
+
+```{python}
+board = [["_"] * 3] * 3
+board[0][1] = "X"
+board
+```
+
+Every row is the *same* inner list — mutating one mutates all three. The fix is a comprehension, which builds a fresh inner list per iteration:
+
+```{python}
+board = [["_"] * 3 for _ in range(3)]
+board[0][1] = "X"
+board
+```
+
+This is the first hint of the references-vs-values story we tell in full in @sec-references-mutability.
+
+## `list.sort` versus `sorted` {#sec-sequences-sort}
+
+There are two sort APIs in Python and they answer different questions.
+
+```{python}
+fruits = ["grape", "raspberry", "apple", "banana"]
+sorted(fruits, key=len)
+```
+
+`sorted` takes any iterable and returns a *new* list. `list.sort` sorts in place and returns `None`:
+
+```{python}
+fruits.sort()
+fruits
+```
+
+The `None` return value of `list.sort` is intentional — it's how Python signals "this method mutates." Compare with `dict.update` and `list.append`, which also return `None`.
+
+For sorted lists, `bisect` is the binary-search tool:
+
+```{python}
+import bisect
+haystack = [1, 4, 5, 6, 8, 12, 15, 20, 21, 23, 23, 26, 29, 30]
+bisect.bisect(haystack, 14)
+```
+
+`bisect.insort` inserts and keeps the list sorted in `O(n)` (the search is `O(log n)`; the insert is the slow part):
+
+```{python}
+bisect.insort(haystack, 14)
+haystack
+```
+
+## When a list is not the answer {#sec-sequences-alternatives}
+
+`list` is the default sequence, and it's almost always fine. Three exceptions are worth knowing.
+
+**`array.array` for large flat numeric data.** Stores raw C doubles or ints in contiguous memory:
+
+```{python}
+import array, random
+floats = array.array("d", (random.random() for _ in range(10)))
+floats
+```
+
+For ten million floats, this uses about a quarter of the memory a `list` of `float` would.
+
+**`collections.deque` for double-ended queues.** Constant-time append and pop on *both* ends, and an optional `maxlen`:
+
+```{python}
+from collections import deque
+dq = deque(range(10), maxlen=10)
+dq.appendleft(-1)
+dq
+```
+
+Because `maxlen=10` is set, appending at the front evicted the rightmost element.
+
+**`memoryview` for zero-copy byte slicing.** A view into the buffer of another object:
+
+```{python}
+import array
+numbers = array.array("h", [-2, -1, 0, 1, 2])
+memv = memoryview(numbers)
+memv_oct = memv.cast("B")
+memv_oct.tolist()
+```
+
+`cast("B")` reinterprets the same memory as unsigned bytes, with no copy.
+
+::: {.callout-tip}
+## Why this matters
+Python's sequence uniformity is not an accident — it's the data model at work. Implement `__len__` and `__getitem__` and your class gains slicing, iteration, `reversed()`, and the `in` operator for free.
+:::
+
+## Exercises {#sec-sequences-exercises}
+
+1. **Cartesian product, two ways.** Rewrite the t-shirt example using `itertools.product`. Which version is more readable for two iterables? For five?
+
+2. **Spot the bug.** What does `[[0] * 3] * 3` print after you do `m[1][1] = 1`? Why? How does the list comprehension version differ?
+
+3. **A tiny `match`.** Extend `handle_command` to accept `["LOOK"]` (returns `"Looking"`) and `["LOOK", "AT", target]` (returns `f"Looking at {target}"`). Does the order of `case` clauses matter?
+
+4. **`sort` vs `sorted`.** Given `nums = [3, 1, 4, 1, 5, 9, 2, 6]`, write two one-liners: one that prints the sorted result without mutating `nums`, and one that mutates `nums` to be sorted. Which returns `None`?
+
+5. **`memoryview` semantics.** With `arr = array.array("h", [1, 2, 3])` and `mv = memoryview(arr)`, predict what happens to `arr` if you do `mv[0] = 100`. Verify.
+
+## Summary {#sec-sequences-summary}
+
+Sequences are unified through a small set of dunder methods, but they cleave along two practical axes: container vs. flat, and mutable vs. immutable. Comprehensions and generator expressions are the canonical builders; pattern matching is the canonical destructurer. The next chapter, @sec-dicts-sets, turns to *unordered* collections — and explains why every Python program is, deep down, full of dictionaries.

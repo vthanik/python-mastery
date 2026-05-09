@@ -1,0 +1,80 @@
+project:
+  type: book
+  output-dir: _book
+
+engine: jupyter
+
+book:
+  title: "Fluent Python — A Distillation"
+  reader-mode: true
+
+  page-footer:
+    left: |
+      Distilled from Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022).
+    right: |
+      This book was built with <a href="https://quarto.org/">Quarto</a>.
+  cover-image: cover.jpg
+  favicon: cover.jpg
+  site-url: https://example.invalid/
+  repo-url: https://example.invalid/
+  repo-branch: main
+  repo-actions: [edit, issue]
+
+  chapters:
+    - index.qmd
+    - preface.qmd
+
+    - part: data-structures.qmd
+      chapters:
+        - data-model.qmd
+        - sequences.qmd
+        - dicts-sets.qmd
+        - unicode.qmd
+        - dataclasses.qmd
+        - references-mutability.qmd
+
+    - part: functions.qmd
+      chapters:
+        - first-class-functions.qmd
+        - type-hints.qmd
+        - decorators.qmd
+        - design-patterns.qmd
+
+    - part: classes.qmd
+      chapters:
+        - pythonic-objects.qmd
+        - sequence-methods.qmd
+        - protocols-abcs.qmd
+        - inheritance.qmd
+        - advanced-typing.qmd
+
+    - part: control-flow.qmd
+      chapters:
+        - operator-overload.qmd
+        - iterators.qmd
+        - with-match-else.qmd
+        - concurrency.qmd
+        - executors.qmd
+        - async.qmd
+
+    - part: metaprogramming.qmd
+      chapters:
+        - dynamic-attrs.qmd
+        - descriptors.qmd
+        - metaclasses.qmd
+
+    - references.qmd
+
+bibliography: references.bib
+csl: chicago-fullnote-bibliography.csl
+
+format:
+  html:
+    theme:
+      - cosmo
+    css: style.css
+    code-link: true
+    callout-appearance: simple
+    fig-align: center
+
+editor: visual

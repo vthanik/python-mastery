@@ -1,0 +1,9 @@
+# Metaprogramming {#sec-part-metaprogramming .unnumbered}
+
+The final part is the bottom of the language: where attribute access, class creation, and the rules of inheritance themselves become things you can program against. Most code never needs this. The libraries you depend on — `dataclasses`, `attrs`, ORM column descriptors, framework auto-registration — were written with these tools.
+
+- @sec-dynamic-attrs covers the runtime side of attribute access: `__getattr__`, `__setattr__`, `@property`, and the precedence rules that decide which one fires.
+
+- @sec-descriptors is the deepest single chapter in *Fluent Python*. A descriptor is an object that lives on the class and intercepts attribute access on the instance. Once you understand descriptors, you understand `@property`, `@classmethod`, `@staticmethod`, and almost every "magic" attribute in the standard library.
+
+- @sec-metaclasses closes the book with the controlled use of `type`-as-metaclass and the lighter-weight alternative, `__init_subclass__` (PEP 487). The chapter ends with the same advice it begins with: don't reach for metaclasses unless you've already failed with the simpler tools.

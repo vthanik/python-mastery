@@ -1,0 +1,10 @@
+# Iterators, Generators, and Classic Coroutines {#sec-iterators}
+
+::: {.callout-note}
+## Core idea
+Python's `for` loop calls `iter()` then repeatedly calls `next()`. Generators implement the iterator protocol lazily. Classic coroutines extend generators to receive values via `send()`. Understanding the iterator protocol makes all of Python's loop machinery transparent.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

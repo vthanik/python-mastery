@@ -1,0 +1,19 @@
+# Data Structures {#sec-part-data-structures .unnumbered}
+
+Python's data structures are deeply unified. Once you understand the protocols that built-in types implement — and the special methods you can implement to participate in those protocols — every other layer of the language clicks into place.
+
+This part walks the ladder:
+
+- @sec-data-model introduces the data model itself: what dunder methods are, why they exist, and how implementing two of them on a custom class can make it iterate, slice, and sort like a built-in.
+
+- @sec-sequences classifies sequences into container vs. flat, mutable vs. immutable, and shows how comprehensions, generator expressions, slicing, and unpacking are all consequences of the same protocol.
+
+- @sec-dicts-sets explains why dictionaries are the engine of Python — the namespace, the module system, and the class system all rest on them — and what their hash-based design implies for performance.
+
+- @sec-unicode disentangles `str`, `bytes`, and `bytearray`, and gives you a working model of Unicode normalization.
+
+- @sec-dataclasses surveys the four ways Python builds *records*: `namedtuple`, `typing.NamedTuple`, `dataclass`, and plain classes — and when to choose each.
+
+- @sec-references-mutability fixes the three ideas every Python programmer eventually trips over: variables are labels, not boxes; `==` and `is` ask different questions; and `==` does not survive a copy by default.
+
+By the end of this part, the data model is a tool you reach for, not a curiosity.

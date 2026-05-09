@@ -1,0 +1,278 @@
+# Dictionaries and Sets {#sec-dicts-sets}
+
+::: {.callout-note}
+## Core idea
+Dicts and sets are hash tables. Understanding this explains their performance (`O(1)` for get/set/in), their constraints (keys must be hashable), and their behavior (ordering in dicts since Python 3.7).
+:::
+
+In this chapter you will learn to:
+
+1. Build dicts with comprehensions, unpacking, and the merge operator (`|`).
+2. Match against dict patterns with `match`/`case`.
+3. Handle missing keys with `setdefault`, `defaultdict`, and `__missing__`.
+4. Use the `dict` variations from `collections`: `OrderedDict`, `ChainMap`, `Counter`.
+5. Wrap a `dict` in a read-only proxy with `MappingProxyType`.
+6. Apply set algebra: union, intersection, difference, symmetric difference.
+7. Reason about why dicts and sets need *hashable* keys.
+
+## Modern dict syntax {#sec-dicts-modern}
+
+Dict comprehensions mirror list comprehensions, but with `key: value` pairs:
+
+```{python}
+dial_codes = [
+    (880, "Bangladesh"),
+    (55,  "Brazil"),
+    (86,  "China"),
+    (91,  "India"),
+    (62,  "Indonesia"),
+]
+country_dial = {country: code for code, country in dial_codes}
+country_dial
+```
+
+`**` unpacks a dict into another dict (or into keyword arguments):
+
+```{python}
+def dump(**kwargs):
+    return kwargs
+
+dump(**{"x": 1}, y=2, **{"z": 3})
+```
+
+Since Python 3.9, `|` merges dicts and `|=` updates in place — and they handle conflicts the same way `dict.update` does (the right-hand side wins):
+
+```{python}
+d1 = {"a": 1, "b": 3}
+d2 = {"a": 2, "b": 4, "c": 6}
+d1 | d2
+```
+
+```{python}
+d1 |= d2
+d1
+```
+
+::: {.callout-tip}
+## Dicts are now ordered
+
+Since Python 3.7, regular dicts preserve insertion order. This was an implementation detail of CPython 3.6 that became a language guarantee. You no longer need `collections.OrderedDict` for ordering alone — you only need it for the methods we'll see below (`move_to_end`, `popitem(last=...)`).
+:::
+
+## Pattern matching with mappings {#sec-dicts-match}
+
+`match`/`case` works on dicts the way it works on lists, but the patterns describe *which keys must be present*:
+
+```{python}
+def get_creators(record):
+    match record:
+        case {"type": "book", "api": 2, "authors": [*names]}:
+            return names
+        case {"type": "book", "api": 1, "author": name}:
+            return [name]
+        case {"type": "book"}:
+            raise ValueError(f"Invalid 'book' record: {record!r}")
+        case {"type": "movie", "director": name}:
+            return [name]
+        case _:
+            raise ValueError(f"Invalid record: {record!r}")
+
+b1 = dict(api=1, author="Douglas Hofstadter",
+          type="book", title="Gödel, Escher, Bach")
+get_creators(b1)
+```
+
+The crucial rule for mapping patterns: a pattern matches if the *given* keys are present. Extra keys in the value are ignored. That's the opposite of how `==` on dicts works — and it's exactly what you want for parsing semi-structured records.
+
+## Handling missing keys {#sec-dicts-missing}
+
+There are four idioms for "give me the value for this key, or a default."
+
+**`dict.get` with a default** is the simplest:
+
+```{python}
+d = {"a": 1}
+d.get("missing", [])
+```
+
+**`dict.setdefault`** does *get-or-insert* in a single hash lookup. Use it when you want to mutate the default:
+
+```{python}
+occurrences = {}
+word = "hello"
+occurrences.setdefault(word, []).append(3)
+occurrences
+```
+
+The naive version of that pattern — `if word not in d: d[word] = []; d[word].append(...)` — costs three hash lookups per word. `setdefault` costs one.
+
+**`collections.defaultdict`** moves the default into the dict itself:
+
+```{python}
+from collections import defaultdict
+index = defaultdict(list)
+for position, word in enumerate("the cat sat on the mat".split()):
+    index[word].append(position)
+dict(index)
+```
+
+The factory (`list`) is called every time a missing key is accessed. The price: the default is created on *any* access, including a read for a key that doesn't exist — so `index["never_seen"]` would silently insert an empty list.
+
+**`__missing__`** is the lowest-level hook. Subclass `dict` and Python will call `__missing__(key)` when a key isn't found via `d[key]`:
+
+```{python}
+class StrKeyDict(dict):
+    def __missing__(self, key):
+        if isinstance(key, str):
+            raise KeyError(key)
+        return self[str(key)]
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __contains__(self, key):
+        return key in self.keys() or str(key) in self.keys()
+
+d = StrKeyDict([("2", "two"), ("4", "four")])
+d[2]
+```
+
+The integer key `2` was not in the dict, but `__missing__` was called and converted it to `"2"`. Subtle thing to know: `__missing__` is *only* invoked by `d[key]`, not by `d.get(key)` — that's why we override `get` too.
+
+## Variations of `dict` {#sec-dicts-variations}
+
+`collections` exports three close cousins of `dict`. Each one solves a single problem.
+
+```{python}
+from collections import OrderedDict, ChainMap, Counter
+```
+
+**`OrderedDict`** keeps insertion order (so does plain `dict` since 3.7) but adds `move_to_end` and `popitem(last=...)`:
+
+```{python}
+od = OrderedDict(a=1, b=2, c=3)
+od.move_to_end("b")
+list(od.keys())
+```
+
+**`ChainMap`** layers several mappings into one logical view. Lookups traverse the chain in order:
+
+```{python}
+import builtins
+pylookup = ChainMap(locals(), globals(), vars(builtins))
+pylookup["print"] is print
+```
+
+The Python interpreter itself uses something like this for name resolution: locals, then globals, then builtins.
+
+**`Counter`** is a multiset. It maps each element to its count:
+
+```{python}
+ct = Counter("abracadabra")
+ct.most_common(3)
+```
+
+```{python}
+ct.update("aaaaazzz")
+ct["z"]
+```
+
+## Immutable mappings with `MappingProxyType` {#sec-dicts-proxy}
+
+When you want to expose a `dict` for reading without letting the caller mutate it, wrap it in `types.MappingProxyType`:
+
+```{python}
+from types import MappingProxyType
+d = {1: "A"}
+d_proxy = MappingProxyType(d)
+d_proxy[1]
+```
+
+```{python}
+#| error: true
+d_proxy[2] = "X"
+```
+
+The proxy is a *view*, not a copy. Updates to the original are visible through it:
+
+```{python}
+d[2] = "B"
+d_proxy[2]
+```
+
+## Set theory {#sec-dicts-sets-theory}
+
+Sets are like dicts without values: hash tables of unique elements. The operators read like the math.
+
+```{python}
+s = {1, 2, 3}
+empty = set()  # NOT {} — that's an empty dict
+type(s), type(empty)
+```
+
+The four set operations:
+
+```{python}
+a = {1, 2, 3, 4}
+b = {2, 4, 6}
+
+a | b, a & b, a - b, a ^ b
+```
+
+| Operator | Meaning | Example output |
+|---|---|---|
+| `a \| b` | union | `{1, 2, 3, 4, 6}` |
+| `a & b` | intersection | `{2, 4}` |
+| `a - b` | difference | `{1, 3}` |
+| `a ^ b` | symmetric difference | `{1, 3, 6}` |
+
+The classic use of intersection: counting matches between two collections in `O(min(len(a), len(b)))` instead of `O(len(a) * len(b))`.
+
+```{python}
+needles = {1, 2, 3, 99, 100}
+haystack = set(range(50))
+len(needles & haystack)
+```
+
+That same logic with `list` membership would be `O(n*m)`. With sets, it is roughly linear in the smaller collection.
+
+::: {.callout-tip}
+## Why this matters
+Dicts are hash tables — `O(1)` for lookup, insertion, deletion. This is why Python can iterate `dict.keys()` and `dict.items()` as set-like views: a dict internally *is* a hash table, and sets are their own hash tables. The price you pay: keys must be hashable.
+:::
+
+## What "hashable" means {#sec-dicts-hashable}
+
+An object is *hashable* if it has a `__hash__` method whose return value never changes during the object's lifetime, and an `__eq__` method that's consistent with that hash. The standard immutable types — `int`, `float`, `str`, `bytes`, `tuple` (of hashables), `frozenset` — are all hashable. `list`, `dict`, `set` are not.
+
+```{python}
+hash("hello")
+```
+
+```{python}
+#| error: true
+hash([1, 2, 3])
+```
+
+This is why dict keys and set elements must be hashable: the hash table needs a stable bucket. We'll come back to `__hash__` in @sec-pythonic-objects when we make our own class hashable.
+
+## Exercises {#sec-dicts-exercises}
+
+1. **`setdefault` vs `defaultdict`.** Rewrite the index-building example using `setdefault` instead of `defaultdict`. Which is more readable to you?
+
+2. **Pattern shape.** Modify `get_creators` to also handle a record with `type: "movie"` *and* a list of directors (`"directors": [...]`).
+
+3. **`MappingProxyType` semantics.** Given `d = {"a": 1}` and `p = MappingProxyType(d)`, can you mutate the value at `d["a"]` through `p`? Through `d`? Try it.
+
+4. **Set difference for diffs.** Given two dicts representing config files, write a one-line expression that returns the keys present in the new dict but missing from the old. Use set difference on `.keys()`.
+
+5. **The classic `{}` trap.** What does `type({})` return? What about `type({1})`? What does `type({1: 2})` return? Why is `set()` the recommended way to spell an empty set?
+
+## Summary {#sec-dicts-summary}
+
+`dict` and `set` are the two hash-table types in Python. Their performance, their ordering rules, and their constraint on hashable keys all flow from that one fact. The standard library adds three useful flavors — `OrderedDict`, `ChainMap`, `Counter` — and `MappingProxyType` for read-only views.
+
+The next chapter, @sec-unicode, leaves the data structures and dives into the I/O boundary: when does a `str` become `bytes`, when does the reverse happen, and how do you keep your code from breaking on non-ASCII text?

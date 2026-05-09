@@ -1,0 +1,10 @@
+# Functions as First-Class Objects {#sec-first-class-functions}
+
+::: {.callout-note}
+## Core idea
+Functions in Python are objects. They can be stored in variables, passed as arguments, returned from functions, and introspected. This is the foundation of decorators, higher-order functions, and functional programming in Python.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

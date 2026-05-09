@@ -1,0 +1,10 @@
+# Concurrent Executors {#sec-executors}
+
+::: {.callout-note}
+## Core idea
+`concurrent.futures` provides a high-level, uniform interface for both thread-based and process-based concurrency. `ThreadPoolExecutor` for I/O, `ProcessPoolExecutor` for CPU — same API for both.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

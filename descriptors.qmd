@@ -1,0 +1,10 @@
+# Attribute Descriptors {#sec-descriptors}
+
+::: {.callout-note}
+## Core idea
+Descriptors reuse property logic across multiple attributes or classes. They power Python's fundamental machinery: methods, `@property`, `@classmethod`, `@staticmethod` — all implemented as descriptors.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

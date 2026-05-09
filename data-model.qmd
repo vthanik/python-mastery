@@ -1,0 +1,214 @@
+# The Python Data Model {#sec-data-model}
+
+> *"The Python interpreter invokes special methods to perform basic object operations, often triggered by special syntax."*
+> — Luciano Ramalho, *Fluent Python* (2e, ch. 1)
+
+::: {.callout-note}
+## Core idea
+Python has a uniform API for everything — the "data model" — implemented through special methods (dunder methods). Understand this and you understand why Python feels consistent across built-in types, standard library, and your own code.
+:::
+
+In this chapter you will learn to:
+
+1. Recognize the most common special methods (the *dunders*) by name and category.
+2. Implement two of them on a custom class and watch iteration, slicing, and `random.choice` start working "for free."
+3. Read a class and predict which built-in functions and operators it supports.
+4. Explain why `len(x)` is a function rather than a method, and what that says about Python's design.
+
+## A Pythonic card deck {#sec-data-model-card-deck}
+
+The shortest path to seeing the data model in action is to implement two special methods on a single class and observe everything you get without writing another line.
+
+```{python}
+import collections
+
+Card = collections.namedtuple("Card", ["rank", "suit"])
+
+class FrenchDeck:
+    ranks = [str(n) for n in range(2, 11)] + list("JQKA")
+    suits = "spades diamonds clubs hearts".split()
+
+    def __init__(self):
+        self._cards = [Card(rank, suit)
+                       for suit in self.suits
+                       for rank in self.ranks]
+
+    def __len__(self):
+        return len(self._cards)
+
+    def __getitem__(self, position):
+        return self._cards[position]
+```
+
+Two dunder methods: `__len__` and `__getitem__`. That's the entire interface. Now look at what the class can already do.
+
+```{python}
+deck = FrenchDeck()
+len(deck)
+```
+
+`len(deck)` works because the built-in `len` function calls `deck.__len__()`. Nothing special — it's a contract. If you implement the contract, the built-in is there.
+
+```{python}
+deck[0], deck[-1]
+```
+
+Indexing is the same story. `deck[0]` is sugar for `deck.__getitem__(0)`. Negative indexing works because we delegated to the underlying list, which supports it.
+
+```{python}
+from random import choice
+choice(deck)
+```
+
+`random.choice` requires only that its argument support `len` and `__getitem__` — exactly the two methods we wrote. No inheritance, no registration. The function works on our class because our class fulfills the protocol it expects.
+
+```{python}
+for card in deck[:3]:
+    print(card)
+```
+
+Two more powers came in that line. Slicing — `deck[:3]` — works because slicing is just `__getitem__(slice(None, 3, None))`, and our `__getitem__` forwards the index to a list. Iteration — the `for card in ...` — works because the absence of `__iter__` falls back to repeatedly calling `__getitem__(0)`, `__getitem__(1)`, ... until `IndexError`.
+
+```{python}
+Card("Q", "hearts") in deck
+```
+
+The `in` operator falls back to iteration when `__contains__` isn't defined, so it works too. Sorting works:
+
+```{python}
+suit_values = dict(spades=3, hearts=2, diamonds=1, clubs=0)
+
+def spades_high(card):
+    rank_value = FrenchDeck.ranks.index(card.rank)
+    return rank_value * len(suit_values) + suit_values[card.suit]
+
+for card in sorted(deck, key=spades_high)[-3:]:
+    print(card)
+```
+
+Three of the highest cards. We wrote two methods; we got `len`, indexing, slicing, iteration, `in`, `random.choice`, and `sorted`. *That* is the data model.
+
+## Emulating numeric types {#sec-data-model-numeric}
+
+The same protocol idea works for arithmetic. A two-dimensional vector is the canonical example — it lets you implement most of the numeric dunders in a class small enough to read in one screen.
+
+```{python}
+import math
+
+class Vector:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Vector({self.x!r}, {self.y!r})"
+
+    def __abs__(self):
+        return math.hypot(self.x, self.y)
+
+    def __bool__(self):
+        return bool(abs(self))
+
+    def __add__(self, other):
+        return Vector(self.x + other.x, self.y + other.y)
+
+    def __mul__(self, scalar):
+        return Vector(self.x * scalar, self.y * scalar)
+```
+
+Each dunder turns a piece of Python syntax into something `Vector` understands.
+
+```{python}
+v1 = Vector(2, 4)
+v2 = Vector(2, 1)
+v1 + v2
+```
+
+`v1 + v2` calls `v1.__add__(v2)`. The result is a new `Vector` (not a mutation), which matches how `+` works on numbers, strings, and tuples.
+
+```{python}
+abs(Vector(3, 4))
+```
+
+`abs()` calls `__abs__`. We defined it as the Euclidean length, so `(3, 4)` returns `5.0`.
+
+```{python}
+v1 * 3
+```
+
+`*` with a scalar calls `__mul__`. Note what happens with the *reflected* operand:
+
+```{python}
+#| error: true
+3 * v1
+```
+
+`3 * v1` fails because `int.__mul__` doesn't know about `Vector`, and we haven't defined `__rmul__`. We will fix this in @sec-operator-overload — the reflected operators are a topic of their own.
+
+```{python}
+print(repr(Vector(1, 2)))
+print(bool(Vector(0, 0)))
+print(bool(Vector(1, 0)))
+```
+
+`__repr__` is what gives a useful display when you type `v1` at a prompt or print it. `__bool__` is what makes `if vector:` work.
+
+::: {.callout-tip}
+## `__repr__` vs `__str__`
+
+If you implement only one of the two, implement `__repr__`. Without `__str__`, Python uses `__repr__` for both `repr(x)` and `str(x)`. The reverse is not true: a class with only `__str__` will fall back to the unhelpful `<__main__.Vector object at 0x...>` for `repr`.
+:::
+
+## An overview of special methods {#sec-data-model-overview}
+
+The full taxonomy of special methods is large. The table below is the working subset — the dunders that every working Python programmer should be able to recognize:
+
+| Category | Special methods |
+|---|---|
+| Strings/bytes | `__repr__`, `__str__`, `__format__`, `__bytes__` |
+| Numeric conversion | `__bool__`, `__complex__`, `__int__`, `__float__` |
+| Collection emulation | `__len__`, `__getitem__`, `__setitem__`, `__contains__` |
+| Iteration | `__iter__`, `__next__`, `__reversed__` |
+| Callable | `__call__` |
+| Context manager | `__enter__`, `__exit__` |
+| Attribute access | `__getattr__`, `__setattr__`, `__delattr__`, `__dir__` |
+| Arithmetic (regular) | `__add__`, `__sub__`, `__mul__`, `__truediv__`, `__mod__` |
+| Arithmetic (reflected) | `__radd__`, `__rsub__`, `__rmul__`, … |
+| Augmented assignment | `__iadd__`, `__isub__`, `__imul__`, … |
+| Rich comparison | `__lt__`, `__le__`, `__eq__`, `__ne__`, `__gt__`, `__ge__` |
+| Hashing | `__hash__` |
+
+You don't memorize this table. You recognize the pattern — every operator and built-in delegates to a dunder — and look up the specific name when you need it.
+
+## Why `len` is not a method {#sec-data-model-len}
+
+`len(x)` is a function, not a method. Why?
+
+When Python sees `len(deck)`, the interpreter calls `deck.__len__()` *unless* the object is a built-in type, in which case it reads the length directly from a C struct field — an `O(1)` shortcut. If `len` were a regular method, that shortcut would be impossible: every call would have to go through method lookup.
+
+The function form preserves both possibilities. For built-ins, `len` is a near-instant struct read. For your class, `len` calls your `__len__`. The caller doesn't know — and doesn't need to.
+
+This is the design principle of the data model in miniature. Built-ins and custom classes look identical at the call site; the implementation behind them is free to differ.
+
+::: {.callout-tip}
+## Why this matters
+The Python data model is a framework contract. Implement the right special methods and your objects behave like built-ins — they work with `for` loops, slicing, `random.choice()`, `len()`, `bool()`, `abs()`, and the rest of the language, without inheriting from anything.
+:::
+
+## Exercises {#sec-data-model-exercises}
+
+1. **A two-card hand.** Subclass `FrenchDeck` (or write a new class) called `Hand` that holds exactly two cards and supports `len`, indexing, and iteration. What's the smallest set of dunders you need?
+
+2. **Vector subtraction and equality.** Add `__sub__` and `__eq__` to the `Vector` class above. Verify that `Vector(3, 4) - Vector(1, 2) == Vector(2, 2)` is `True`.
+
+3. **Reverse iteration.** What does `for card in reversed(deck)` do? Walk the chain: `reversed` looks for `__reversed__` first, then falls back to what?
+
+4. **Negative `__bool__`.** Why is the default `__bool__` (the one Python uses if you don't define one) `True`? Read the docs for `bool()` and explain in one sentence what Python does for objects without `__bool__` *or* `__len__`.
+
+5. **Read the source.** Open the `collections.UserList` source (`python -c "import collections, inspect; print(inspect.getsource(collections.UserList))"`). How many of the dunders from the table above does it implement?
+
+## Summary {#sec-data-model-summary}
+
+This chapter introduced *the contract*: a set of special methods that Python's syntax and built-in functions delegate to. Implementing them on your own classes makes those classes feel like built-ins — usable with `len`, iteration, slicing, `in`, `abs`, `+`, comparison, and more.
+
+The next chapter, @sec-sequences, takes one corner of this contract — the *sequence* protocol — and shows how Python's many sequence types (`list`, `tuple`, `str`, `bytes`, `array`, `deque`) all sit underneath the same handful of dunders.

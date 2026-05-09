@@ -1,0 +1,11 @@
+# Functions as Objects {#sec-part-functions .unnumbered}
+
+In Python, functions are first-class. You can pass them as arguments, return them from other functions, store them in lists and dicts, and attach attributes to them. This part is about the consequences of that single fact.
+
+- @sec-first-class-functions is the foundational chapter: what *first-class* really means, the seven kinds of callable, anonymous functions and their limits, and why `functools.partial` exists.
+
+- @sec-type-hints turns to gradual typing — the contract Python's type checker can read, but the interpreter happily ignores. We cover the everyday hints (`list[int]`, `dict[str, float]`, `Callable`, `Optional`), and we'll see them again in @sec-advanced-typing once protocols and generics are on the table.
+
+- @sec-decorators is where functions-as-objects pays the largest dividend. Decorators are the syntactic sugar; closures are the engine. We'll build a parameterized decorator, register a class, and explore why decorator order matters.
+
+- @sec-design-patterns rewrites two textbook *Gang of Four* patterns — Strategy and Command — without classes. The point is not that classes are bad; the point is that languages with first-class functions don't always need them.

@@ -1,0 +1,13 @@
+# Classes and Protocols {#sec-part-classes .unnumbered}
+
+Building classes that *feel* like built-in types is the goal of this part. Python's standard library is a long argument that good class design is about implementing the right protocols — not inheriting from the right base class.
+
+- @sec-pythonic-objects is a single example carried through five sections: a `Vector2d` class that becomes printable, hashable, formattable, slottable, and private-aware. It's the chapter where every special method finally meets a use case.
+
+- @sec-sequence-methods extends that example to a multi-dimensional `Vector`, implementing the full sequence protocol — `__getitem__`, `__len__`, slicing, formatting, hashing — so the object behaves like `tuple`.
+
+- @sec-protocols-abcs draws the line between Python's two type systems. Nominal typing (you inherit from an `ABC`) and structural typing (you implement the right methods) coexist. We'll write a `Vowel` class twice, once each way, and see which is more Pythonic.
+
+- @sec-inheritance is the cautionary chapter. The MRO, mixins, multiple inheritance, the diamond — all of it works, none of it is required. Most Python code reaches for composition first, and you should too.
+
+- @sec-advanced-typing returns to type hints with the tools that matter at scale: `TypeVar`, `Generic`, `Protocol`, `overload`, `TypedDict`. These are the hints that catch bugs you'd otherwise ship.

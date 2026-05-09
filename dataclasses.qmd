@@ -1,0 +1,10 @@
+# Data Class Builders {#sec-dataclasses}
+
+::: {.callout-note}
+## Core idea
+Python offers three ways to build data classes, each with a different trade-off. `@dataclass` is the modern default; `NamedTuple` is the immutable alternative; old-style classes are only when you need full control.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

@@ -1,0 +1,10 @@
+# Type Hints in Functions {#sec-type-hints}
+
+::: {.callout-note}
+## Core idea
+Type hints are optional, checked by tools (mypy, pyright), and have zero runtime cost. They are documentation that can be verified. Python's type system is "gradual" — you add hints incrementally.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

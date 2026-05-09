@@ -1,0 +1,10 @@
+# More About Type Hints {#sec-advanced-typing}
+
+::: {.callout-note}
+## Core idea
+Advanced typing: function overloads, `TypedDict` for structured dicts, variance in generic types, and generic static protocols.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

@@ -1,0 +1,10 @@
+# Special Methods for Sequences {#sec-sequence-methods}
+
+::: {.callout-note}
+## Core idea
+Build a proper multi-dimensional `Vector` class by incrementally adding special methods. This chapter demonstrates how protocols (informal interfaces) work in practice.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

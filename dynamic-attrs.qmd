@@ -1,0 +1,10 @@
+# Dynamic Attributes and Properties {#sec-dynamic-attrs}
+
+::: {.callout-note}
+## Core idea
+Properties and dynamic attributes let you start with simple public attributes and add behavior later without breaking the API. This is the "uniform access principle" in Python.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

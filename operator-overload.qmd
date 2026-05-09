@@ -1,0 +1,10 @@
+# Operator Overloading {#sec-operator-overload}
+
+::: {.callout-note}
+## Core idea
+Python allows you to overload operators for your own types. The rules are clear: return `NotImplemented` (not raise) when you can't handle the operand type, and Python will try the reflected method on the other side.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

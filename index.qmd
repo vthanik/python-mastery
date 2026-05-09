@@ -1,0 +1,21 @@
+# Welcome {.unnumbered}
+
+This is a distillation — chapter by chapter — of Luciano Ramalho's *Fluent Python* (2nd edition, O'Reilly Media 2022). It exists because the book is the deepest treatment of the language available, and the ideas inside deserve a form that's quick to scan, runnable in the browser, and structured for reference.
+
+The original book is the canonical source. This is the working programmer's pocket version: the same five parts (Data Structures, Functions as Objects, Classes and Protocols, Control Flow & Concurrency, Metaprogramming), the same twenty-four chapters, but compressed to the load-bearing ideas — the data model, the special methods, the protocols, the descriptors, the metaclasses — with code that you can run in place.
+
+::: {.callout-warning}
+## This is not a beginner book
+
+These chapters assume you can already read and write basic Python: variables, control flow, function and class definitions, imports, exceptions. *Fluent Python* itself targets working programmers, and these notes preserve that assumption. If you're brand new to Python, work through the official tutorial first; then come back here to learn what makes Python *Pythonic*.
+:::
+
+The book is organized so each chapter answers a single question:
+
+- *What is the data model, and why does it make Python feel uniform?*
+- *What does it mean to treat functions as first-class objects?*
+- *Why is structural typing — protocols — so much more powerful than nominal inheritance?*
+- *What's actually happening when you write `async def`?*
+- *Where do descriptors and metaclasses fit, and when should you avoid them?*
+
+When the source notes leave a step unclear, the original book is consulted as a secondary reference; passages are paraphrased and attributed, never reproduced.

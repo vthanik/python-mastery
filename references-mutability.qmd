@@ -1,0 +1,10 @@
+# Object References, Mutability, and Recycling {#sec-references-mutability}
+
+::: {.callout-note}
+## Core idea
+Python variables are not boxes that hold values — they are labels attached to objects. This single mental model explains assignment, aliasing, copying, and garbage collection.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

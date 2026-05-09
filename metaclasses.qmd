@@ -1,0 +1,10 @@
+# Class Metaprogramming {#sec-metaclasses}
+
+::: {.callout-note}
+## Core idea
+Classes are objects. `type()` is the metaclass of all classes. You can create classes dynamically, customize class creation with `__init_subclass__`, or build metaclasses for framework-level control. These are powerful tools — use them sparingly.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.

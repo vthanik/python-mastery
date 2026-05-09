@@ -1,0 +1,10 @@
+# Design Patterns with First-Class Functions {#sec-design-patterns}
+
+::: {.callout-note}
+## Core idea
+Classic OOP design patterns often become simpler or disappear entirely in Python because functions are first-class objects. The Strategy and Command patterns reduce to plain functions.
+:::
+
+## In progress {.unnumbered}
+
+This chapter is a stub.
