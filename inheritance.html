@@ -523,7 +523,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-inheritance-super" class="level2" data-number="26.1">
 <h2 data-number="26.1" class="anchored" data-anchor-id="sec-inheritance-super"><span class="header-section-number">26.1</span> Always use <code>super()</code></h2>
 <p>When overriding a method on a subclass, you almost always need to call back to the parent’s version — to do the work it would have done, plus your additions. <code>super()</code> is the right tool: it walks the inheritance chain in the canonical order and finds the next method up.</p>
-<div id="80a84db5" class="cell" data-execution_count="1">
+<div id="804a8104" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DoppelDictUserDict:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__setitem__</span>(<span class="va">self</span>, key, value):</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__setitem__</span>(key, [value] <span class="op">*</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -539,7 +539,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-inheritance-builtins" class="level2" data-number="26.2">
 <h2 data-number="26.2" class="anchored" data-anchor-id="sec-inheritance-builtins"><span class="header-section-number">26.2</span> Subclassing built-ins is tricky</h2>
 <p>The dangerous part: when you subclass a <em>built-in</em> type like <code>dict</code>, the C-level methods don’t always call your overrides. We override <code>__setitem__</code> to double every value — and watch one assignment route through us while another doesn’t:</p>
-<div id="ed8d3e6b" class="cell" data-execution_count="2">
+<div id="b4b8417c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DoppelDict(<span class="bu">dict</span>):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__setitem__</span>(<span class="va">self</span>, key, value):</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__setitem__</span>(key, [value] <span class="op">*</span> <span class="dv">2</span>)</span>
@@ -560,7 +560,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The result is a class where assignments through <code>[]</code> are doubled but assignments through <code>__init__</code>, <code>update</code>, or <code>setdefault</code> are not — almost guaranteed to surprise the next reader.</li>
 </ul>
 <p>The fix is to subclass <code>collections.UserDict</code>, which is written in pure Python and <em>does</em> call your overrides:</p>
-<div id="56137371" class="cell" data-execution_count="3">
+<div id="7871656e" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> UserDict</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DoppelUserDict(UserDict):</span>
@@ -583,7 +583,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-inheritance-mro" class="level2" data-number="26.3">
 <h2 data-number="26.3" class="anchored" data-anchor-id="sec-inheritance-mro"><span class="header-section-number">26.3</span> Multiple inheritance and the MRO</h2>
 <p>Python supports multiple inheritance, and resolves which method to call using the <em>Method Resolution Order</em> — a linearization of the inheritance graph. To see it in action we’ll build the classic diamond: <code>A</code> at the top, <code>B</code> and <code>C</code> both inheriting from <code>A</code>, and <code>D</code> inheriting from both. Both <code>B</code> and <code>C</code> define <code>pong</code>; we’ll see which one wins.</p>
-<div id="3f04a566" class="cell" data-execution_count="4">
+<div id="c92d64fa" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> A:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> ping(<span class="va">self</span>):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"ping:"</span>, <span class="bu">type</span>(<span class="va">self</span>).<span class="va">__name__</span>)</span>
@@ -649,21 +649,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The left graph is the inheritance graph; the right is its <em>linearization</em> — the order Python actually walks for attribute lookup. C3 guarantees this is a consistent total order over the graph; that’s why <code>super()</code> works predictably.</p>
 <p>The MRO is <code>D → B → C → A → object</code>. When you call <code>D().pong()</code>, Python walks this chain and picks the first match — <code>B.pong</code>. When you call <code>D().ping()</code>, it calls our override; <code>super().ping()</code> then looks past <code>D</code> in the MRO and finds <code>A.ping</code>.</p>
-<div id="0c8cc8fd" class="cell" data-execution_count="5">
+<div id="39354e79" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>D().ping()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ping: D
 post-ping: D</code></pre>
 </div>
 </div>
-<div id="55c8d9e7" class="cell" data-execution_count="6">
+<div id="4c30617e" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>D().pong()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>pong: D</code></pre>
 </div>
 </div>
 <p>To call a <em>specific</em> parent’s method, bypass the MRO with the explicit form:</p>
-<div id="58d7e78b" class="cell" data-execution_count="7">
+<div id="ae187c17" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>C.pong(D())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>PONG: D</code></pre>
@@ -674,7 +674,7 @@ post-ping: D</code></pre>
 <section id="sec-inheritance-mixins" class="level2" data-number="26.4">
 <h2 data-number="26.4" class="anchored" data-anchor-id="sec-inheritance-mixins"><span class="header-section-number">26.4</span> Mixin classes</h2>
 <p>A <em>mixin</em> is a class that adds focused behavior — usually no state — to other classes. Multiple mixins compose by inheritance. The convention is to suffix the class name with <code>Mixin</code> to signal intent. To see one in practice, we’ll add case-insensitive key lookup to a dict by intercepting every keyed operation and lowercasing the key before forwarding upstream.</p>
-<div id="06c0cc99" class="cell" data-execution_count="8">
+<div id="687c6155" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> UserDict</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> CaseInsensitiveMixin:</span>
@@ -704,7 +704,7 @@ post-ping: D</code></pre>
 <li>The order matters: <code>CaseInsensitiveMixin</code> first, then <code>UserDict</code>. <code>super()</code> calls inside the mixin land on <code>UserDict</code> next, so the lowercased key reaches the real dict.</li>
 </ul>
 <p>Look at the MRO:</p>
-<div id="6eb0f022" class="cell" data-execution_count="9">
+<div id="e043701f" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>CaseInsensitiveDict.__mro__</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>(__main__.CaseInsensitiveDict,
@@ -749,7 +749,7 @@ post-ping: D</code></pre>
 </div>
 <div class="callout-body-container callout-body">
 <p>For the common case of “every subclass should do X on creation”, you don’t need a metaclass or even multiple inheritance — <code>__init_subclass__</code> is the hook:</p>
-<div id="e3c00e2c" class="cell" data-execution_count="10">
+<div id="f1e729df" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Plugin:</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    registry <span class="op">=</span> []</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init_subclass__</span>(cls, <span class="op">**</span>kw):</span>

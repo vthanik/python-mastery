@@ -522,7 +522,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-gradual" class="level2" data-number="20.1">
 <h2 data-number="20.1" class="anchored" data-anchor-id="sec-types-gradual"><span class="header-section-number">20.1</span> Gradual typing in practice</h2>
 <p>A function without hints is still legal:</p>
-<div id="3f169110" class="cell" data-execution_count="1">
+<div id="f512741f" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> show_count(count, word):</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> count <span class="op">==</span> <span class="dv">1</span>:</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"1 </span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">"</span></span>
@@ -534,7 +534,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Without hints, you can call <code>show_count("three", "cat")</code> and the bug only surfaces when the format string runs. Hints let a static checker catch this <em>before</em> the program runs:</p>
-<div id="4544a1dc" class="cell" data-execution_count="2">
+<div id="e27b594d" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> show_count(count: <span class="bu">int</span>, word: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> count <span class="op">==</span> <span class="dv">1</span>:</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"1 </span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">"</span></span>
@@ -554,7 +554,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general pattern: hints are documentation that a tool can verify. Add them when they earn their keep — usually at API boundaries where wrong types would cause real bugs.</p>
 <p>For optional parameters, write <code>X | None</code> (Python 3.10+) or <code>Optional[X]</code>:</p>
-<div id="70745738" class="cell" data-execution_count="3">
+<div id="ea3cbcba" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> show_count(count: <span class="bu">int</span>, singular: <span class="bu">str</span>, plural: <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> count <span class="op">==</span> <span class="dv">1</span>:</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="ss">f"1 </span><span class="sc">{</span>singular<span class="sc">}</span><span class="ss">"</span></span>
@@ -569,7 +569,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-duck" class="level2" data-number="20.2">
 <h2 data-number="20.2" class="anchored" data-anchor-id="sec-types-duck"><span class="header-section-number">20.2</span> Types are defined by supported operations</h2>
 <p>The duck-typing view is that <em>a type is what a value can do</em>:</p>
-<div id="64e2cf5a" class="cell" data-execution_count="4">
+<div id="734e8ddb" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> double(x):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> x <span class="op">*</span> <span class="dv">2</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -579,7 +579,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>int</code>, <code>str</code>, and <code>list</code> all support <code>*</code> — and <code>double</code> works on all three. The type-system view writes the same idea using <code>TypeVar</code>:</p>
-<div id="5fa60914" class="cell" data-execution_count="5">
+<div id="7aa334c8" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>T <span class="op">=</span> TypeVar(<span class="st">"T"</span>, <span class="bu">int</span>, <span class="bu">str</span>, <span class="bu">list</span>)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> double_typed(x: T) <span class="op">-&gt;</span> T:</span>
@@ -595,7 +595,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-vocabulary" class="level2" data-number="20.3">
 <h2 data-number="20.3" class="anchored" data-anchor-id="sec-types-vocabulary"><span class="header-section-number">20.3</span> Types you’ll annotate with</h2>
 <p>The everyday vocabulary:</p>
-<div id="29c730eb" class="cell" data-execution_count="6">
+<div id="db36616c" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> legacy_parse(text: <span class="bu">str</span>) <span class="op">-&gt;</span> Any: ...</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -610,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(3.14, None)</code></pre>
 </div>
 </div>
-<div id="41f60fd0" class="cell" data-execution_count="7">
+<div id="fa21157c" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> normalize_label(label: <span class="bu">int</span> <span class="op">|</span> <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">isinstance</span>(label, <span class="bu">int</span>):</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">str</span>(label)</span>
@@ -622,7 +622,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>For collections, since Python 3.9 you can subscript the built-ins directly — <code>list[int]</code>, <code>dict[str, int]</code>, <code>tuple[int, ...]</code> all work without <code>from typing import List, Dict, Tuple</code>:</p>
-<div id="1dd5b51c" class="cell" data-execution_count="8">
+<div id="41c57375" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tokenize(text: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> text.upper().split()</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -631,7 +631,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>['HELLO', 'WORLD']</code></pre>
 </div>
 </div>
-<div id="af332598" class="cell" data-execution_count="9">
+<div id="a0c814b1" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Iterable</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> word_lengths(words: Iterable[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">dict</span>[<span class="bu">str</span>, <span class="bu">int</span>]:</span>
@@ -642,7 +642,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>{'hi': 2, 'hello': 5}</code></pre>
 </div>
 </div>
-<div id="c2a2a1e3" class="cell" data-execution_count="10">
+<div id="0274fa0e" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> divmod_pair(a: <span class="bu">int</span>, b: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">tuple</span>[<span class="bu">int</span>, <span class="bu">int</span>]:</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">divmod</span>(a, b)</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -666,7 +666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>When a parameter is a function, you’d like the type hint to record both <em>what arguments it takes</em> and <em>what it returns</em>, so a wrong-shaped callback gets caught. That’s <code>Callable</code>:</p>
-<div id="e586ae30" class="cell" data-execution_count="11">
+<div id="73b12e56" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Callable</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="bu">apply</span>(func: Callable[[<span class="bu">int</span>], <span class="bu">str</span>], value: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> func(value)</span>
@@ -686,7 +686,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-abstract" class="level2" data-number="20.4">
 <h2 data-number="20.4" class="anchored" data-anchor-id="sec-types-abstract"><span class="header-section-number">20.4</span> Abstract types beat concrete types</h2>
 <p>For <em>parameters</em>, prefer the most abstract type that supports the operations you need. <code>Iterable</code> is the most permissive; <code>Sequence</code> adds indexing; <code>Mapping</code> is the read-only dict shape.</p>
-<div id="c1a1a8eb" class="cell" data-execution_count="12">
+<div id="e8dea774" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Sequence, Mapping, Iterable</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> column(matrix: Sequence[Sequence[<span class="bu">float</span>]], i: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">float</span>]:</span>
@@ -703,7 +703,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>We need <code>Sequence</code> (not <code>Iterable</code>) on the inner type because <code>row[i]</code> needs indexing. Picking the <em>minimum</em> abstraction the body actually needs is the discipline.</li>
 <li>The return is <code>list[float]</code> — concrete, because callers benefit from knowing it’s a real list they can index, append to, and pass on.</li>
 </ul>
-<div id="3cfe360e" class="cell" data-execution_count="13">
+<div id="0ebe2c4e" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> total(items: Iterable[<span class="bu">int</span>]) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(items)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -714,7 +714,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p><code>total</code> accepts any iterable — <code>list</code>, <code>range</code>, generator. If the parameter were <code>list[int]</code>, the generator wouldn’t type-check.</p>
 <p><code>Mapping[K, V]</code> is the read-only dict shape — accept a <code>dict</code>, a <code>ChainMap</code>, anything with <code>__getitem__</code> and <code>keys</code>:</p>
-<div id="c1772096" class="cell" data-execution_count="14">
+<div id="61ba53e0" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lookup(table: Mapping[<span class="bu">str</span>, <span class="bu">int</span>], key: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> table.get(key, <span class="dv">0</span>)</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -728,7 +728,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-typevar" class="level2" data-number="20.5">
 <h2 data-number="20.5" class="anchored" data-anchor-id="sec-types-typevar"><span class="header-section-number">20.5</span> <code>TypeVar</code> and parameterized generics</h2>
 <p><code>first(seq)</code> should return the same kind of thing the sequence holds — <code>int</code> in, <code>int</code> out; <code>str</code> in, <code>str</code> out. Annotating it as <code>Any -&gt; Any</code> loses that information; spelling it out as <code>int -&gt; int</code> plus <code>str -&gt; str</code> plus everything else is impossible. <code>TypeVar</code> lets you write it once and let the type checker fill in the type at each call:</p>
-<div id="ffcaa4ae" class="cell" data-execution_count="15">
+<div id="e062c19e" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Sequence</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -748,7 +748,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>At the call <code>first([1, 2, 3])</code>, the checker matches <code>Sequence[T]</code> against <code>list[int]</code> and infers <code>T = int</code>, so the return type is <code>int</code>. At <code>first(["a", "b"])</code> it infers <code>T = str</code>. The single function is <em>generic</em> over the element type.</li>
 </ul>
 <p>A <em>constrained</em> <code>TypeVar</code> lists allowed types — the value must be exactly one of them:</p>
-<div id="be641c39" class="cell" data-execution_count="16">
+<div id="824abe09" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decimal <span class="im">import</span> Decimal</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fractions <span class="im">import</span> Fraction</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Iterable</span>
@@ -764,7 +764,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>A <em>bounded</em> <code>TypeVar</code> (using <code>bound=</code>) accepts the type <em>or any subclass</em>:</p>
-<div id="0fe9496c" class="cell" data-execution_count="17">
+<div id="7de57281" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> numbers <span class="im">import</span> Real</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>RealT <span class="op">=</span> TypeVar(<span class="st">"RealT"</span>, bound<span class="op">=</span>Real)</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> clamp(x: RealT, lo: RealT, hi: RealT) <span class="op">-&gt;</span> RealT:</span>
@@ -780,7 +780,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-types-protocol" class="level2" data-number="20.6">
 <h2 data-number="20.6" class="anchored" data-anchor-id="sec-types-protocol"><span class="header-section-number">20.6</span> Static <code>Protocol</code> types</h2>
 <p><code>typing.Protocol</code> is the type-system spelling of duck typing. You declare an interface; any class with matching methods <em>is</em> compatible — no inheritance required.</p>
-<div id="37a9543d" class="cell" data-execution_count="18">
+<div id="ba83c18a" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Protocol, runtime_checkable</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="at">@runtime_checkable</span></span>

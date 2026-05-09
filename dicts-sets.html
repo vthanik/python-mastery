@@ -527,7 +527,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-modern" class="level2" data-number="15.1">
 <h2 data-number="15.1" class="anchored" data-anchor-id="sec-dicts-modern"><span class="header-section-number">15.1</span> Modern dict syntax</h2>
 <p>Dict comprehensions mirror list comprehensions, but with <code>key: value</code> pairs:</p>
-<div id="a37a4043" class="cell" data-execution_count="1">
+<div id="a7bc55d4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>dial_codes <span class="op">=</span> [</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">880</span>, <span class="st">"Bangladesh"</span>),</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    (<span class="dv">55</span>,  <span class="st">"Brazil"</span>),</span>
@@ -542,7 +542,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>**</code> unpacks a dict into another dict (or into keyword arguments):</p>
-<div id="dd226311" class="cell" data-execution_count="2">
+<div id="85479dc1" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> dump(<span class="op">**</span>kwargs):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> kwargs</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -552,7 +552,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Since Python 3.9, <code>|</code> merges dicts and <code>|=</code> updates in place — and they handle conflicts the same way <code>dict.update</code> does (the right-hand side wins):</p>
-<div id="fc0c15fb" class="cell" data-execution_count="3">
+<div id="4d44bfac" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>d1 <span class="op">=</span> {<span class="st">"a"</span>: <span class="dv">1</span>, <span class="st">"b"</span>: <span class="dv">3</span>}</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>d2 <span class="op">=</span> {<span class="st">"a"</span>: <span class="dv">2</span>, <span class="st">"b"</span>: <span class="dv">4</span>, <span class="st">"c"</span>: <span class="dv">6</span>}</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>d1 <span class="op">|</span> d2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -560,7 +560,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>{'a': 2, 'b': 4, 'c': 6}</code></pre>
 </div>
 </div>
-<div id="2657481f" class="cell" data-execution_count="4">
+<div id="632a0188" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>d1 <span class="op">|=</span> d2</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>d1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -584,7 +584,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-match" class="level2" data-number="15.2">
 <h2 data-number="15.2" class="anchored" data-anchor-id="sec-dicts-match"><span class="header-section-number">15.2</span> Pattern matching with mappings</h2>
 <p><code>match</code>/<code>case</code> works on dicts the way it works on lists, but the patterns describe <em>which keys must be present</em>:</p>
-<div id="8dfcd8ef" class="cell" data-execution_count="5">
+<div id="e17bc7b3" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_creators(record):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">match</span> record:</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">case</span> {<span class="st">"type"</span>: <span class="st">"book"</span>, <span class="st">"api"</span>: <span class="dv">2</span>, <span class="st">"authors"</span>: [<span class="op">*</span>names]}:</span>
@@ -619,7 +619,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="15.3" class="anchored" data-anchor-id="sec-dicts-missing"><span class="header-section-number">15.3</span> Handling missing keys</h2>
 <p>There are four idioms for “give me the value for this key, or a default.”</p>
 <p><strong><code>dict.get</code> with a default</strong> is the simplest:</p>
-<div id="c26d7287" class="cell" data-execution_count="6">
+<div id="4a203144" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> {<span class="st">"a"</span>: <span class="dv">1</span>}</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>d.get(<span class="st">"missing"</span>, [])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -627,7 +627,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong><code>dict.setdefault</code></strong> does <em>get-or-insert</em> in a single hash lookup. Use it when you want to mutate the default:</p>
-<div id="d60cc348" class="cell" data-execution_count="7">
+<div id="afefbe5e" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>occurrences <span class="op">=</span> {}</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">"hello"</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>occurrences.setdefault(word, []).append(<span class="dv">3</span>)</span>
@@ -638,7 +638,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The naive version of that pattern — <code>if word not in d: d[word] = []; d[word].append(...)</code> — costs three hash lookups per word. <code>setdefault</code> costs one.</p>
 <p><strong><code>collections.defaultdict</code></strong> moves the default into the dict itself:</p>
-<div id="3841c3f0" class="cell" data-execution_count="8">
+<div id="505e1be7" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> defaultdict</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> defaultdict(<span class="bu">list</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> position, word <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="st">"the cat sat on the mat"</span>.split()):</span>
@@ -650,7 +650,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The factory (<code>list</code>) is called every time a missing key is accessed. The price: the default is created on <em>any</em> access, including a read for a key that doesn’t exist — so <code>index["never_seen"]</code> would silently insert an empty list.</p>
 <p><strong><code>__missing__</code></strong> is the lowest-level hook. Subclass <code>dict</code> and Python will call <code>__missing__(key)</code> when a key isn’t found via <code>d[key]</code>:</p>
-<div id="2c2e9d37" class="cell" data-execution_count="9">
+<div id="acc9d32d" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> StrKeyDict(<span class="bu">dict</span>):</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__missing__</span>(<span class="va">self</span>, key):</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(key, <span class="bu">str</span>):</span>
@@ -686,11 +686,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-variations" class="level2" data-number="15.4">
 <h2 data-number="15.4" class="anchored" data-anchor-id="sec-dicts-variations"><span class="header-section-number">15.4</span> Variations of <code>dict</code></h2>
 <p><code>collections</code> exports three close cousins of <code>dict</code>. Each one solves a single problem.</p>
-<div id="2154d8b5" class="cell" data-execution_count="10">
+<div id="2c9c7064" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> OrderedDict, ChainMap, Counter</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong><code>OrderedDict</code></strong> keeps insertion order (so does plain <code>dict</code> since 3.7) but adds <code>move_to_end</code> and <code>popitem(last=...)</code>:</p>
-<div id="ce5969cc" class="cell" data-execution_count="11">
+<div id="45bf6b7f" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>od <span class="op">=</span> OrderedDict(a<span class="op">=</span><span class="dv">1</span>, b<span class="op">=</span><span class="dv">2</span>, c<span class="op">=</span><span class="dv">3</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>od.move_to_end(<span class="st">"b"</span>)</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(od.keys())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -699,7 +699,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong><code>ChainMap</code></strong> layers several mappings into one logical view. Lookups traverse the chain in order:</p>
-<div id="6147bb96" class="cell" data-execution_count="12">
+<div id="1c9b2085" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> builtins</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>pylookup <span class="op">=</span> ChainMap(<span class="bu">locals</span>(), <span class="bu">globals</span>(), <span class="bu">vars</span>(builtins))</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>pylookup[<span class="st">"print"</span>] <span class="kw">is</span> <span class="bu">print</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -709,14 +709,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The Python interpreter itself uses something like this for name resolution: locals, then globals, then builtins.</p>
 <p><strong><code>Counter</code></strong> is a multiset. It maps each element to its count:</p>
-<div id="f2116d22" class="cell" data-execution_count="13">
+<div id="9142a195" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>ct <span class="op">=</span> Counter(<span class="st">"abracadabra"</span>)</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>ct.most_common(<span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>[('a', 5), ('b', 2), ('r', 2)]</code></pre>
 </div>
 </div>
-<div id="3037703c" class="cell" data-execution_count="14">
+<div id="c5d47f71" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ct.update(<span class="st">"aaaaazzz"</span>)</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>ct[<span class="st">"z"</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="14">
@@ -727,7 +727,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-proxy" class="level2" data-number="15.5">
 <h2 data-number="15.5" class="anchored" data-anchor-id="sec-dicts-proxy"><span class="header-section-number">15.5</span> Immutable mappings with <code>MappingProxyType</code></h2>
 <p>When you want to expose a <code>dict</code> for reading without letting the caller mutate it, wrap it in <code>types.MappingProxyType</code>:</p>
-<div id="b050b673" class="cell" data-execution_count="15">
+<div id="089bd877" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> types <span class="im">import</span> MappingProxyType</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> {<span class="dv">1</span>: <span class="st">"A"</span>}</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>d_proxy <span class="op">=</span> MappingProxyType(d)</span>
@@ -736,7 +736,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>'A'</code></pre>
 </div>
 </div>
-<div id="fa6d1d8c" class="cell" data-execution_count="16">
+<div id="356ba6bf" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>d_proxy[<span class="dv">2</span>] <span class="op">=</span> <span class="st">"X"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -750,7 +750,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The proxy is a <em>view</em>, not a copy. Updates to the original are visible through it:</p>
-<div id="fd0eaa3b" class="cell" data-execution_count="17">
+<div id="d237835c" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>d[<span class="dv">2</span>] <span class="op">=</span> <span class="st">"B"</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>d_proxy[<span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="17">
@@ -761,7 +761,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-sets-theory" class="level2" data-number="15.6">
 <h2 data-number="15.6" class="anchored" data-anchor-id="sec-dicts-sets-theory"><span class="header-section-number">15.6</span> Set theory</h2>
 <p>Sets are like dicts without values: hash tables of unique elements. The operators read like the math.</p>
-<div id="6863b954" class="cell" data-execution_count="18">
+<div id="ac5b43b0" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>}</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>empty <span class="op">=</span> <span class="bu">set</span>()  <span class="co"># NOT {} — that's an empty dict</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span>(s), <span class="bu">type</span>(empty)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -770,7 +770,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The four set operations:</p>
-<div id="9e59ad4b" class="cell" data-execution_count="19">
+<div id="e8061653" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>}</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> {<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">6</span>}</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -811,7 +811,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>The classic use of intersection: counting matches between two collections in <code>O(min(len(a), len(b)))</code> instead of <code>O(len(a) * len(b))</code>.</p>
-<div id="8172e4c1" class="cell" data-execution_count="20">
+<div id="84d513b3" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>needles <span class="op">=</span> {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">99</span>, <span class="dv">100</span>}</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>haystack <span class="op">=</span> <span class="bu">set</span>(<span class="bu">range</span>(<span class="dv">50</span>))</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(needles <span class="op">&amp;</span> haystack)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -837,13 +837,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dicts-hashable" class="level2" data-number="15.7">
 <h2 data-number="15.7" class="anchored" data-anchor-id="sec-dicts-hashable"><span class="header-section-number">15.7</span> What “hashable” means</h2>
 <p>An object is <em>hashable</em> if it has a <code>__hash__</code> method whose return value never changes during the object’s lifetime, and an <code>__eq__</code> method that’s consistent with that hash. The standard immutable types — <code>int</code>, <code>float</code>, <code>str</code>, <code>bytes</code>, <code>tuple</code> (of hashables), <code>frozenset</code> — are all hashable. <code>list</code>, <code>dict</code>, <code>set</code> are not.</p>
-<div id="cd7fddd2" class="cell" data-execution_count="21">
+<div id="2dc973db" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="bu">hash</span>(<span class="st">"hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="21">
-<pre><code>5420239554604518186</code></pre>
+<pre><code>4834817136284681150</code></pre>
 </div>
 </div>
-<div id="39bf02ee" class="cell" data-execution_count="22">
+<div id="c4b10154" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="bu">hash</span>([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">

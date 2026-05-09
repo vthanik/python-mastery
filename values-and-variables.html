@@ -520,7 +520,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-values-types" class="level2" data-number="2.1">
 <h2 data-number="2.1" class="anchored" data-anchor-id="sec-values-types"><span class="header-section-number">2.1</span> The five primitive types</h2>
 <p>Before we can do anything interesting in a program, we need a vocabulary of basic values: whole numbers, fractional numbers, true/false flags, text, and “nothing”. Python gives you exactly those five and infers the type from the literal — no <code>int x = 42;</code> declaration step.</p>
-<div id="db8193c0" class="cell" data-execution_count="1">
+<div id="d620b4f6" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">42</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>pi <span class="op">=</span> <span class="fl">3.14159</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>flag <span class="op">=</span> <span class="va">True</span></span>
@@ -548,13 +548,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong><code>str</code></strong> is full Unicode. The deep treatment is in <a href="unicode.html" class="quarto-xref"><span>Chapter 16</span></a>.</li>
 <li><strong><code>None</code></strong> is the absence of a value — it’s its own type, <code>NoneType</code>, and there is <em>one</em> <code>None</code> singleton.</li>
 </ul>
-<div id="fe909d03" class="cell" data-execution_count="2">
+<div id="be755cb5" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span>, <span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span> <span class="op">==</span> <span class="fl">0.3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>(0.30000000000000004, False)</code></pre>
 </div>
 </div>
-<div id="6fb01f49" class="cell" data-execution_count="3">
+<div id="d5f2e1c0" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>math.isclose(<span class="fl">0.1</span> <span class="op">+</span> <span class="fl">0.2</span>, <span class="fl">0.3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -566,7 +566,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-values-naming" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="sec-values-naming"><span class="header-section-number">2.2</span> Variables and naming</h2>
 <p>A variable comes into existence on first assignment. There is no declaration step.</p>
-<div id="3d59410a" class="cell" data-execution_count="4">
+<div id="600770b4" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>name <span class="op">=</span> <span class="st">"Alice"</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>age <span class="op">=</span> <span class="dv">30</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>height <span class="op">=</span> <span class="fl">1.75</span></span>
@@ -583,7 +583,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>UPPER_SNAKE_CASE</code> for module-level constants.</li>
 </ul>
 <p>Multiple assignment and unpacking are common. In most languages, swapping two variables needs a temporary: <code>t = a; a = b; b = t</code>. Python lets you write the swap as a single statement.</p>
-<div id="bc16ef1c" class="cell" data-execution_count="5">
+<div id="69e5d399" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>a, b <span class="op">=</span> <span class="dv">1</span>, <span class="dv">2</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>a, b <span class="op">=</span> b, a</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>a, b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -600,7 +600,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-values-arithmetic" class="level2" data-number="2.3">
 <h2 data-number="2.3" class="anchored" data-anchor-id="sec-values-arithmetic"><span class="header-section-number">2.3</span> Arithmetic</h2>
 <p>Python has four numeric operators worth distinguishing up front. Two of them — <code>/</code> and <code>//</code> — both look like division in other languages, but they answer different questions.</p>
-<div id="464e510f" class="cell" data-execution_count="6">
+<div id="365331b2" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>[<span class="dv">7</span> <span class="op">/</span> <span class="dv">2</span>, <span class="dv">7</span> <span class="op">//</span> <span class="dv">2</span>, <span class="dv">7</span> <span class="op">%</span> <span class="dv">2</span>, <span class="dv">2</span> <span class="op">**</span> <span class="dv">10</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>[3.5, 3, 1, 1024]</code></pre>
@@ -613,7 +613,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>2 ** 10</code> is exponentiation — <code>2</code> to the power of <code>10</code>.</li>
 </ul>
 <p>The general rule: <code>/</code> for “give me the exact ratio as a float”, <code>//</code> and <code>%</code> together when you want quotient-and-remainder integer arithmetic. Floor division rounds toward negative infinity, not toward zero:</p>
-<div id="6420f728" class="cell" data-execution_count="7">
+<div id="e8bd5a55" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">-</span><span class="dv">7</span> <span class="op">//</span> <span class="dv">2</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>-4</code></pre>
@@ -622,7 +622,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The remainder <code>%</code> is consistent with <code>//</code>: <code>(-7 // 2) * 2 + (-7 % 2) == -7</code>.</p>
 <p>In-place updates have shorthand: <code>x += 1</code>, <code>x -= 1</code>, <code>x *= 2</code>. They modify the variable and are equivalent to <code>x = x + 1</code>, etc.</p>
 <p><code>round()</code> uses <strong>banker’s rounding</strong> — ties round to the nearest <em>even</em> integer, not always up:</p>
-<div id="f8bae8bd" class="cell" data-execution_count="8">
+<div id="9b71dfc7" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>[<span class="bu">round</span>(<span class="fl">0.5</span>), <span class="bu">round</span>(<span class="fl">1.5</span>), <span class="bu">round</span>(<span class="fl">2.5</span>), <span class="bu">round</span>(<span class="fl">3.5</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>[0, 2, 2, 4]</code></pre>
@@ -633,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-values-truthiness" class="level2" data-number="2.4">
 <h2 data-number="2.4" class="anchored" data-anchor-id="sec-values-truthiness"><span class="header-section-number">2.4</span> Truthiness</h2>
 <p>Languages like C make <code>if</code> strict: only <code>0</code> is false. Python is more generous — and more useful. In an <code>if</code> or <code>while</code>, <em>any</em> value can be evaluated as a boolean. Python defines a small set of <strong>falsy</strong> values; everything else is <strong>truthy</strong>.</p>
-<div id="e127a32b" class="cell" data-execution_count="9">
+<div id="900fa828" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>falsy <span class="op">=</span> [<span class="va">False</span>, <span class="va">None</span>, <span class="dv">0</span>, <span class="fl">0.0</span>, <span class="st">""</span>, [], {}, <span class="bu">set</span>(), ()]</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>[<span class="bu">bool</span>(x) <span class="cf">for</span> x <span class="kw">in</span> falsy]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
@@ -648,14 +648,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>bool(x)</code> calls Python’s truthiness check on each, and they all answer <code>False</code>.</li>
 </ul>
 <p>The general rule: a value is falsy if it’s “empty” or “zero” by its own type’s reckoning; everything else is truthy. This shapes Pythonic style:</p>
-<div id="38958548" class="cell" data-execution_count="10">
+<div id="2b0e72e4" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>items <span class="op">=</span> []</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co">"empty"</span> <span class="cf">if</span> <span class="kw">not</span> items <span class="cf">else</span> <span class="st">"has items"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>'empty'</code></pre>
 </div>
 </div>
-<div id="f1eb54a1" class="cell" data-execution_count="11">
+<div id="13b1a3bb" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>items <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="co">"empty"</span> <span class="cf">if</span> <span class="kw">not</span> items <span class="cf">else</span> <span class="st">"has items"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
@@ -667,7 +667,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-values-eq-is" class="level2" data-number="2.5">
 <h2 data-number="2.5" class="anchored" data-anchor-id="sec-values-eq-is"><span class="header-section-number">2.5</span> <code>==</code> vs <code>is</code></h2>
 <p>Two of Python’s most-confused operators. <code>==</code> asks <strong>value equality</strong> (do they contain the same data?). <code>is</code> asks <strong>identity</strong> (are they the same object in memory?). They look similar but answer fundamentally different questions, and using the wrong one is a common source of subtle bugs.</p>
-<div id="e6f41228" class="cell" data-execution_count="12">
+<div id="5d6a115f" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> a</span>
@@ -682,7 +682,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>c = a</code> makes <code>c</code> a second label on the same list, no copy. So <code>a is c</code> is <code>True</code>.</li>
 </ul>
 <p>The general rule: use <code>==</code> for value comparison. Use <code>is</code> only for the <em>singletons</em> — <code>None</code>, <code>True</code>, <code>False</code>:</p>
-<div id="b1f668cc" class="cell" data-execution_count="13">
+<div id="55d0e6f1" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> <span class="va">None</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>result <span class="kw">is</span> <span class="va">None</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">

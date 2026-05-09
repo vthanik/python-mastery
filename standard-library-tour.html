@@ -520,11 +520,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>This is a tour, not an encyclopedia — pointers to the modules you’ll reach for repeatedly. Beazley’s <em>Python Distilled</em> §9–10 is the canonical reference for the broader stdlib (asyncio, threading, sockets, struct, tempfile, urllib, xml, …).</p>
 <section id="sec-stdlib-collections" class="level2" data-number="11.1">
 <h2 data-number="11.1" class="anchored" data-anchor-id="sec-stdlib-collections"><span class="header-section-number">11.1</span> <code>collections</code></h2>
-<div id="bcf22d3e" class="cell" data-execution_count="1">
+<div id="a2497911" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> Counter, defaultdict, deque, namedtuple</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong><code>Counter</code></strong> counts occurrences — the canonical “tally things” data structure, replacing a hand-written dict-with-default loop:</p>
-<div id="ea08a2ad" class="cell" data-execution_count="2">
+<div id="16f1d25c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>words <span class="op">=</span> <span class="st">"the cat sat on the mat the"</span>.split()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> Counter(words)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>[c[<span class="st">"the"</span>], c[<span class="st">"missing"</span>], c.most_common(<span class="dv">2</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -538,7 +538,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>c.most_common(2)</code> returns the two highest-frequency <code>(item, count)</code> tuples, sorted by count.</li>
 </ul>
 <p><code>Counter</code> arithmetic merges two counters — handy for combining tallies from different sources:</p>
-<div id="30b4f696" class="cell" data-execution_count="3">
+<div id="4cadc61f" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> Counter(<span class="st">"aabb"</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> Counter(<span class="st">"abc"</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>[a <span class="op">+</span> b, a <span class="op">-</span> b, a[<span class="st">"zzz"</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -554,7 +554,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>Counter</code> for frequency tables, with <code>+</code>/<code>-</code> for merging and <code>most_common(n)</code> for ranked extraction.</p>
 <p><strong><code>defaultdict</code></strong> auto-creates a default value for missing keys — eliminates the “if key not in d: d[key] = []” boilerplate that comes up constantly when grouping or accumulating:</p>
-<div id="78a63c3f" class="cell" data-execution_count="4">
+<div id="81377c66" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> defaultdict(<span class="bu">list</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, team <span class="kw">in</span> [(<span class="st">"Alice"</span>, <span class="st">"eng"</span>), (<span class="st">"Bob"</span>, <span class="st">"design"</span>), (<span class="st">"Carol"</span>, <span class="st">"eng"</span>)]:</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    groups[team].append(name)</span>
@@ -571,7 +571,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>defaultdict(int)</code> for counters; <code>defaultdict(list)</code> for grouping; <code>defaultdict(set)</code> for collecting unique items per key. Pick the factory that matches the per-key value type.</p>
 <p><strong><code>deque</code></strong> — fast append/pop from <em>both</em> ends. A list is fine for back-end operations but pays O(n) for any front-end work (<code>pop(0)</code> shifts every other element); a deque is O(1) at both ends.</p>
-<div id="7739129f" class="cell" data-execution_count="5">
+<div id="5f7415b0" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> deque</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>queue <span class="op">=</span> deque([<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span>])</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>queue.appendleft(<span class="st">"z"</span>)</span>
@@ -591,7 +591,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: when you need fast front-end operations (queues, sliding windows, undo stacks), use <code>deque</code>, not <code>list</code>.</p>
 <p><code>deque(maxlen=N)</code> is a <strong>bounded</strong> deque — appends past the limit silently drop from the other end. That’s exactly the data structure for a fixed-size sliding window:</p>
-<div id="36557193" class="cell" data-execution_count="6">
+<div id="f53ba6bc" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>window <span class="op">=</span> deque(maxlen<span class="op">=</span><span class="dv">3</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]:</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    window.append(x)</span>
@@ -606,7 +606,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Three-line sliding window, no manual bookkeeping.</p>
 <p><strong><code>namedtuple</code></strong> — a tuple with named fields:</p>
-<div id="c8272cc7" class="cell" data-execution_count="7">
+<div id="81eef03c" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>Point <span class="op">=</span> namedtuple(<span class="st">"Point"</span>, [<span class="st">"x"</span>, <span class="st">"y"</span>])</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> Point(<span class="dv">3</span>, <span class="dv">4</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>[p.x, p.y, p[<span class="dv">0</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -618,32 +618,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sec-stdlib-itertools" class="level2" data-number="11.2">
 <h2 data-number="11.2" class="anchored" data-anchor-id="sec-stdlib-itertools"><span class="header-section-number">11.2</span> <code>itertools</code></h2>
-<div id="d3ca039d" class="cell" data-execution_count="8">
+<div id="3aeda677" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong><code>chain</code></strong> — flatten multiple iterables:</p>
-<div id="155961d4" class="cell" data-execution_count="9">
+<div id="e7aedfd9" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.chain([<span class="dv">1</span>, <span class="dv">2</span>], [<span class="dv">3</span>, <span class="dv">4</span>], [<span class="dv">5</span>, <span class="dv">6</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>[1, 2, 3, 4, 5, 6]</code></pre>
 </div>
 </div>
 <p><strong><code>islice</code></strong> — take a slice from any iterable (lazily):</p>
-<div id="b3a8ec8b" class="cell" data-execution_count="10">
+<div id="3eba4a2b" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.islice(<span class="bu">range</span>(<span class="dv">100</span>), <span class="dv">5</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>[0, 1, 2, 3, 4]</code></pre>
 </div>
 </div>
 <p><strong><code>cycle</code></strong> — repeat forever (combine with <code>islice</code> to stop):</p>
-<div id="86e951b5" class="cell" data-execution_count="11">
+<div id="5e7ff7ff" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.islice(itertools.cycle([<span class="st">"red"</span>, <span class="st">"green"</span>, <span class="st">"blue"</span>]), <span class="dv">7</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>['red', 'green', 'blue', 'red', 'green', 'blue', 'red']</code></pre>
 </div>
 </div>
 <p><strong><code>groupby</code></strong> — group <em>consecutive</em> equal items. Note the warning: it does not pre-sort, so the data must already be sorted by the same key, or you’ll get one group per run rather than one per distinct value.</p>
-<div id="291e2fb2" class="cell" data-execution_count="12">
+<div id="f95aba69" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> <span class="bu">sorted</span>([<span class="st">"alice"</span>, <span class="st">"bob"</span>, <span class="st">"adam"</span>, <span class="st">"carol"</span>, <span class="st">"charlie"</span>], key<span class="op">=</span><span class="kw">lambda</span> x: x[<span class="dv">0</span>])</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>[(letter, <span class="bu">list</span>(g)) <span class="cf">for</span> letter, g <span class="kw">in</span> itertools.groupby(data, key<span class="op">=</span><span class="kw">lambda</span> x: x[<span class="dv">0</span>])]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
@@ -658,14 +658,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>groupby</code> is the SQL-style group-by, but you sort first and you consume each group before moving on.</p>
 <p><strong><code>accumulate</code></strong> — running totals:</p>
-<div id="810e1506" class="cell" data-execution_count="13">
+<div id="7588bf81" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.accumulate([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>[1, 3, 6, 10, 15]</code></pre>
 </div>
 </div>
 <p><strong><code>combinations</code>, <code>permutations</code>, <code>product</code></strong> — combinatorial generators:</p>
-<div id="4744b1c6" class="cell" data-execution_count="14">
+<div id="a9185fe6" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">list</span>(itertools.combinations(<span class="st">"ABCD"</span>, <span class="dv">2</span>)),</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">list</span>(itertools.permutations(<span class="st">"ABC"</span>, <span class="dv">2</span>))[:<span class="dv">3</span>],</span>
@@ -680,11 +680,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sec-stdlib-functools" class="level2" data-number="11.3">
 <h2 data-number="11.3" class="anchored" data-anchor-id="sec-stdlib-functools"><span class="header-section-number">11.3</span> <code>functools</code></h2>
-<div id="44c30ebf" class="cell" data-execution_count="15">
+<div id="3b2545e7" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> functools</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <p><strong><code>lru_cache</code> / <code>cache</code></strong> — memoize a pure function’s results. The textbook recursive Fibonacci is exponentially slow because it recomputes the same <code>fib(n-2)</code> constantly; one decorator turns it linear.</p>
-<div id="d2ac7b8a" class="cell" data-execution_count="16">
+<div id="b49bdc48" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="at">@functools.lru_cache</span>(maxsize<span class="op">=</span><span class="va">None</span>)</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fib(n):</span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&lt;=</span> <span class="dv">1</span>:</span>
@@ -704,7 +704,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>@lru_cache</code> (or <code>@functools.cache</code> in 3.9+, which is the unbounded form) is a one-line speed-up for any <strong>pure</strong> function — same inputs always give the same output, no side effects.</p>
 <p><strong><code>cached_property</code></strong> — compute once per instance, then read like an attribute:</p>
-<div id="252cf67e" class="cell" data-execution_count="17">
+<div id="9dff3909" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statistics</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> DataSet:</span>
@@ -726,7 +726,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong><code>partial</code></strong> — pre-fill some of a function’s arguments, returning a new callable that takes the rest. Useful when you have a general function and want a specialised version for repeated use.</p>
-<div id="7df0eeea" class="cell" data-execution_count="18">
+<div id="27b25e99" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> power(base, exp):</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> base <span class="op">**</span> exp</span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -744,7 +744,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>partial(fn, *args, **kwargs)</code> freezes those arguments and returns a function that takes the remaining ones. Cleaner than wrapping in a <code>lambda</code> for the same purpose.</p>
 <p><strong><code>reduce</code></strong> — fold a sequence into a single value:</p>
-<div id="238ba1cd" class="cell" data-execution_count="19">
+<div id="3ea75f12" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> operator</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>[functools.<span class="bu">reduce</span>(operator.add, [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]),</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a> functools.<span class="bu">reduce</span>(operator.mul, [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>])]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -754,7 +754,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p><strong><code>wraps</code></strong> — preserve a function’s name and docstring inside a decorator. We saw this in <a href="functions-basics.html" class="quarto-xref"><span>Chapter 6</span></a>; the deep treatment is <a href="decorators.html" class="quarto-xref"><span>Chapter 21</span></a>.</p>
 <p>A side note on the <code>statistics</code> module: for plain numerical means, <code>statistics.fmean</code> (Python 3.8+) is faster than <code>statistics.mean</code> because it converts to <code>float</code> up front instead of preserving exact <code>Fraction</code> arithmetic. Reach for <code>mean</code> only when you need exactness across <code>Decimal</code> or <code>Fraction</code> data:</p>
-<div id="61eafe71" class="cell" data-execution_count="20">
+<div id="279b3f19" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statistics</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>[statistics.fmean([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]), statistics.fmean(<span class="bu">range</span>(<span class="dv">1_000_000</span>))]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="20">
@@ -765,7 +765,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-stdlib-datetime" class="level2" data-number="11.4">
 <h2 data-number="11.4" class="anchored" data-anchor-id="sec-stdlib-datetime"><span class="header-section-number">11.4</span> <code>datetime</code></h2>
 <p>Time is fiddly: time zones, daylight savings, leap years, the difference between “an instant” and “a date on a calendar”. The <code>datetime</code> module gives you four core types — <code>datetime</code>, <code>date</code>, <code>timedelta</code>, <code>timezone</code> — that together cover almost every time-handling task.</p>
-<div id="1e3a0dde" class="cell" data-execution_count="21">
+<div id="0f545b03" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> datetime, date, timedelta, timezone</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>now <span class="op">=</span> datetime.now(tz<span class="op">=</span>timezone.utc)</span>
@@ -782,7 +782,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>now.year</code> reads a component (<code>int</code>); <code>today.isoformat()</code> is the standard <code>"YYYY-MM-DD"</code> text form.</li>
 </ul>
 <p>Arithmetic uses <code>timedelta</code> — a <code>timedelta</code> is a <em>duration</em>, not a point in time:</p>
-<div id="cf86c39f" class="cell" data-execution_count="22">
+<div id="5c68ea32" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>yesterday <span class="op">=</span> now <span class="op">-</span> timedelta(days<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>next_week <span class="op">=</span> now <span class="op">+</span> timedelta(weeks<span class="op">=</span><span class="dv">1</span>)</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>[yesterday.date(), next_week.date()]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -797,20 +797,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>datetime + timedelta = datetime</code>; <code>datetime - datetime = timedelta</code>. Stick to timezone-aware datetimes and let <code>timedelta</code> do all the arithmetic.</p>
 <p>Formatting and parsing use <code>strftime</code> / <code>strptime</code>:</p>
-<div id="99eab378" class="cell" data-execution_count="23">
+<div id="a0914a83" class="cell" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    now.strftime(<span class="st">"%Y-%m-</span><span class="sc">%d</span><span class="st"> %H:%M:%S"</span>),</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    datetime.strptime(<span class="st">"2024-01-15"</span>, <span class="st">"%Y-%m-</span><span class="sc">%d</span><span class="st">"</span>),</span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    datetime.fromisoformat(<span class="st">"2024-01-15T12:30:00"</span>),</span>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
-<pre><code>['2026-05-09 10:25:52',
+<pre><code>['2026-05-09 13:25:17',
  datetime.datetime(2024, 1, 15, 0, 0),
  datetime.datetime(2024, 1, 15, 12, 30)]</code></pre>
 </div>
 </div>
 <p>For anything time-zone-sensitive, always include <code>tzinfo</code>. Use <code>timezone.utc</code> for UTC; for named zones, use <code>zoneinfo.ZoneInfo</code> (Python 3.9+) — backed by the system’s IANA database, so it handles DST correctly:</p>
-<div id="47519179" class="cell" data-execution_count="24">
+<div id="6b209d5e" class="cell" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> zoneinfo <span class="im">import</span> ZoneInfo</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>london <span class="op">=</span> datetime(<span class="dv">2024</span>, <span class="dv">6</span>, <span class="dv">1</span>, <span class="dv">12</span>, <span class="dv">0</span>, tzinfo<span class="op">=</span>ZoneInfo(<span class="st">"Europe/London"</span>))</span>
@@ -825,7 +825,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-stdlib-re" class="level2" data-number="11.5">
 <h2 data-number="11.5" class="anchored" data-anchor-id="sec-stdlib-re"><span class="header-section-number">11.5</span> <code>re</code> — regular expressions</h2>
 <p>Regex is powerful but easy to overuse. Reach for it when patterns are <em>truly</em> irregular — phone numbers, dates of varying formats, log-line shapes. For fixed strings, <code>.startswith()</code> and <code>.split()</code> are simpler and faster.</p>
-<div id="be3fea64" class="cell" data-execution_count="25">
+<div id="d48916c2" class="cell" data-execution_count="25">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> re.search(<span class="vs">r"</span><span class="kw">(</span><span class="dv">\d</span><span class="op">+</span><span class="kw">)</span><span class="vs">-</span><span class="kw">(</span><span class="dv">\d</span><span class="op">+</span><span class="kw">)</span><span class="vs">"</span>, <span class="st">"phone: 123-456"</span>)</span>
@@ -852,7 +852,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>re.split(pattern, text)</code> — split on the pattern.</li>
 </ul>
 <p>Compile patterns you’ll reuse:</p>
-<div id="aa8a2a3a" class="cell" data-execution_count="26">
+<div id="3b92aabe" class="cell" data-execution_count="26">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>phone <span class="op">=</span> re.<span class="bu">compile</span>(<span class="vs">r"</span><span class="dv">\b</span><span class="kw">(</span><span class="dv">\d</span><span class="op">{3}</span><span class="kw">)</span><span class="vs">-</span><span class="kw">(</span><span class="dv">\d</span><span class="op">{3,4}</span><span class="kw">)</span><span class="dv">\b</span><span class="vs">"</span>)</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>phone.findall(<span class="st">"call 555-1234 or 555-5678 today"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="26">
@@ -860,7 +860,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Named groups make the resulting matches self-documenting:</p>
-<div id="3f407ac2" class="cell" data-execution_count="27">
+<div id="1b813208" class="cell" data-execution_count="27">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> re.search(<span class="vs">r"</span><span class="kw">(</span><span class="fu">?P&lt;year&gt;</span><span class="dv">\d</span><span class="op">{4}</span><span class="kw">)</span><span class="vs">-</span><span class="kw">(</span><span class="fu">?P&lt;month&gt;</span><span class="dv">\d</span><span class="op">{2}</span><span class="kw">)</span><span class="vs">-</span><span class="kw">(</span><span class="fu">?P&lt;day&gt;</span><span class="dv">\d</span><span class="op">{2}</span><span class="kw">)</span><span class="vs">"</span>, <span class="st">"2024-01-15"</span>)</span>
 <span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>m.groupdict()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="27">

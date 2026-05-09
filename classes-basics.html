@@ -526,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-first" class="level2" data-number="9.1">
 <h2 data-number="9.1" class="anchored" data-anchor-id="sec-cls-first"><span class="header-section-number">9.1</span> A first class</h2>
 <p>Imagine tracking a bank account: an owner, a balance, and operations (deposit, withdraw) that have to keep the balance consistent. Separate variables and helper functions work for one account; for ten thousand, they break down. A class is the natural unit that bundles the data and the rules that govern it.</p>
-<div id="a6466057" class="cell" data-execution_count="1">
+<div id="4fbbb56a" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BankAccount:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""A simple bank account."""</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -573,7 +573,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-special" class="level2" data-number="9.2">
 <h2 data-number="9.2" class="anchored" data-anchor-id="sec-cls-special"><span class="header-section-number">9.2</span> Special methods make a class feel native</h2>
 <p>Suppose <code>Money(10) + Money(2)</code> should return <code>Money(12)</code> and <code>Money(10) == Money(10)</code> should be <code>True</code>. With a plain class you’d write <code>m1.add(m2)</code> and <code>m1.equals(m2)</code> — fine, but un-Pythonic. Python lets you wire <code>+</code>, <code>==</code>, <code>&lt;</code>, <code>len</code>, <code>in</code>, <code>for</code>, and the rest directly to your class by implementing <strong>special methods</strong> (a.k.a. <em>dunder</em> methods — double-underscore on each side).</p>
-<div id="9db24190" class="cell" data-execution_count="2">
+<div id="e73b6836" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Money:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, amount, currency<span class="op">=</span><span class="st">"GBP"</span>):</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.amount <span class="op">=</span> amount</span>
@@ -627,7 +627,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-property" class="level2" data-number="9.3">
 <h2 data-number="9.3" class="anchored" data-anchor-id="sec-cls-property"><span class="header-section-number">9.3</span> <code>@property</code> — smart attributes</h2>
 <p>You shipped <code>Circle</code> with a plain <code>radius</code> attribute. Months later, you discover users have been creating circles with negative radii. You want to add validation — but <code>circle.radius = 5</code> is written all over the codebase. Changing it to <code>circle.set_radius(5)</code> would break every caller. <code>@property</code> is the escape hatch: it lets you replace a plain attribute with a method-backed one, <em>without changing the calling syntax</em>.</p>
-<div id="5467df47" class="cell" data-execution_count="3">
+<div id="dea8aea4" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Circle:</span>
@@ -654,7 +654,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>[5, 78.53981633974483]</code></pre>
 </div>
 </div>
-<div id="254a45be" class="cell" data-execution_count="4">
+<div id="08b2ffe6" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>c.radius <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -712,7 +712,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<div id="51f0f3f5" class="cell" data-execution_count="5">
+<div id="49223649" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> date</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Person:</span>
@@ -750,7 +750,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-inheritance" class="level2" data-number="9.5">
 <h2 data-number="9.5" class="anchored" data-anchor-id="sec-cls-inheritance"><span class="header-section-number">9.5</span> Inheritance and <code>super()</code></h2>
 <p>When two classes share most of their behavior — say <code>Dog</code> and <code>Cat</code> both have a name, both can be printed, but each barks differently — you don’t write the shared parts twice. The child class <strong>inherits</strong> from the parent, reusing what’s the same and overriding what’s different.</p>
-<div id="be00ec5a" class="cell" data-execution_count="6">
+<div id="f18ce8f9" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Animal:</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, name):</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.name <span class="op">=</span> name</span>
@@ -788,7 +788,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>super()</code> is the right way to call up the chain. Never write <code>Animal.__init__(self, name)</code> directly — it works for single inheritance but silently breaks the moment multiple inheritance enters the picture. <code>super()</code> follows the <strong>method resolution order</strong> (MRO), the canonical lookup chain. The full story is <a href="inheritance.html" class="quarto-xref"><span>Chapter 26</span></a>.</p>
 <p><code>isinstance</code> understands the hierarchy:</p>
-<div id="276972c0" class="cell" data-execution_count="7">
+<div id="aacc5818" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> GuideDog(<span class="st">"Lassie"</span>, <span class="st">"Alice"</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>[<span class="bu">isinstance</span>(g, GuideDog), <span class="bu">isinstance</span>(g, Dog), <span class="bu">isinstance</span>(g, Animal)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
@@ -824,7 +824,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-dataclass" class="level2" data-number="9.6">
 <h2 data-number="9.6" class="anchored" data-anchor-id="sec-cls-dataclass"><span class="header-section-number">9.6</span> A glimpse of <code>@dataclass</code></h2>
 <p>For a class that’s mostly <em>data</em> — a 2-D point, a config struct, a row of a record — the <code>__init__</code> / <code>__repr__</code> / <code>__eq__</code> boilerplate is the same every time. <code>@dataclass</code> reads the type-annotated body and generates them for you.</p>
-<div id="e677cf7f" class="cell" data-execution_count="8">
+<div id="5d8639b8" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
@@ -848,7 +848,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The generated code is real, not magic — you can see it via <code>inspect.getsource(Point.__init__)</code>. <code>@dataclass</code> just saves you from typing it. Reach for it whenever a class is mostly data; reach for a hand-written class when you need custom behavior.</p>
 <p>The full treatment of <code>frozen=True</code>, <code>field(default_factory=...)</code>, and the four data-class builders is <a href="dataclasses.html" class="quarto-xref"><span>Chapter 17</span></a>.</p>
 <p>Two modern flags are worth knowing exist now, even though we’ll deconstruct them later. <code>slots=True</code> (3.10+) tells Python to allocate a fixed set of attribute slots — smaller per-instance memory and faster attribute access, at the cost of no dynamic attributes. <code>kw_only=True</code> (3.10+) makes every field keyword-only at the constructor — no positional confusion when fields are reordered:</p>
-<div id="1eadf7f4" class="cell" data-execution_count="9">
+<div id="c5e52a12" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Self</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -877,7 +877,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cls-abc" class="level2" data-number="9.7">
 <h2 data-number="9.7" class="anchored" data-anchor-id="sec-cls-abc"><span class="header-section-number">9.7</span> A glimpse of abstract base classes</h2>
 <p>Sometimes you want to say “every shape has an area and a perimeter — but the formulas are shape-specific”. You don’t want anyone to instantiate <code>Shape</code> itself (it has no meaningful area), and you want Python to <em>enforce</em> that subclasses implement both methods. That’s an <strong>abstract base class</strong> (ABC).</p>
-<div id="edeada7b" class="cell" data-execution_count="10">
+<div id="03ffd0a2" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> abc <span class="im">import</span> ABC, abstractmethod</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Shape(ABC):</span>
@@ -901,7 +901,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>[12, 14]</code></pre>
 </div>
 </div>
-<div id="40bced7a" class="cell" data-execution_count="11">
+<div id="ef7681cd" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>Shape()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">

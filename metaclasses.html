@@ -523,14 +523,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-meta-classes-as-objects" class="level2" data-number="36.1">
 <h2 data-number="36.1" class="anchored" data-anchor-id="sec-meta-classes-as-objects"><span class="header-section-number">36.1</span> Classes as objects</h2>
 <p>Every class in Python is an <em>instance</em> of <code>type</code>. That includes built-ins:</p>
-<div id="3dfad2c0" class="cell" data-execution_count="1">
+<div id="ae80a642" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">int</span>.<span class="va">__class__</span>, <span class="bu">str</span>.<span class="va">__class__</span>, <span class="bu">type</span>.<span class="va">__class__</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>(type, type, type)</code></pre>
 </div>
 </div>
 <p><code>type</code> is its own metaclass — that’s how the system bootstraps. Classes carry the same kind of attributes any other object does:</p>
-<div id="6aea6018" class="cell" data-execution_count="2">
+<div id="6d148f88" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Foo: ...</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Foo.<span class="va">__name__</span>, Foo.__mro__, Foo.__module__</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -560,7 +560,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-meta-type-factory" class="level2" data-number="36.2">
 <h2 data-number="36.2" class="anchored" data-anchor-id="sec-meta-type-factory"><span class="header-section-number">36.2</span> <code>type</code> as a class factory</h2>
 <p>If classes are objects, something must build them. That something is <code>type</code> itself, used in its three-argument form. You’ll rarely write this by hand — but every <code>class</code> statement in your code goes through it under the hood, and frameworks that generate classes at runtime call it directly.</p>
-<div id="db63a23b" class="cell" data-execution_count="3">
+<div id="3ecbdaf5" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>MyClass <span class="op">=</span> <span class="bu">type</span>(<span class="st">"MyClass"</span>, (<span class="bu">object</span>,), {<span class="st">"x"</span>: <span class="dv">1</span>, <span class="st">"method"</span>: <span class="kw">lambda</span> <span class="va">self</span>: <span class="va">self</span>.x})</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>MyClass.<span class="va">__name__</span>, MyClass().method()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -583,7 +583,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-meta-import-time" class="level2" data-number="36.3">
 <h2 data-number="36.3" class="anchored" data-anchor-id="sec-meta-import-time"><span class="header-section-number">36.3</span> When the class body runs</h2>
 <p>Class bodies run at <em>import time</em>, not at call time. Decorators on classes also run at import time. This is what makes registry decorators useful, and what makes metaclasses occasionally surprising:</p>
-<div id="cd01a7de" class="cell" data-execution_count="4">
+<div id="bb0c701c" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Watcher:</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"class body executing"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -602,7 +602,7 @@ module loaded</code></pre>
 <section id="sec-meta-init-subclass" class="level2" data-number="36.4">
 <h2 data-number="36.4" class="anchored" data-anchor-id="sec-meta-init-subclass"><span class="header-section-number">36.4</span> <code>__init_subclass__</code> (PEP 487)</h2>
 <p>The modern alternative to a metaclass for many use cases. <code>__init_subclass__</code> is a <code>classmethod</code> (implicitly) that’s called on the <em>parent</em> whenever a <em>subclass</em> is created:</p>
-<div id="edf0f4c2" class="cell" data-execution_count="5">
+<div id="028223e4" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Pluggable:</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    plugins <span class="op">=</span> []</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -625,7 +625,7 @@ registered B</code></pre>
 </div>
 <p>Each subclass declaration triggered the registration. No metaclass; no decorator on each subclass; just a single hook on the base.</p>
 <p>A real-world pattern: combine <code>__init_subclass__</code> with descriptors to wire up a tiny ORM-like model. The user writes a clean class with type annotations; the framework reads those annotations and installs validating descriptors automatically — no decorator on every field, no metaclass.</p>
-<div id="8b473df4" class="cell" data-execution_count="6">
+<div id="336f8b1b" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> abc</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Validated(abc.ABC):</span>
@@ -669,7 +669,7 @@ registered B</code></pre>
 <pre><code>('Godzilla', 300000000)</code></pre>
 </div>
 </div>
-<div id="27d36c39" class="cell" data-execution_count="7">
+<div id="658ccae0" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>m.box_office <span class="op">=</span> <span class="op">-</span><span class="dv">1</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -705,7 +705,7 @@ registered B</code></pre>
 <section id="sec-meta-metaclass" class="level2" data-number="36.5">
 <h2 data-number="36.5" class="anchored" data-anchor-id="sec-meta-metaclass"><span class="header-section-number">36.5</span> Metaclasses, when nothing else fits</h2>
 <p><code>__init_subclass__</code> runs on the parent every time a child is defined — but you have to <em>be</em> the parent. What if you want to intercept class creation for classes that don’t share a base, or you need to change the namespace dict before the class body runs? That’s the metaclass’s job. A metaclass is a class whose instances are <em>classes</em>; the convention is to subclass <code>type</code>.</p>
-<div id="2c7dab32" class="cell" data-execution_count="8">
+<div id="2bf3e560" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Loud(<span class="bu">type</span>):</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__new__</span>(meta, name, bases, namespace):</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>        cls <span class="op">=</span> <span class="bu">super</span>().<span class="fu">__new__</span>(meta, name, bases, namespace)</span>

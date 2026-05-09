@@ -521,7 +521,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-creating" class="level2" data-number="3.1">
 <h2 data-number="3.1" class="anchored" data-anchor-id="sec-strings-creating"><span class="header-section-number">3.1</span> Creating strings</h2>
 <p>Python gives you four quoting forms because text comes in four shapes: short and clean, full of one quote character, multi-line, or full of backslashes. Picking the right form keeps the literal readable.</p>
-<div id="06e5b5c9" class="cell" data-execution_count="1">
+<div id="b22e9ce5" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> <span class="st">"hello"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="st">'hello'</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> <span class="st">"""multi-</span></span>
@@ -538,7 +538,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>r"C:\Users\Alice"</code> is a <strong>raw string</strong> — the leading <code>r</code> switches off backslash escaping, so <code>\U</code> doesn’t try to be a Unicode escape. Essential for Windows paths and regex patterns.</li>
 </ul>
 <p>The general rule: pick the form that minimises escapes. Single/double for one-liners, triple for multi-line, raw whenever you have many backslashes.</p>
-<div id="d6eea8b1" class="cell" data-execution_count="2">
+<div id="4ed53f0c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Without raw, you'd write \\d+ to mean \d+</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>pattern <span class="op">=</span> <span class="vs">r"</span><span class="dv">\d</span><span class="op">+</span><span class="vs">"</span></span>
@@ -551,7 +551,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-fstrings" class="level2" data-number="3.2">
 <h2 data-number="3.2" class="anchored" data-anchor-id="sec-strings-fstrings"><span class="header-section-number">3.2</span> f-strings</h2>
 <p>Building output from variables used to mean either string concatenation (<code>"Hello, " + name + "!"</code>) or <code>%</code>-style formatting (<code>"Hello, %s!" % name</code>). Both get unwieldy fast. f-strings (“formatted string literals”, introduced in 3.6) put the expression <em>inside</em> the string with <code>{...}</code> — always prefer them.</p>
-<div id="85227829" class="cell" data-execution_count="3">
+<div id="97c10f38" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>name <span class="op">=</span> <span class="st">"Alice"</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>score <span class="op">=</span> <span class="fl">95.6789</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>[</span>
@@ -582,7 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>{2 + 2}</code> shows the slot accepts <em>any</em> expression, not just a name.</li>
 </ul>
 <p>The general rule: the slot is <code>{expression[!conversion][:format_spec]}</code>. The format spec is <code>{value:[align][width][.precision][type]}</code>:</p>
-<div id="4217255c" class="cell" data-execution_count="4">
+<div id="4eeafa5d" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>score<span class="sc">:&gt;10.2f}</span><span class="ss">"</span>,   <span class="co"># right-align, width 10, 2 decimals</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f"</span><span class="sc">{</span>score<span class="sc">:&lt;10.2f}</span><span class="ss">"</span>,   <span class="co"># left-align</span></span>
@@ -595,7 +595,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Since Python 3.12 (PEP 701) the parser handles f-strings with the <em>same</em> quote character nested inside — and arbitrary expressions of any depth. You no longer need to swap quote styles to nest f-strings:</p>
-<div id="8bf4b2e9" class="cell" data-execution_count="5">
+<div id="7ed476d7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>vals <span class="op">=</span> [<span class="fl">1.234</span>, <span class="fl">5.678</span>, <span class="fl">9.012</span>]</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ss">f"</span><span class="sc">{</span><span class="st">','</span><span class="sc">.</span>join([<span class="ss">f'</span><span class="sc">{</span>x<span class="sc">:.1f}</span><span class="ss">'</span> <span class="cf">for</span> x <span class="kw">in</span> vals])<span class="sc">}</span><span class="ss">"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
@@ -607,7 +607,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-slicing" class="level2" data-number="3.3">
 <h2 data-number="3.3" class="anchored" data-anchor-id="sec-strings-slicing"><span class="header-section-number">3.3</span> Indexing and slicing</h2>
 <p>You constantly need to grab one character or a substring — the first character, the last, the file extension, the prefix. Python gives you indexing for one element and <strong>slicing</strong> for a contiguous range, both with one syntax.</p>
-<div id="cedfc994" class="cell" data-execution_count="6">
+<div id="df225aad" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="st">"Hello, World!"</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>[s[<span class="dv">0</span>], s[<span class="op">-</span><span class="dv">1</span>], s[<span class="dv">7</span>:<span class="dv">12</span>], s[:<span class="dv">5</span>], s[::<span class="op">-</span><span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -623,7 +623,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>s[start:stop:step]</code> — <code>start</code> defaults to 0, <code>stop</code> to <code>len(s)</code>, <code>step</code> to 1. The deep treatment of slicing — and how it generalizes to all sequences — is in <a href="sequences.html" class="quarto-xref"><span>Chapter 14</span></a>.</p>
 <p><code>len(s)</code> is the character count; <code>in</code> is a membership test:</p>
-<div id="27011232" class="cell" data-execution_count="7">
+<div id="06c69e9b" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>[<span class="bu">len</span>(s), <span class="st">"World"</span> <span class="kw">in</span> s, <span class="st">"world"</span> <span class="kw">in</span> s]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>[13, True, False]</code></pre>
@@ -633,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-joining" class="level2" data-number="3.4">
 <h2 data-number="3.4" class="anchored" data-anchor-id="sec-strings-joining"><span class="header-section-number">3.4</span> Joining and splitting</h2>
 <p>You constantly need to glue a list of strings together with a separator — comma, space, newline, nothing — or do the reverse and chop one string into pieces. Concatenation works with <code>+</code>, but for <em>many</em> strings, <code>.join()</code> is dramatically faster — and more idiomatic:</p>
-<div id="bd400aa9" class="cell" data-execution_count="8">
+<div id="e37d8b8a" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>words <span class="op">=</span> [<span class="st">"Hello"</span>, <span class="st">"World"</span>, <span class="st">"Python"</span>]</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>[<span class="st">" "</span>.join(words), <span class="st">", "</span>.join(words), <span class="st">""</span>.join(words)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
@@ -646,7 +646,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>"".join(words)</code> uses no separator at all — pure concatenation.</li>
 </ul>
 <p>The general rule: the separator string is the receiver, the iterable of strings is the argument. <code>split()</code> reverses it:</p>
-<div id="edab0b73" class="cell" data-execution_count="9">
+<div id="5760e619" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"a,b,c"</span>.split(<span class="st">","</span>),</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"  spaces   between   "</span>.split(),   <span class="co"># default: split on any whitespace</span></span>
@@ -661,7 +661,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-methods" class="level2" data-number="3.5">
 <h2 data-number="3.5" class="anchored" data-anchor-id="sec-strings-methods"><span class="header-section-number">3.5</span> String methods</h2>
 <p>Almost every string task is built from a small set of methods: trim whitespace, change case, replace a substring, ask whether a string starts/ends/contains something. Strings are immutable, so every method returns a <em>new</em> string — none of these mutate in place.</p>
-<div id="80928d9a" class="cell" data-execution_count="10">
+<div id="e4dc21ce" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="st">"  Hello, World!  "</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    s.strip(),</span>
@@ -691,7 +691,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>"abc123".isalnum()</code> returns <code>True</code> only if every character is alphanumeric.</li>
 </ul>
 <p>The general rule: every method that “modifies” a string actually returns a new one — assign the result if you want to keep it. Useful predicates: <code>.isdigit()</code>, <code>.isalpha()</code>, <code>.isalnum()</code>, <code>.isspace()</code>, <code>.startswith(prefix)</code>, <code>.endswith(suffix)</code>.</p>
-<div id="feb11602" class="cell" data-execution_count="11">
+<div id="058f3501" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"  hello  "</span>.strip(),</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"xxhelloxx"</span>.strip(<span class="st">"x"</span>),    <span class="co"># strip a custom set of chars</span></span>
@@ -706,7 +706,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-strings-escape" class="level2" data-number="3.6">
 <h2 data-number="3.6" class="anchored" data-anchor-id="sec-strings-escape"><span class="header-section-number">3.6</span> Escape sequences</h2>
 <p>Inside a non-raw string, <code>\</code> introduces an escape:</p>
-<div id="ed881c52" class="cell" data-execution_count="12">
+<div id="a47e8cff" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>[</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"line1</span><span class="ch">\n</span><span class="st">line2"</span>,</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"tab</span><span class="ch">\t</span><span class="st">here"</span>,</span>

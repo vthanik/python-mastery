@@ -548,7 +548,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-repr" class="level2" data-number="23.1">
 <h2 data-number="23.1" class="anchored" data-anchor-id="sec-pythonic-repr"><span class="header-section-number">23.1</span> Object representations</h2>
 <p>Python has two string-conversion dunders. <code>__repr__</code> is for developers — it should be unambiguous and ideally <code>eval()</code>-able. <code>__str__</code> is for users — readable. To see them work together, we’ll build a 2-D vector that integrates with <code>repr()</code>, <code>str()</code>, <code>abs()</code>, <code>bool()</code>, iteration, and <code>==</code> — the canonical “Pythonic object.”</p>
-<div id="571e5022" class="cell" data-execution_count="1">
+<div id="3fcfc20d" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector2d:</span>
@@ -585,7 +585,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__eq__</span>(<span class="va">self</span>, other):</span>
 <span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">tuple</span>(<span class="va">self</span>) <span class="op">==</span> <span class="bu">tuple</span>(other)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="51219e94" class="cell" data-execution_count="2">
+<div id="b8934557" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> Vector2d(<span class="dv">3</span>, <span class="dv">4</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">repr</span>(v), <span class="bu">str</span>(v), <span class="bu">abs</span>(v), <span class="bu">bool</span>(v)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -607,7 +607,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-classmethod" class="level2" data-number="23.2">
 <h2 data-number="23.2" class="anchored" data-anchor-id="sec-pythonic-classmethod"><span class="header-section-number">23.2</span> <code>classmethod</code> versus <code>staticmethod</code></h2>
 <p>A <code>@classmethod</code> receives the class as its first argument. The most common use is <em>alternative constructors</em> — you’ve serialized a vector to bytes and now want to read it back. <code>__init__</code> only takes <code>(x, y)</code>; bytes need their own factory. Rather than a free-standing function, we put it on the class as a <code>@classmethod</code>:</p>
-<div id="f22af807" class="cell" data-execution_count="3">
+<div id="9a1fadcb" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> array</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector2dV2(Vector2d):</span>
@@ -638,7 +638,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-format" class="level2" data-number="23.3">
 <h2 data-number="23.3" class="anchored" data-anchor-id="sec-pythonic-format"><span class="header-section-number">23.3</span> Formatted displays</h2>
 <p><code>__format__</code> is what <code>format(obj, spec)</code> and <code>f"{obj:spec}"</code> call. The format spec is a string; you parse it however you like. We’ll add a custom <code>p</code> suffix that switches the vector to polar coordinates, and pass the rest of the spec straight through to the components — so all the usual numeric format codes (<code>.2f</code>, <code>.3e</code>, …) keep working.</p>
-<div id="9c05aa76" class="cell" data-execution_count="4">
+<div id="2d61a065" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector2dF(Vector2d):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> angle(<span class="va">self</span>):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> math.atan2(<span class="va">self</span>.y, <span class="va">self</span>.x)</span>
@@ -672,7 +672,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-hashable" class="level2" data-number="23.4">
 <h2 data-number="23.4" class="anchored" data-anchor-id="sec-pythonic-hashable"><span class="header-section-number">23.4</span> A hashable <code>Vector2d</code></h2>
 <p>To put a <code>Vector2d</code> in a <code>set</code> or use it as a <code>dict</code> key, two methods are required: <code>__hash__</code> <em>and</em> <code>__eq__</code>. Both must be consistent — equal objects must have equal hashes — and both depend on attributes that don’t change.</p>
-<div id="8a5ae4ac" class="cell" data-execution_count="5">
+<div id="1c9eb945" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector2dH(Vector2d):</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__hash__</span>(<span class="va">self</span>):</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="bu">hash</span>((<span class="va">self</span>.x, <span class="va">self</span>.y))</span>
@@ -708,7 +708,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-slots" class="level2" data-number="23.5">
 <h2 data-number="23.5" class="anchored" data-anchor-id="sec-pythonic-slots"><span class="header-section-number">23.5</span> Saving memory with <code>__slots__</code></h2>
 <p>By default, every Python instance has a <code>__dict__</code> — a hash table for its attributes. That’s flexible but expensive: ~200 bytes per instance even for two floats. <code>__slots__</code> swaps the dict for a fixed-size array of attribute slots:</p>
-<div id="9684800b" class="cell" data-execution_count="6">
+<div id="5505b0b1" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector2dSlots:</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="va">__slots__</span> <span class="op">=</span> (<span class="st">"__x"</span>, <span class="st">"__y"</span>)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    typecode <span class="op">=</span> <span class="st">"d"</span></span>
@@ -757,7 +757,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-pythonic-class-attrs" class="level2" data-number="23.6">
 <h2 data-number="23.6" class="anchored" data-anchor-id="sec-pythonic-class-attrs"><span class="header-section-number">23.6</span> Class attributes and overriding them</h2>
 <p><code>typecode = "d"</code> on the class is a <em>class attribute</em> — a shared default. Reading <code>v.typecode</code> looks at the instance first, then falls back to the class:</p>
-<div id="b8b70cea" class="cell" data-execution_count="7">
+<div id="d9cbbac5" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> Vector2d(<span class="dv">1</span>, <span class="dv">2</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>v.typecode, Vector2d.typecode</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
@@ -766,7 +766,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Both reads return <code>"d"</code>. The instance has no <code>typecode</code> of its own, so attribute lookup walks up to the class.</p>
 <p>Assigning to <code>v.typecode</code> <em>creates</em> an instance attribute, shadowing the class one:</p>
-<div id="640d726e" class="cell" data-execution_count="8">
+<div id="f5b08dfd" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>v.typecode <span class="op">=</span> <span class="st">"f"</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>v.typecode, Vector2d.typecode</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
@@ -774,7 +774,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Now <code>v.typecode</code> finds the instance copy first and returns <code>"f"</code>. <code>Vector2d.typecode</code> is untouched at <code>"d"</code> — only this one instance changed. The idiomatic way to change the default for a <em>kind</em> of vector (not just one instance) is to subclass:</p>
-<div id="c977bcd6" class="cell" data-execution_count="9">
+<div id="d2113956" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ShortVector2d(Vector2d):</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    typecode <span class="op">=</span> <span class="st">"f"</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>

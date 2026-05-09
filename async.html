@@ -549,7 +549,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The cells below use <code>await main()</code> directly because Jupyter (and Quarto’s Jupyter engine) already runs an event loop, so calling <code>asyncio.run</code> from inside it raises <code>RuntimeError</code>. In a <code>.py</code> script, replace each <code>await main()</code> with <code>asyncio.run(main())</code>.</p>
 </div>
 </div>
-<div id="0f85762b" class="cell" data-execution_count="1">
+<div id="c51372b4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> hello(name, delay):</span>
@@ -596,7 +596,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-gather" class="level2" data-number="33.3">
 <h2 data-number="33.3" class="anchored" data-anchor-id="sec-async-gather"><span class="header-section-number">33.3</span> Running coroutines concurrently</h2>
 <p>To run several coroutines concurrently, schedule them with <code>asyncio.create_task</code> or collect them with <code>asyncio.gather</code>:</p>
-<div id="8581b87c" class="cell" data-execution_count="2">
+<div id="3aada58c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
@@ -622,7 +622,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Three sleeps of 0.1 seconds finished in ~0.1 seconds — they were <em>concurrent</em>, not sequential. <code>asyncio.gather</code> waits for all of them and returns their results in order.</p>
 <p><code>asyncio.create_task(coro)</code> schedules a coroutine and returns a Task immediately, so you can fire something off and continue:</p>
-<div id="bb6dae39" class="cell" data-execution_count="3">
+<div id="ee0a7c4c" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    task <span class="op">=</span> asyncio.create_task(hello(<span class="st">"background"</span>, <span class="fl">0.05</span>))</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">"(doing something else)"</span>)</span>
@@ -647,7 +647,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-taskgroup" class="level2" data-number="33.4">
 <h2 data-number="33.4" class="anchored" data-anchor-id="sec-async-taskgroup"><span class="header-section-number">33.4</span> Structured concurrency with <code>TaskGroup</code></h2>
 <p>Python 3.11 added <code>asyncio.TaskGroup</code> — the modern replacement for <code>gather</code> when you want <em>structured concurrency</em>. If any task raises, sibling tasks are cancelled and the group re-raises an <code>ExceptionGroup</code>. Prefer it for new code.</p>
-<div id="b6a9cec0" class="cell" data-execution_count="4">
+<div id="3bb17b9d" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> asyncio.TaskGroup() <span class="im">as</span> tg:</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        t1 <span class="op">=</span> tg.create_task(hello(<span class="st">"a"</span>, <span class="fl">0.1</span>))</span>
@@ -674,7 +674,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-timeout" class="level2" data-number="33.5">
 <h2 data-number="33.5" class="anchored" data-anchor-id="sec-async-timeout"><span class="header-section-number">33.5</span> Deadlines with <code>asyncio.timeout</code></h2>
 <p><code>asyncio.timeout</code> (3.11) is a context manager — anything awaited inside the block is bounded by the deadline. Cleaner than <code>wait_for</code> and composes with <code>TaskGroup</code>.</p>
-<div id="3fe81fd7" class="cell" data-execution_count="5">
+<div id="09654f85" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> main():</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">async</span> <span class="cf">with</span> asyncio.timeout(<span class="fl">0.05</span>):</span>
@@ -700,7 +700,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-as-completed" class="level2" data-number="33.6">
 <h2 data-number="33.6" class="anchored" data-anchor-id="sec-async-as-completed"><span class="header-section-number">33.6</span> Iterating as coroutines complete</h2>
 <p><code>asyncio.as_completed</code> is the async cousin of <code>concurrent.futures.as_completed</code>. It yields awaitables in the order they finish, not the order you submitted them:</p>
-<div id="42b79f0a" class="cell" data-execution_count="6">
+<div id="c1604c54" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> slow(label, delay):</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">await</span> asyncio.sleep(delay)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> label</span>
@@ -730,7 +730,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-semaphore" class="level2" data-number="33.7">
 <h2 data-number="33.7" class="anchored" data-anchor-id="sec-async-semaphore"><span class="header-section-number">33.7</span> Throttling with <code>Semaphore</code></h2>
 <p>You don’t always want unbounded concurrency. A semaphore limits how many coroutines can be inside a critical region at once:</p>
-<div id="a1bdfd0e" class="cell" data-execution_count="7">
+<div id="2e095c20" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> fetch(label, delay, sem):</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">async</span> <span class="cf">with</span> sem:</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">await</span> asyncio.sleep(delay)</span>
@@ -745,7 +745,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> main()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>(['r0', 'r1', 'r2', 'r3', 'r4', 'r5'], '0.153s')</code></pre>
+<pre><code>(['r0', 'r1', 'r2', 'r3', 'r4', 'r5'], '0.152s')</code></pre>
 </div>
 </div>
 <p>Walking through the throttle:</p>
@@ -783,7 +783,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-async-executor" class="level2" data-number="33.9">
 <h2 data-number="33.9" class="anchored" data-anchor-id="sec-async-executor"><span class="header-section-number">33.9</span> Bridging async and blocking code</h2>
 <p>If you must call a blocking function from an async context, hand it to a thread pool with <code>loop.run_in_executor</code>:</p>
-<div id="7038d369" class="cell" data-execution_count="8">
+<div id="3105d911" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> blocking(n):</span>

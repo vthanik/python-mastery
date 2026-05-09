@@ -521,7 +521,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cm-with" class="level2" data-number="30.1">
 <h2 data-number="30.1" class="anchored" data-anchor-id="sec-cm-with"><span class="header-section-number">30.1</span> Context managers and <code>with</code></h2>
 <p>A context manager is an object with <code>__enter__</code> (setup, returns the <code>as</code> value) and <code>__exit__</code> (teardown, called even on exception). The classic example is file I/O:</p>
-<div id="7196acdd" class="cell" data-execution_count="1">
+<div id="a16d63f1" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> io.StringIO(<span class="st">"hello</span><span class="ch">\n</span><span class="st">world</span><span class="ch">\n</span><span class="st">"</span>) <span class="im">as</span> fp:</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(fp.read().upper())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -533,7 +533,7 @@ WORLD
 </div>
 <p><code>with</code> calls <code>fp.__enter__()</code>, binds the result to <code>fp</code>, runs the block, then calls <code>fp.__exit__(...)</code> no matter what — exception or clean exit.</p>
 <p>A custom context manager. We’ll write one that monkey-patches <code>sys.stdout.write</code> to reverse each string it prints — it’s a contrived effect, but it shows the full lifecycle: setup on entry, teardown on exit, and exception handling in between.</p>
-<div id="47e3140f" class="cell" data-execution_count="2">
+<div id="4f84ae1f" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> LookingGlass:</span>
@@ -576,7 +576,7 @@ normal again</code></pre>
 <section id="sec-cm-contextmanager" class="level2" data-number="30.2">
 <h2 data-number="30.2" class="anchored" data-anchor-id="sec-cm-contextmanager"><span class="header-section-number">30.2</span> <code>@contextmanager</code></h2>
 <p>The class form is verbose. <code>contextlib.contextmanager</code> turns a generator into a context manager, with <code>yield</code> as the pivot:</p>
-<div id="508e043e" class="cell" data-execution_count="3">
+<div id="c9f16ff3" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> contextlib</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">@contextlib.contextmanager</span></span>
@@ -611,7 +611,7 @@ normal again</code></pre>
 </ul>
 <p>The general pattern: write the cleanup that has to happen no matter what inside <code>finally</code>; the <code>yield</code> is the boundary between setup and teardown.</p>
 <p>The <code>contextlib</code> toolkit goes further:</p>
-<div id="ce329252" class="cell" data-execution_count="4">
+<div id="e3248ac2" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os, tempfile, contextlib</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
@@ -625,7 +625,7 @@ normal again</code></pre>
 </div>
 <p><code>suppress(FileNotFoundError)</code> swallows the named exception (and only that one). Useful for “remove if it exists” patterns without the <code>try</code>/<code>except</code>/<code>pass</code> ritual.</p>
 <p><code>contextlib.redirect_stdout</code> and <code>redirect_stderr</code> swap a stream temporarily:</p>
-<div id="87a6dae9" class="cell" data-execution_count="5">
+<div id="812013d7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>buf <span class="op">=</span> io.StringIO()</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> contextlib.redirect_stdout(buf):</span>
@@ -636,7 +636,7 @@ normal again</code></pre>
 </div>
 </div>
 <p><code>contextlib.ExitStack</code> lets you stack a <em>dynamic</em> number of context managers — useful when the count isn’t known at write time:</p>
-<div id="3c3a162f" class="cell" data-execution_count="6">
+<div id="4c34ba1a" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> contextlib <span class="im">import</span> ExitStack</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -663,7 +663,7 @@ normal again</code></pre>
 <h2 data-number="30.3" class="anchored" data-anchor-id="sec-else"><span class="header-section-number">30.3</span> <code>else</code> blocks</h2>
 <p>Python has three <code>else</code> clauses you may have missed.</p>
 <p><strong><code>for/else</code></strong> — the <code>else</code> runs when the loop completes <em>without</em> a <code>break</code>:</p>
-<div id="70eea005" class="cell" data-execution_count="7">
+<div id="eaeacb4b" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>items <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>]</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> <span class="dv">5</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -685,7 +685,7 @@ normal again</code></pre>
 </ul>
 <p>The general pattern: <code>for/else</code> is “I searched and didn’t find it” without a flag variable. Read it as <code>for ... else / not-broken-out</code>.</p>
 <p><strong><code>while/else</code></strong> — the same idea: <code>else</code> runs when the condition becomes false (no break):</p>
-<div id="4db0e676" class="cell" data-execution_count="8">
+<div id="ad44c698" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">5</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> n <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">-=</span> <span class="dv">1</span></span>
@@ -696,7 +696,7 @@ normal again</code></pre>
 </div>
 </div>
 <p><strong><code>try/else</code></strong> — the <code>else</code> runs if the <code>try</code> block raised <em>no</em> exception. Use it to keep the success-path logic out of the <code>try</code>:</p>
-<div id="7eb9e6e7" class="cell" data-execution_count="9">
+<div id="af2ace87" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> <span class="st">'{"a": 1}'</span></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
@@ -760,7 +760,7 @@ cleanup</code></pre>
 <section id="sec-with-exception-group" class="level2" data-number="30.5">
 <h2 data-number="30.5" class="anchored" data-anchor-id="sec-with-exception-group"><span class="header-section-number">30.5</span> Multiple exceptions at once: <code>ExceptionGroup</code></h2>
 <p>Python 3.11 added <code>ExceptionGroup</code> and the <code>except*</code> syntax for catching by type <em>without unbundling the rest</em> — exactly what <code>asyncio.TaskGroup</code> needs.</p>
-<div id="905774cb" class="cell" data-execution_count="10">
+<div id="519a59e8" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> ExceptionGroup(</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"two problems"</span>,</span>

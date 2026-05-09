@@ -556,7 +556,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-desc-quantity" class="level2" data-number="35.2">
 <h2 data-number="35.2" class="anchored" data-anchor-id="sec-desc-quantity"><span class="header-section-number">35.2</span> A validating descriptor</h2>
 <p>Reusable per-attribute validation, the descriptor way:</p>
-<div id="22f2ea64" class="cell" data-execution_count="1">
+<div id="bb256148" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Quantity:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__set_name__</span>(<span class="va">self</span>, owner, name):</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.storage_name <span class="op">=</span> name</span>
@@ -590,7 +590,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>69.5</code></pre>
 </div>
 </div>
-<div id="68f2538b" class="cell" data-execution_count="2">
+<div id="67cd9e27" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>raisins.weight <span class="op">=</span> <span class="dv">0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -621,7 +621,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-desc-overriding" class="level2" data-number="35.3">
 <h2 data-number="35.3" class="anchored" data-anchor-id="sec-desc-overriding"><span class="header-section-number">35.3</span> Overriding versus non-overriding</h2>
 <p>Here’s the distinction in action. An overriding descriptor (with <code>__set__</code>) wins over the instance dict; a non-overriding one (without <code>__set__</code>) loses to it.</p>
-<div id="8f6aa163" class="cell" data-execution_count="3">
+<div id="65abe4d3" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Overriding:</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__get__</span>(<span class="va">self</span>, instance, owner<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"overriding.__get__"</span></span>
@@ -642,7 +642,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>('overriding.__get__', 'nonoverriding.__get__')</code></pre>
 </div>
 </div>
-<div id="7adfd4a4" class="cell" data-execution_count="4">
+<div id="17a53ba3" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>m.over <span class="op">=</span> <span class="dv">7</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>m.over, m.__dict__</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -653,7 +653,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>m.over = 7</code> ran <code>__set__</code>. The instance dict stayed empty.</p>
-<div id="7aa60e98" class="cell" data-execution_count="5">
+<div id="e324a146" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>m.non <span class="op">=</span> <span class="dv">7</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>m.non, m.__dict__</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
@@ -666,7 +666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-desc-methods" class="level2" data-number="35.4">
 <h2 data-number="35.4" class="anchored" data-anchor-id="sec-desc-methods"><span class="header-section-number">35.4</span> Methods are descriptors</h2>
 <p>You’ve been writing <code>obj.method(arg)</code> since chapter 1 and it Just Works — <code>self</code> ends up bound to <code>obj</code> automatically. Where does that binding come from? There’s no special compiler magic; it’s the descriptor protocol again. A function defined in a class body is a non-overriding descriptor, and accessing it through an instance triggers <code>__get__</code> to produce a <em>bound method</em>.</p>
-<div id="52ca97da" class="cell" data-execution_count="6">
+<div id="8de82ea2" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> C:</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> method(<span class="va">self</span>):</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"hi"</span></span>
@@ -674,7 +674,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>C.method, C().method</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>(&lt;function __main__.C.method(self)&gt;,
- &lt;bound method C.method of &lt;__main__.C object at 0x10c2e3a10&gt;&gt;)</code></pre>
+ &lt;bound method C.method of &lt;__main__.C object at 0x107f4fa10&gt;&gt;)</code></pre>
 </div>
 </div>
 <p>Walking through what just happened:</p>
@@ -684,12 +684,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The two access paths produce different objects because Python’s attribute lookup notices <code>method</code> has a <code>__get__</code> and calls it on the instance access. On the class access, <code>__get__</code> is called too — but with <code>instance=None</code> — and the function just returns itself.</li>
 </ul>
 <p>You can call <code>__get__</code> directly to see the binding happen:</p>
-<div id="e27453f4" class="cell" data-execution_count="7">
+<div id="f0f5d801" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> C()</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>bound <span class="op">=</span> C.method.<span class="fu">__get__</span>(c, C)</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>bound, bound() <span class="op">==</span> c.method()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>(&lt;bound method C.method of &lt;__main__.C object at 0x10c122210&gt;&gt;, True)</code></pre>
+<pre><code>(&lt;bound method C.method of &lt;__main__.C object at 0x107d92210&gt;&gt;, True)</code></pre>
 </div>
 </div>
 <p>Walking through this:</p>
@@ -707,7 +707,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-desc-complete" class="level2" data-number="35.5">
 <h2 data-number="35.5" class="anchored" data-anchor-id="sec-desc-complete"><span class="header-section-number">35.5</span> A complete validating descriptor</h2>
 <p>The earlier <code>Quantity</code> baked one validation rule (<code>&gt; 0</code>) into the descriptor. Real codebases need a family of rules — positive numbers, non-empty strings, valid emails — and you don’t want to rewrite the storage-and-retrieval boilerplate each time. The clean answer is an abstract base descriptor that handles the protocol, with concrete subclasses that implement only the rule.</p>
-<div id="011e0fa2" class="cell" data-execution_count="8">
+<div id="a665c329" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> abc</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Validated(abc.ABC):</span>
@@ -751,7 +751,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>{'_name': 'widget', '_qty': 3}</code></pre>
 </div>
 </div>
-<div id="6e4f405a" class="cell" data-execution_count="9">
+<div id="76aa1989" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>Order(<span class="st">""</span>, <span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">

@@ -524,7 +524,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-data-model-card-deck" class="level2" data-number="13.1">
 <h2 data-number="13.1" class="anchored" data-anchor-id="sec-data-model-card-deck"><span class="header-section-number">13.1</span> A Pythonic card deck</h2>
 <p>The shortest path to seeing the data model in action is to implement two special methods on a single class and observe everything you get without writing another line.</p>
-<div id="6fded1bd" class="cell" data-execution_count="1">
+<div id="e9a894e4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> collections</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>Card <span class="op">=</span> collections.namedtuple(<span class="st">"Card"</span>, [<span class="st">"rank"</span>, <span class="st">"suit"</span>])</span>
@@ -553,7 +553,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>__getitem__(self, position)</code> is what <code>deck[i]</code> calls. We forward <code>position</code> straight to <code>self._cards</code>, so whatever the list supports — integers, negatives, slices — we support too.</li>
 </ul>
 <p>Two dunder methods: <code>__len__</code> and <code>__getitem__</code>. That’s the entire interface. Now look at what the class can already do.</p>
-<div id="5d8af803" class="cell" data-execution_count="2">
+<div id="30920529" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>deck <span class="op">=</span> FrenchDeck()</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(deck)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -561,22 +561,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>len(deck)</code> works because the built-in <code>len</code> function calls <code>deck.__len__()</code>. Nothing special — it’s a contract. If you implement the contract, the built-in is there.</p>
-<div id="bda5c82f" class="cell" data-execution_count="3">
+<div id="67240ead" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>deck[<span class="dv">0</span>], deck[<span class="op">-</span><span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>(Card(rank='2', suit='spades'), Card(rank='A', suit='hearts'))</code></pre>
 </div>
 </div>
 <p>Indexing is the same story. <code>deck[0]</code> is sugar for <code>deck.__getitem__(0)</code>. Negative indexing works because we delegated to the underlying list, which supports it.</p>
-<div id="33f42399" class="cell" data-execution_count="4">
+<div id="6bad1bf8" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> random <span class="im">import</span> choice</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>choice(deck)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>Card(rank='Q', suit='spades')</code></pre>
+<pre><code>Card(rank='3', suit='diamonds')</code></pre>
 </div>
 </div>
 <p><code>random.choice</code> requires only that its argument support <code>len</code> and <code>__getitem__</code> — exactly the two methods we wrote. No inheritance, no registration. The function works on our class because our class fulfills the protocol it expects.</p>
-<div id="82cdb3fe" class="cell" data-execution_count="5">
+<div id="e972f562" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> card <span class="kw">in</span> deck[:<span class="dv">3</span>]:</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(card)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -586,14 +586,14 @@ Card(rank='4', suit='spades')</code></pre>
 </div>
 </div>
 <p>Two more powers came in that line. Slicing — <code>deck[:3]</code> — works because slicing is just <code>__getitem__(slice(None, 3, None))</code>, and our <code>__getitem__</code> forwards the index to a list. Iteration — the <code>for card in ...</code> — works because the absence of <code>__iter__</code> falls back to repeatedly calling <code>__getitem__(0)</code>, <code>__getitem__(1)</code>, … until <code>IndexError</code>.</p>
-<div id="6df826eb" class="cell" data-execution_count="6">
+<div id="45815f62" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>Card(<span class="st">"Q"</span>, <span class="st">"hearts"</span>) <span class="kw">in</span> deck</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>True</code></pre>
 </div>
 </div>
 <p>The <code>in</code> operator falls back to iteration when <code>__contains__</code> isn’t defined, so it works too. Sorting works:</p>
-<div id="158ada60" class="cell" data-execution_count="7">
+<div id="fff8b160" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>suit_values <span class="op">=</span> <span class="bu">dict</span>(spades<span class="op">=</span><span class="dv">3</span>, hearts<span class="op">=</span><span class="dv">2</span>, diamonds<span class="op">=</span><span class="dv">1</span>, clubs<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> spades_high(card):</span>
@@ -613,7 +613,7 @@ Card(rank='A', suit='spades')</code></pre>
 <section id="sec-data-model-numeric" class="level2" data-number="13.2">
 <h2 data-number="13.2" class="anchored" data-anchor-id="sec-data-model-numeric"><span class="header-section-number">13.2</span> Emulating numeric types</h2>
 <p>The same protocol idea works for arithmetic. A two-dimensional vector is the canonical example — it lets you implement most of the numeric dunders in a class small enough to read in one screen.</p>
-<div id="01e3a554" class="cell" data-execution_count="8">
+<div id="fdaac82d" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector:</span>
@@ -645,7 +645,7 @@ Card(rank='A', suit='spades')</code></pre>
 <li><code>__mul__(self, scalar)</code> is <code>v * n</code>. Here <code>scalar</code> is a number, not a <code>Vector</code> — multiplying two vectors would need a different operation (dot product, cross product), and we don’t define one.</li>
 </ul>
 <p>The general shape: each operator and built-in has a corresponding dunder, and implementing the dunder lights up the syntax.</p>
-<div id="92d543ce" class="cell" data-execution_count="9">
+<div id="a2c79cfa" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">=</span> Vector(<span class="dv">2</span>, <span class="dv">4</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>v2 <span class="op">=</span> Vector(<span class="dv">2</span>, <span class="dv">1</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">+</span> v2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -654,21 +654,21 @@ Card(rank='A', suit='spades')</code></pre>
 </div>
 </div>
 <p><code>v1 + v2</code> calls <code>v1.__add__(v2)</code>. The result is a new <code>Vector</code> (not a mutation), which matches how <code>+</code> works on numbers, strings, and tuples.</p>
-<div id="cdcfc035" class="cell" data-execution_count="10">
+<div id="79dbcf21" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="bu">abs</span>(Vector(<span class="dv">3</span>, <span class="dv">4</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>5.0</code></pre>
 </div>
 </div>
 <p><code>abs()</code> calls <code>__abs__</code>. We defined it as the Euclidean length, so <code>(3, 4)</code> returns <code>5.0</code>.</p>
-<div id="b36635b2" class="cell" data-execution_count="11">
+<div id="a8d33035" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">*</span> <span class="dv">3</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>Vector(6, 12)</code></pre>
 </div>
 </div>
 <p><code>*</code> with a scalar calls <code>__mul__</code>. Note what happens with the <em>reflected</em> operand:</p>
-<div id="5fcf7c77" class="cell" data-execution_count="12">
+<div id="bd25ed22" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span> <span class="op">*</span> v1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -682,7 +682,7 @@ Card(rank='A', suit='spades')</code></pre>
 </div>
 </div>
 <p><code>3 * v1</code> fails because <code>int.__mul__</code> doesn’t know about <code>Vector</code>, and we haven’t defined <code>__rmul__</code>. We will fix this in <a href="operator-overload.html" class="quarto-xref"><span>Chapter 28</span></a> — the reflected operators are a topic of their own.</p>
-<div id="24f62361" class="cell" data-execution_count="13">
+<div id="7a99ee3b" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">repr</span>(Vector(<span class="dv">1</span>, <span class="dv">2</span>)))</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">bool</span>(Vector(<span class="dv">0</span>, <span class="dv">0</span>)))</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">bool</span>(Vector(<span class="dv">1</span>, <span class="dv">0</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

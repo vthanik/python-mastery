@@ -526,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-labels" class="level2" data-number="18.1">
 <h2 data-number="18.1" class="anchored" data-anchor-id="sec-references-labels"><span class="header-section-number">18.1</span> Variables are labels, not boxes</h2>
 <p>The single most useful mental model: a Python variable is a <em>sticky note</em> you attach to an object. Assignment moves the sticky note; it does not copy the object underneath.</p>
-<div id="99b7770b" class="cell" data-execution_count="1">
+<div id="969a2780" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> a</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>b.append(<span class="dv">4</span>)</span>
@@ -551,14 +551,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Two labels, one list — mutation through either label is visible through both.</p>
-<div id="0b9cc701" class="cell" data-execution_count="2">
+<div id="529a2c2b" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>a <span class="kw">is</span> b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>True</code></pre>
 </div>
 </div>
 <p><code>is</code> compares identity: same object in memory? Yes. Reassigning <code>b</code> does not affect <code>a</code>:</p>
-<div id="c755afef" class="cell" data-execution_count="3">
+<div id="4a5b7a4d" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">20</span>]</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>a, b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -570,7 +570,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-eq" class="level2" data-number="18.2">
 <h2 data-number="18.2" class="anchored" data-anchor-id="sec-references-eq"><span class="header-section-number">18.2</span> Identity, equality, and aliases</h2>
 <p><code>==</code> and <code>is</code> ask different questions. <code>==</code> calls <code>__eq__</code> — same value? <code>is</code> checks identity — same object?</p>
-<div id="8d6633e8" class="cell" data-execution_count="4">
+<div id="635631a0" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>charles <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"Charles L. Dodgson"</span>, <span class="st">"born"</span>: <span class="dv">1832</span>}</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>lewis <span class="op">=</span> charles</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>lewis <span class="kw">is</span> charles, <span class="bu">id</span>(lewis) <span class="op">==</span> <span class="bu">id</span>(charles)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -578,14 +578,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(True, True)</code></pre>
 </div>
 </div>
-<div id="e72b8bac" class="cell" data-execution_count="5">
+<div id="20bb915b" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>lewis[<span class="st">"balance"</span>] <span class="op">=</span> <span class="dv">950</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>charles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>{'name': 'Charles L. Dodgson', 'born': 1832, 'balance': 950}</code></pre>
 </div>
 </div>
-<div id="9285865d" class="cell" data-execution_count="6">
+<div id="59ce9ba4" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>alex <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"Charles L. Dodgson"</span>, <span class="st">"born"</span>: <span class="dv">1832</span>, <span class="st">"balance"</span>: <span class="dv">950</span>}</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>alex <span class="op">==</span> charles, alex <span class="kw">is</span> charles</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -610,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-tuple-immutability" class="level2" data-number="18.3">
 <h2 data-number="18.3" class="anchored" data-anchor-id="sec-references-tuple-immutability"><span class="header-section-number">18.3</span> The relative immutability of tuples</h2>
 <p>A tuple is immutable in the sense that the <em>references it holds</em> cannot be replaced. The objects those references point to can still mutate:</p>
-<div id="2eb57b04" class="cell" data-execution_count="7">
+<div id="c20456c2" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">=</span> (<span class="dv">1</span>, <span class="dv">2</span>, [<span class="dv">30</span>, <span class="dv">40</span>])</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>t2 <span class="op">=</span> (<span class="dv">1</span>, <span class="dv">2</span>, [<span class="dv">30</span>, <span class="dv">40</span>])</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">==</span> t2, t1 <span class="kw">is</span> t2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -618,7 +618,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(True, False)</code></pre>
 </div>
 </div>
-<div id="7daf70e3" class="cell" data-execution_count="8">
+<div id="87b833ad" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>t1[<span class="op">-</span><span class="dv">1</span>].append(<span class="dv">99</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>t1, t1 <span class="op">==</span> t2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
@@ -630,7 +630,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-shallow" class="level2" data-number="18.4">
 <h2 data-number="18.4" class="anchored" data-anchor-id="sec-references-shallow"><span class="header-section-number">18.4</span> Copies are shallow by default</h2>
 <p><code>list(x)</code>, <code>x[:]</code>, <code>dict(x)</code>, and <code>set(x)</code> all make <em>shallow</em> copies. The outer container is new; the contained references are shared.</p>
-<div id="3d6b877f" class="cell" data-execution_count="9">
+<div id="f4bd3cd8" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> copy</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>l1 <span class="op">=</span> [<span class="dv">3</span>, [<span class="dv">55</span>, <span class="dv">44</span>], (<span class="dv">7</span>, <span class="dv">8</span>, <span class="dv">9</span>)]</span>
@@ -640,7 +640,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(True, False)</code></pre>
 </div>
 </div>
-<div id="b237f8ee" class="cell" data-execution_count="10">
+<div id="af55df47" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>l2[<span class="dv">1</span>].append(<span class="dv">33</span>)</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>l1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
@@ -649,7 +649,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>The outer lists are different (<code>l1 is not l2</code>), but the inner list is the same object. Mutating it through <code>l2</code> is visible through <code>l1</code>.</p>
 <p>For independence at every level, use <code>copy.deepcopy</code>:</p>
-<div id="4d9d5f50" class="cell" data-execution_count="11">
+<div id="bf154398" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>l3 <span class="op">=</span> copy.deepcopy(l1)</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>l3[<span class="dv">1</span>].append(<span class="dv">99</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>l1[<span class="dv">1</span>], l3[<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -661,7 +661,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-parameters" class="level2" data-number="18.5">
 <h2 data-number="18.5" class="anchored" data-anchor-id="sec-references-parameters"><span class="header-section-number">18.5</span> Function parameters are references</h2>
 <p>Python passes references — not values, not pointers. Mutating a parameter mutates the caller’s object. Rebinding a parameter does not.</p>
-<div id="6c5ef0b9" class="cell" data-execution_count="12">
+<div id="533885c9" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> f(x):</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">*=</span> <span class="dv">2</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -673,7 +673,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>*=</code> on a list is <em>in-place</em> repetition (it calls <code>__imul__</code>), so <code>a</code> was mutated.</p>
-<div id="6190d950" class="cell" data-execution_count="13">
+<div id="bc855978" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">5</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>f(b)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -683,7 +683,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p><code>*=</code> on an <code>int</code> is <em>not</em> in-place — <code>int</code> is immutable, so it rebinds the local name to a new object. The caller’s <code>b</code> is unaffected.</p>
 <p>This is why <strong>mutable default arguments are a trap.</strong> The default is evaluated <em>once</em>, at function definition time, and shared across every call:</p>
-<div id="5a0fb49d" class="cell" data-execution_count="14">
+<div id="43b35896" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HauntedBus:</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, passengers<span class="op">=</span>[]):</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.passengers <span class="op">=</span> passengers</span>
@@ -705,7 +705,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>bus2.passengers.append("Carrie")</code> mutates that shared list. <code>bus3.passengers</code> sees the mutation, because there’s only one list.</li>
 </ul>
 <p>The fix is the standard idiom — <code>None</code> sentinel plus a copy:</p>
-<div id="9b70f880" class="cell" data-execution_count="15">
+<div id="0ff78c73" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Bus:</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, passengers<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> passengers <span class="kw">is</span> <span class="va">None</span>:</span>
@@ -732,7 +732,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-references-gc" class="level2" data-number="18.6">
 <h2 data-number="18.6" class="anchored" data-anchor-id="sec-references-gc"><span class="header-section-number">18.6</span> <code>del</code> and garbage collection</h2>
 <p><code>del x</code> removes the <em>name</em> <code>x</code>. The object only goes away when its last reference does. CPython uses reference counting, plus a cycle detector for unreachable cycles.</p>
-<div id="8ac3c6fb" class="cell" data-execution_count="16">
+<div id="33198249" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> a</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> a</span>
@@ -743,7 +743,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p><code>a</code> is gone but the list lives on through <code>b</code>.</p>
 <p><code>weakref</code> is a reference that <em>doesn’t</em> keep the object alive:</p>
-<div id="554012ea" class="cell" data-execution_count="17">
+<div id="fffa6a74" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> weakref, gc</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Holder: <span class="cf">pass</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -768,7 +768,7 @@ None</code></pre>
 </ul>
 <p>The general rule: a weak reference lets you <em>observe</em> an object without prolonging its life — the building block for caches, observers, and any structure that should not extend an object’s lifetime.</p>
 <p><code>weakref.WeakValueDictionary</code> is the everyday tool — a dict whose values are weak. Entries vanish as soon as their last strong reference dies, so the dict can never extend an object’s lifetime:</p>
-<div id="dbde34c0" class="cell" data-execution_count="18">
+<div id="96a9c41d" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Cheese:</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, kind):</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.kind <span class="op">=</span> kind</span>
@@ -784,7 +784,7 @@ None</code></pre>
 <pre><code>['Brie', 'Red Leicester', 'Tilsit']</code></pre>
 </div>
 </div>
-<div id="f9bbc7f5" class="cell" data-execution_count="19">
+<div id="f840c403" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> catalog</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> cheese          <span class="co"># the for-loop's leftover binding</span></span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>gc.collect()</span>
@@ -806,7 +806,7 @@ None</code></pre>
 <section id="sec-references-interning" class="level2" data-number="18.7">
 <h2 data-number="18.7" class="anchored" data-anchor-id="sec-references-interning"><span class="header-section-number">18.7</span> Tricks Python plays with immutables</h2>
 <p>CPython sometimes <em>interns</em> small ints and short strings — the same value yields the same object — but only as an implementation detail.</p>
-<div id="4ca9e320" class="cell" data-execution_count="20">
+<div id="4664f51c" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> <span class="dv">1000</span></span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">1000</span></span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>a <span class="kw">is</span> b, a <span class="op">==</span> b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -815,7 +815,7 @@ None</code></pre>
 </div>
 </div>
 <p>The result of <code>a is b</code> for <code>1000</code> is implementation-dependent and can change between Python versions. <strong>Never use <code>is</code> for value comparison.</strong> Use <code>==</code>.</p>
-<div id="3f53a205" class="cell" data-execution_count="21">
+<div id="927d9905" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">=</span> (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>t2 <span class="op">=</span> (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>t1 <span class="kw">is</span> t2, t1 <span class="op">==</span> t2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

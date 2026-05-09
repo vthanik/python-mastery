@@ -524,7 +524,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cf-if" class="level2" data-number="4.1">
 <h2 data-number="4.1" class="anchored" data-anchor-id="sec-cf-if"><span class="header-section-number">4.1</span> <code>if</code>, <code>elif</code>, <code>else</code></h2>
 <p>The most basic decision your program makes: “is this value negative, zero, or positive?” <code>if</code> / <code>elif</code> / <code>else</code> is the universal three-way (or n-way) branch.</p>
-<div id="b56005ff" class="cell" data-execution_count="1">
+<div id="bf5f95ba" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> classify(n):</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&lt;</span> <span class="dv">0</span>:</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"negative"</span></span>
@@ -545,7 +545,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The list comprehension <code>[classify(x) for x in (-3, 0, 5)]</code> calls the function on three test cases.</li>
 </ul>
 <p>The general rule: <code>if</code> opens a chain, <code>elif</code> adds branches, <code>else</code> is the catch-all — Python evaluates conditions top-down and runs <em>exactly one</em> body. Conditions use <code>==</code>, <code>!=</code>, <code>&lt;</code>, <code>&gt;</code>, <code>&lt;=</code>, <code>&gt;=</code>. Combine with <code>and</code>, <code>or</code>, <code>not</code>. Python’s <em>chained comparisons</em> are unique and read naturally:</p>
-<div id="8590d144" class="cell" data-execution_count="2">
+<div id="956da65d" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> in_range(n):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">0</span> <span class="op">&lt;</span> n <span class="op">&lt;</span> <span class="dv">100</span>   <span class="co"># not n &gt; 0 and n &lt; 100</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -555,7 +555,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The <strong>ternary expression</strong> is the one-line form:</p>
-<div id="55bd56f3" class="cell" data-execution_count="3">
+<div id="79b1c061" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="dv">7</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>parity <span class="op">=</span> <span class="st">"even"</span> <span class="cf">if</span> n <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span> <span class="cf">else</span> <span class="st">"odd"</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>parity</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -567,7 +567,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-cf-for" class="level2" data-number="4.2">
 <h2 data-number="4.2" class="anchored" data-anchor-id="sec-cf-for"><span class="header-section-number">4.2</span> <code>for</code> over any iterable</h2>
 <p>In C or Java you’d write <code>for (int i = 0; i &lt; items.length; i++) { items[i] ... }</code>. Python’s <code>for</code> is different — it does <em>not</em> iterate by index, it iterates over the items themselves. You almost never need an index at all.</p>
-<div id="dfd82c2f" class="cell" data-execution_count="4">
+<div id="9947f298" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fruits <span class="op">=</span> [<span class="st">"apple"</span>, <span class="st">"banana"</span>, <span class="st">"cherry"</span>]</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> fruit <span class="kw">in</span> fruits:</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(fruit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -583,7 +583,7 @@ cherry</code></pre>
 <li>No counter to maintain, no off-by-one to risk.</li>
 </ul>
 <p><code>range(start, stop, step)</code> produces integers — useful when you really need actual numbers (not just to index a list):</p>
-<div id="dde72ea5" class="cell" data-execution_count="5">
+<div id="f925b84a" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">5</span>)), <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">2</span>, <span class="dv">8</span>)), <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">0</span>, <span class="dv">10</span>, <span class="dv">2</span>)), <span class="bu">list</span>(<span class="bu">range</span>(<span class="dv">10</span>, <span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>([0, 1, 2, 3, 4],
@@ -599,7 +599,7 @@ cherry</code></pre>
 <li><code>range(10, 0, -1)</code> counts down — negative step works too.</li>
 </ul>
 <p>Two helpers turn the cases where you <em>do</em> need extras (an index, or a parallel list) into clean code:</p>
-<div id="f6b48d9d" class="cell" data-execution_count="6">
+<div id="2f55a572" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, fruit <span class="kw">in</span> <span class="bu">enumerate</span>(fruits, start<span class="op">=</span><span class="dv">1</span>):</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(i, fruit)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -613,7 +613,7 @@ cherry</code></pre>
 <li><code>i, fruit = pair</code> happens implicitly via tuple unpacking on the loop variable.</li>
 <li><code>start=1</code> shifts the count to begin at 1 instead of the default 0 — handy for human-readable output.</li>
 </ul>
-<div id="cf355fcd" class="cell" data-execution_count="7">
+<div id="fd6b26e4" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>names <span class="op">=</span> [<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Carol"</span>]</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> [<span class="dv">95</span>, <span class="dv">87</span>, <span class="dv">92</span>]</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, score <span class="kw">in</span> <span class="bu">zip</span>(names, scores):</span>
@@ -654,7 +654,7 @@ Carol: 92</code></pre>
 <section id="sec-cf-while" class="level2" data-number="4.3">
 <h2 data-number="4.3" class="anchored" data-anchor-id="sec-cf-while"><span class="header-section-number">4.3</span> <code>while</code></h2>
 <p><code>for</code> works when you have an iterable in hand. <code>while</code> is for the other case — looping until a condition becomes false, when you don’t know in advance how many iterations that takes.</p>
-<div id="e4cd605b" class="cell" data-execution_count="8">
+<div id="cd3212b7" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>count <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> total <span class="op">&lt;</span> <span class="dv">50</span>:</span>
@@ -676,7 +676,7 @@ Carol: 92</code></pre>
 <section id="sec-cf-break-continue" class="level2" data-number="4.4">
 <h2 data-number="4.4" class="anchored" data-anchor-id="sec-cf-break-continue"><span class="header-section-number">4.4</span> <code>break</code> and <code>continue</code></h2>
 <p>Two keywords let you reshape a loop’s flow without an extra flag variable: <code>break</code> to bail out entirely, <code>continue</code> to skip ahead to the next item. They’re the difference between “find me the first match” and “process all the valid ones”.</p>
-<div id="f0a3e231" class="cell" data-execution_count="9">
+<div id="c38da196" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># First even number</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> [<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">7</span>, <span class="dv">8</span>]:</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>:</span>
@@ -692,7 +692,7 @@ Carol: 92</code></pre>
 <li>On <code>n = 6</code> the <code>if</code> triggers: <code>first</code> is bound, then <code>break</code> immediately exits the loop — <code>7</code> and <code>8</code> are never inspected.</li>
 <li>This is the canonical “find the first one that matches” idiom.</li>
 </ul>
-<div id="23c100c6" class="cell" data-execution_count="10">
+<div id="60a0f0ba" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Skip negatives, sum positives</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">3</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">4</span>, <span class="op">-</span><span class="dv">2</span>, <span class="dv">5</span>]:</span>
@@ -714,7 +714,7 @@ Carol: 92</code></pre>
 <section id="sec-cf-walrus" class="level2" data-number="4.5">
 <h2 data-number="4.5" class="anchored" data-anchor-id="sec-cf-walrus"><span class="header-section-number">4.5</span> Walrus assignment</h2>
 <p>The <strong>walrus operator</strong> <code>:=</code> (Python 3.8+) assigns <em>and</em> returns a value in a single expression. Use it where you’d otherwise call something twice — once to test it, once to use the result.</p>
-<div id="8685d3a8" class="cell" data-execution_count="11">
+<div id="1aa9eb3d" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>lines <span class="op">=</span> [<span class="st">"score: 95"</span>, <span class="st">"skip"</span>, <span class="st">"score: 87"</span>, <span class="st">"score: 72"</span>]</span>
@@ -728,7 +728,7 @@ Carol: 92</code></pre>
 </div>
 </div>
 <p>Without the walrus you’d run the regex twice, or assign on a separate line first. The same pattern collapses a <code>while</code> loop that processes input until exhausted:</p>
-<div id="fb66e14f" class="cell" data-execution_count="12">
+<div id="55fc1f6d" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>chunks <span class="op">=</span> <span class="bu">iter</span>([<span class="st">"one</span><span class="ch">\n</span><span class="st">"</span>, <span class="st">"two</span><span class="ch">\n</span><span class="st">"</span>, <span class="st">"three</span><span class="ch">\n</span><span class="st">"</span>, <span class="st">""</span>])</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> []</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> (chunk <span class="op">:=</span> <span class="bu">next</span>(chunks)):</span>
@@ -743,7 +743,7 @@ Carol: 92</code></pre>
 <section id="sec-cf-match" class="level2" data-number="4.6">
 <h2 data-number="4.6" class="anchored" data-anchor-id="sec-cf-match"><span class="header-section-number">4.6</span> A note on the <code>match</code> statement</h2>
 <p>Python 3.10 added a more powerful pattern-matching statement, <code>match</code> / <code>case</code>. It’s the right tool for multi-way dispatch on the <em>shape</em> of data, not just on a value. The deep treatment is in <a href="with-match-else.html" class="quarto-xref"><span>Chapter 30</span></a>; here is a one-liner so you’ve seen it:</p>
-<div id="052cc555" class="cell" data-execution_count="13">
+<div id="25a1c8c6" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> describe(point):</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">match</span> point:</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>        case (<span class="dv">0</span>, <span class="dv">0</span>):</span>

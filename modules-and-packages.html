@@ -528,7 +528,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>It runs the file <em>top to bottom</em>, exactly once per process.</li>
 <li>It binds the resulting module object to the name <code>module</code> in the current namespace.</li>
 </ol>
-<div id="8a92c7b5" class="cell" data-execution_count="1">
+<div id="463c42a4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>sys.path[:<span class="dv">3</span>]   <span class="co"># first three search directories</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
@@ -542,7 +542,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>We slice the first three to keep the output short. The first entry is usually the directory of the entry-point script (or <code>""</code> for an interactive session).</li>
 </ul>
 <p>Subsequent <code>import module</code> calls find the already-loaded module in <code>sys.modules</code> and return it without re-running:</p>
-<div id="1ce009c5" class="cell" data-execution_count="2">
+<div id="62dbd6c4" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">"math"</span> <span class="kw">in</span> sys.modules</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -559,7 +559,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-mod-styles" class="level2" data-number="10.2">
 <h2 data-number="10.2" class="anchored" data-anchor-id="sec-mod-styles"><span class="header-section-number">10.2</span> Import styles</h2>
 <p>Python gives you four import forms because there are four reasonable ways to bring a name into scope: keep the namespace, alias the namespace, pull a specific name out, or alias that specific name. Each has a place — and a default to prefer.</p>
-<div id="439befe1" class="cell" data-execution_count="3">
+<div id="eb421f60" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math                    <span class="co"># whole module as a namespace</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>math.sqrt(<span class="dv">16</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -569,7 +569,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>import math</code> binds the <em>module</em> to the name <code>math</code>. You access its contents via the <code>math.</code> prefix — the source of every symbol stays visible at the call site.</li>
 </ul>
-<div id="d9a7bda9" class="cell" data-execution_count="4">
+<div id="e46ee86a" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math <span class="im">as</span> m               <span class="co"># with an alias</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>m.pi</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -579,7 +579,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li><code>import math as m</code> is the same, with a shorter local name. Used widely for libraries with long names — <code>numpy as np</code>, <code>pandas as pd</code>. Stick to the established convention so other readers recognise it.</li>
 </ul>
-<div id="5529c396" class="cell" data-execution_count="5">
+<div id="da891575" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> sqrt, pi      <span class="co"># specific names — no namespace prefix</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>sqrt(<span class="dv">16</span>), pi</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
@@ -590,7 +590,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>from math import sqrt, pi</code> reaches into the module and binds <code>sqrt</code> and <code>pi</code> directly into the current namespace — no prefix needed.</li>
 <li>Trade-off: cleaner call sites, but the source of <code>sqrt</code> is less obvious to a reader scanning the file.</li>
 </ul>
-<div id="7ced2dec" class="cell" data-execution_count="6">
+<div id="d1c4c6a7" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> math <span class="im">import</span> sqrt <span class="im">as</span> sq    <span class="co"># specific name with alias</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>sq(<span class="dv">16</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -682,7 +682,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="dt">requires</span> <span class="op">=</span> <span class="op">[</span><span class="st">"setuptools&gt;=61.0"</span><span class="op">]</span></span>
 <span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="dt">build-backend</span> <span class="op">=</span> <span class="st">"setuptools.build_meta"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Since Python 3.11, <code>tomllib</code> reads TOML files from the standard library. That means a tool — your own script, a release helper, a CI step — can introspect the project’s own metadata without any third-party dependency:</p>
-<div id="ae89a447" class="cell" data-execution_count="7">
+<div id="799931c2" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tomllib</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>pyproject <span class="op">=</span> <span class="st">"""</span></span>

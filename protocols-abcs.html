@@ -582,7 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-protocols-duck" class="level2" data-number="25.2">
 <h2 data-number="25.2" class="anchored" data-anchor-id="sec-protocols-duck"><span class="header-section-number">25.2</span> Duck typing: Python digs sequences</h2>
 <p>Duck typing is the original Python style: don’t ask what something <em>is</em>; try to use it. The interesting twist is that the standard-library ABCs are written so that anything implementing the right methods passes <code>isinstance</code> <em>automatically</em> — no inheritance, no registration:</p>
-<div id="c4ca7c35" class="cell" data-execution_count="1">
+<div id="fa62714a" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> abc</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Struggle:</span>
@@ -605,7 +605,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-protocols-monkey" class="level2" data-number="25.3">
 <h2 data-number="25.3" class="anchored" data-anchor-id="sec-protocols-monkey"><span class="header-section-number">25.3</span> Monkey patching to fit a protocol</h2>
 <p>Sometimes a class is <em>almost</em> compatible with a protocol but missing one method. You can patch it at runtime — <em>gingerly</em>. The classic example: <code>random.shuffle</code> requires <code>__len__</code> and <code>__setitem__</code>, but a <code>FrenchDeck</code> that only supports reading doesn’t have <code>__setitem__</code>.</p>
-<div id="e2991ecc" class="cell" data-execution_count="2">
+<div id="890df7f8" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> collections, random</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>Card <span class="op">=</span> collections.namedtuple(<span class="st">"Card"</span>, <span class="st">"rank suit"</span>)</span>
@@ -629,7 +629,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>random.shuffle(deck)</span>
 <span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>deck[<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
-<pre><code>Card(rank='J', suit='clubs')</code></pre>
+<pre><code>Card(rank='6', suit='diamonds')</code></pre>
 </div>
 </div>
 <p>Walking through the patch:</p>
@@ -643,7 +643,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-protocols-abc" class="level2" data-number="25.4">
 <h2 data-number="25.4" class="anchored" data-anchor-id="sec-protocols-abc"><span class="header-section-number">25.4</span> Goose typing with ABCs</h2>
 <p><em>Goose typing</em> (Alex Martelli’s name) is duck typing with a stamp of approval — the class explicitly says “I implement this protocol” by inheriting from an ABC. The ABC mechanism gives you two things: abstract methods (which subclasses <em>must</em> implement) and concrete mixin methods (which subclasses <em>get for free</em>).</p>
-<div id="940c00d4" class="cell" data-execution_count="3">
+<div id="b4c30974" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> abc</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Tombola(abc.ABC):</span>
@@ -696,7 +696,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>BingoCage(Tombola)</code> implements <code>load</code> and <code>pick</code>. Because both abstract methods are overridden, <code>Tombola</code>’s tracking marks the subclass concrete and instantiation succeeds.</li>
 </ul>
 <p>The general pattern: an ABC is a <em>contract</em>. Abstract methods declare what the subclass owes; concrete methods declare what the subclass gets in return. If we’d forgotten one of the abstract methods:</p>
-<div id="8e2333c3" class="cell" data-execution_count="4">
+<div id="0370feb8" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Half(Tombola):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> load(<span class="va">self</span>, items): <span class="cf">pass</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>Half()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -715,7 +715,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Trying to instantiate raises <code>TypeError</code>. The ABC enforces the contract.</p>
 <p>ABCs also support <em>virtual subclasses</em> — declaring an unrelated class as a subclass <em>without</em> inheritance. The standard library pre-registers <code>tuple</code> and <code>list</code> as <code>Sequence</code> this way. You can do the same for a class you can’t (or don’t want to) modify the bases of:</p>
-<div id="fed01d1d" class="cell" data-execution_count="5">
+<div id="fc2d79b4" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Sequence</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">@Sequence.register</span></span>
@@ -739,7 +739,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-protocols-protocol" class="level2" data-number="25.5">
 <h2 data-number="25.5" class="anchored" data-anchor-id="sec-protocols-protocol"><span class="header-section-number">25.5</span> Static <code>Protocol</code> types</h2>
 <p><code>typing.Protocol</code> is the static-checker version of duck typing. You define an interface; any class with matching methods satisfies it — <em>no inheritance required, no registration</em>. We’ll define a <code>SupportsLessThan</code> protocol so we can write a function that accepts anything orderable, and have <code>mypy</code> verify the constraint without forcing callers to subclass anything.</p>
-<div id="dbb3f3f2" class="cell" data-execution_count="6">
+<div id="4020c336" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Protocol, Any, runtime_checkable, TypeVar</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Iterable</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -759,7 +759,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>isinstance(1, SupportsLessThan)</code> is <code>True</code> because <code>int.__lt__</code> exists; same for <code>str</code>. Neither type was modified — they just <em>shape-match</em> the protocol.</li>
 </ul>
 <p>Use it in annotations to constrain a generic:</p>
-<div id="00e8d437" class="cell" data-execution_count="7">
+<div id="a65c5bab" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>LT <span class="op">=</span> TypeVar(<span class="st">"LT"</span>, bound<span class="op">=</span>SupportsLessThan)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> top(series: Iterable[LT], length: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[LT]:</span>
@@ -819,7 +819,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 <p>Use a <code>Protocol</code> when you want library code to be type-safe but you don’t want to force callers to inherit from anything (the <code>Closeable</code>, <code>Iterable</code>, <code>SupportsLessThan</code> style).</p>
 <p>Use an ABC when you want runtime enforcement <em>and</em> you want to provide partial implementations the subclass can rely on (the <code>Tombola</code> style).</p>
-<div id="26231a20" class="cell" data-execution_count="8">
+<div id="130abe77" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Closeable(Protocol):</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> close(<span class="va">self</span>) <span class="op">-&gt;</span> <span class="va">None</span>: ...</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>

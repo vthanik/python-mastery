@@ -589,7 +589,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-namedtuple" class="level2" data-number="17.2">
 <h2 data-number="17.2" class="anchored" data-anchor-id="sec-dataclasses-namedtuple"><span class="header-section-number">17.2</span> Classic named tuples</h2>
 <p><code>namedtuple</code> is a factory that returns a class:</p>
-<div id="90244b10" class="cell" data-execution_count="1">
+<div id="bc68bccb" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> namedtuple</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>Coordinate <span class="op">=</span> namedtuple(<span class="st">"Coordinate"</span>, [<span class="st">"lat"</span>, <span class="st">"lon"</span>])</span>
@@ -600,7 +600,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Defaults are right-aligned, in the same way default arguments are:</p>
-<div id="502b843a" class="cell" data-execution_count="2">
+<div id="6623d29d" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Coordinate <span class="op">=</span> namedtuple(<span class="st">"Coordinate"</span>, [<span class="st">"lat"</span>, <span class="st">"lon"</span>, <span class="st">"reference"</span>], defaults<span class="op">=</span>[<span class="st">"WGS84"</span>])</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>Coordinate(<span class="fl">55.756</span>, <span class="fl">37.617</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -608,7 +608,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Because a named tuple <em>is</em> a tuple, you can unpack it positionally:</p>
-<div id="d8556da7" class="cell" data-execution_count="3">
+<div id="7e04b7c4" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>lat, lon, ref <span class="op">=</span> Coordinate(<span class="fl">55.756</span>, <span class="fl">37.617</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>lat, ref</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -616,14 +616,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Two helpers worth remembering:</p>
-<div id="41db8ab4" class="cell" data-execution_count="4">
+<div id="6ff1a911" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>moscow <span class="op">=</span> Coordinate(<span class="fl">55.756</span>, <span class="fl">37.617</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>moscow._asdict()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>{'lat': 55.756, 'lon': 37.617, 'reference': 'WGS84'}</code></pre>
 </div>
 </div>
-<div id="19f6bb7c" class="cell" data-execution_count="5">
+<div id="d94955a7" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>Coordinate._make([<span class="fl">55.756</span>, <span class="fl">37.617</span>, <span class="st">"WGS84"</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>Coordinate(lat=55.756, lon=37.617, reference='WGS84')</code></pre>
@@ -633,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-typed-namedtuple" class="level2" data-number="17.3">
 <h2 data-number="17.3" class="anchored" data-anchor-id="sec-dataclasses-typed-namedtuple"><span class="header-section-number">17.3</span> Typed named tuples</h2>
 <p><code>typing.NamedTuple</code> lets you write a tuple as a class — type hints, methods, and all:</p>
-<div id="6cbeeb16" class="cell" data-execution_count="6">
+<div id="3491e59a" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> NamedTuple</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Coordinate(NamedTuple):</span>
@@ -656,7 +656,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-dataclass" class="level2" data-number="17.4">
 <h2 data-number="17.4" class="anchored" data-anchor-id="sec-dataclasses-dataclass"><span class="header-section-number">17.4</span> <code>@dataclass</code></h2>
 <p><code>@dataclass</code> is the closest Python has to a Kotlin <code>data class</code> or a Scala <code>case class</code>. It generates <code>__init__</code>, <code>__repr__</code>, and <code>__eq__</code> from the class’s annotated attributes:</p>
-<div id="e9d50f67" class="cell" data-execution_count="7">
+<div id="9335e8a1" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass, field</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> ClassVar</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -721,7 +721,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-post-init" class="level2" data-number="17.5">
 <h2 data-number="17.5" class="anchored" data-anchor-id="sec-dataclasses-post-init"><span class="header-section-number">17.5</span> <code>__post_init__</code></h2>
 <p>The generated <code>__init__</code> only assigns the fields you declared. What if you need to <em>derive</em> one — say, default <code>handle</code> to the first word of <code>name</code>? You can’t do it in a <code>field(default=...)</code> because the default doesn’t see the other fields. The hook is <code>__post_init__</code>: a method the generated <code>__init__</code> calls right after the assignments are done.</p>
-<div id="19773dbe" class="cell" data-execution_count="8">
+<div id="bbe54c5a" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HackerClubMember:</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    name: <span class="bu">str</span></span>
@@ -750,7 +750,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-classvar" class="level2" data-number="17.6">
 <h2 data-number="17.6" class="anchored" data-anchor-id="sec-dataclasses-classvar"><span class="header-section-number">17.6</span> <code>ClassVar</code> for class-level attributes</h2>
 <p>Annotated attributes become <code>__init__</code> parameters by default. To opt out — to declare a <em>class-level</em> attribute that’s shared across instances — wrap the type in <code>ClassVar</code>:</p>
-<div id="a506f815" class="cell" data-execution_count="9">
+<div id="24a69798" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HackerClub:</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    name: <span class="bu">str</span></span>
@@ -768,7 +768,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-frozen-order" class="level2" data-number="17.7">
 <h2 data-number="17.7" class="anchored" data-anchor-id="sec-dataclasses-frozen-order"><span class="header-section-number">17.7</span> <code>frozen</code> and <code>order</code></h2>
 <p>Two flags handle the most common configurations. <code>frozen=True</code> makes instances immutable:</p>
-<div id="f7779efc" class="cell" data-execution_count="10">
+<div id="730f5363" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(frozen<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FrozenCoordinate:</span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    lat: <span class="bu">float</span></span>
@@ -795,7 +795,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>order=True</code> generates <code>__lt__</code>, <code>__le__</code>, <code>__gt__</code>, <code>__ge__</code> based on the field order — the comparison is field-by-field, top to bottom:</p>
-<div id="f6d04cc2" class="cell" data-execution_count="11">
+<div id="a78b2014" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(order<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Card:</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    rank: <span class="bu">int</span></span>
@@ -811,7 +811,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="17.8" class="anchored" data-anchor-id="sec-dataclasses-modern"><span class="header-section-number">17.8</span> Modern <code>@dataclass</code> features</h2>
 <p>Three flags and one helper, all from Python 3.10+, cover the configurations worth knowing beyond <code>frozen</code> and <code>order</code>.</p>
 <p><strong><code>slots=True</code></strong> generates <code>__slots__</code> for the class — instances skip the per-object <code>__dict__</code>, save memory, and reject undeclared attributes:</p>
-<div id="fe1f1a60" class="cell" data-execution_count="12">
+<div id="1c43e885" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(slots<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Point:</span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    x: <span class="bu">float</span></span>
@@ -823,7 +823,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(('x', 'y'), 1.0)</code></pre>
 </div>
 </div>
-<div id="1409881d" class="cell" data-execution_count="13">
+<div id="7dd93bfa" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>p.z <span class="op">=</span> <span class="fl">3.0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -837,7 +837,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong><code>kw_only=True</code></strong> forces every field to be passed by keyword. This pays off when the field order in <code>__init__</code> is incidental — keyword-only calls survive field reorderings without breaking callers:</p>
-<div id="f081ca8a" class="cell" data-execution_count="14">
+<div id="42598637" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(kw_only<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Window:</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    width: <span class="bu">int</span></span>
@@ -848,7 +848,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>Window(width=800, height=600)</code></pre>
 </div>
 </div>
-<div id="151e2b92" class="cell" data-execution_count="15">
+<div id="20823e27" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>Window(<span class="dv">800</span>, <span class="dv">600</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -862,7 +862,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><strong><code>dataclasses.replace</code></strong> is the canonical way to “modify” a <code>frozen=True</code> instance — it returns a new instance with the requested fields changed:</p>
-<div id="a3ba93a6" class="cell" data-execution_count="16">
+<div id="c9074e99" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> dataclasses <span class="im">import</span> replace</span>
 <span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span>(frozen<span class="op">=</span><span class="va">True</span>)</span>
@@ -890,7 +890,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-dataclasses-match" class="level2" data-number="17.9">
 <h2 data-number="17.9" class="anchored" data-anchor-id="sec-dataclasses-match"><span class="header-section-number">17.9</span> Pattern matching dataclass instances</h2>
 <p>Class patterns in <code>match</code>/<code>case</code> work cleanly with dataclasses, because the class already exposes its field names:</p>
-<div id="02fd937f" class="cell" data-execution_count="17">
+<div id="37b23723" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="at">@dataclass</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> City:</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    continent: <span class="bu">str</span></span>

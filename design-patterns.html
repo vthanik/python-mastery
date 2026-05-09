@@ -521,7 +521,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-patterns-strategy-oop" class="level2" data-number="22.1">
 <h2 data-number="22.1" class="anchored" data-anchor-id="sec-patterns-strategy-oop"><span class="header-section-number">22.1</span> Strategy, the classic way</h2>
 <p>The textbook Strategy pattern uses an abstract base class, one subclass per algorithm, and a context that holds an instance:</p>
-<div id="2b7a6dfc" class="cell" data-execution_count="1">
+<div id="849cb308" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> abc <span class="im">import</span> ABC, abstractmethod</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> namedtuple</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> decimal <span class="im">import</span> Decimal</span>
@@ -605,7 +605,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-patterns-strategy-functions" class="level2" data-number="22.2">
 <h2 data-number="22.2" class="anchored" data-anchor-id="sec-patterns-strategy-functions"><span class="header-section-number">22.2</span> Strategy as plain functions</h2>
 <p>In Python a <em>function</em> is a callable. The whole class hierarchy collapses to one function per strategy:</p>
-<div id="e4432c41" class="cell" data-execution_count="2">
+<div id="dd325970" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fidelity_promo(order):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    rate <span class="op">=</span> Decimal(<span class="st">"0.05"</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> order.total() <span class="op">*</span> rate <span class="cf">if</span> order.customer.fidelity <span class="op">&gt;=</span> <span class="dv">1000</span> <span class="cf">else</span> Decimal(<span class="dv">0</span>)</span>
@@ -645,7 +645,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>Same answer; one-third the code; no abstract classes; no instantiation overhead. The general lesson: when a “class” exists only to hold one method, in Python that class can simply be the method.</p>
 <p>A “best-of” combinator is a one-liner:</p>
-<div id="c4883c09" class="cell" data-execution_count="3">
+<div id="30a4ec12" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>promos <span class="op">=</span> [fidelity_promo, bulk_item_promo, large_order_promo]</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> best_promo(order):</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">max</span>(promo(order) <span class="cf">for</span> promo <span class="kw">in</span> promos)</span>
@@ -666,7 +666,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>promos <span class="op">=</span> [func <span class="cf">for</span> name, func <span class="kw">in</span> inspect.getmembers(promotions_module, inspect.isfunction)</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>          <span class="cf">if</span> name.endswith(<span class="st">"_promo"</span>) <span class="kw">and</span> name <span class="op">!=</span> <span class="st">"best_promo"</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>By decorator registration</strong> — even cleaner:</p>
-<div id="7271ffab" class="cell" data-execution_count="4">
+<div id="5aff7370" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Callable</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>Promotion <span class="op">=</span> Callable[[<span class="st">"OrderF"</span>], Decimal]</span>
@@ -710,7 +710,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-patterns-command" class="level2" data-number="22.4">
 <h2 data-number="22.4" class="anchored" data-anchor-id="sec-patterns-command"><span class="header-section-number">22.4</span> The Command pattern</h2>
 <p>The classic Command pattern wraps each action in an object with an <code>execute</code> method, so commands can be queued, logged, or undone. In Python, <em>any callable</em> already meets that interface — you don’t need a class.</p>
-<div id="24d8ab17" class="cell" data-execution_count="5">
+<div id="6d598409" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> MacroCommand:</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Run a sequence of commands in order."""</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, commands):</span>

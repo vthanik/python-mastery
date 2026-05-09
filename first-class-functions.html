@@ -527,7 +527,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-as-objects" class="level2" data-number="19.1">
 <h2 data-number="19.1" class="anchored" data-anchor-id="sec-functions-as-objects"><span class="header-section-number">19.1</span> Treating a function like an object</h2>
 <p>In Java or C, a function is a special syntactic thing — you can call it but not store it in a variable or read its docstring at runtime. In Python a function is an <em>object</em> of type <code>function</code>, with attributes you can inspect (and sometimes write):</p>
-<div id="be51750f" class="cell" data-execution_count="1">
+<div id="9ccfca29" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> factorial(n):</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return n!"""</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="dv">1</span> <span class="cf">if</span> n <span class="op">&lt;</span> <span class="dv">2</span> <span class="cf">else</span> n <span class="op">*</span> factorial(n <span class="op">-</span> <span class="dv">1</span>)</span>
@@ -544,7 +544,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>type(factorial)</code> reports <code>&lt;class 'function'&gt;</code> — <code>factorial</code> is an instance of the <code>function</code> class, just as <code>42</code> is an instance of <code>int</code>. This is the whole point: functions are values.</li>
 </ul>
 <p>Assigning a function to another name does not copy it — it adds a label:</p>
-<div id="ee77e211" class="cell" data-execution_count="2">
+<div id="7cf8375d" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fact <span class="op">=</span> factorial</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>fact(<span class="dv">5</span>), fact <span class="kw">is</span> factorial</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -552,7 +552,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Passing it as an argument works the same way:</p>
-<div id="073a10d9" class="cell" data-execution_count="3">
+<div id="8141ad2a" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">map</span>(factorial, <span class="bu">range</span>(<span class="dv">6</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>[1, 1, 2, 6, 24, 120]</code></pre>
@@ -563,7 +563,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-higher-order" class="level2" data-number="19.2">
 <h2 data-number="19.2" class="anchored" data-anchor-id="sec-functions-higher-order"><span class="header-section-number">19.2</span> Higher-order functions</h2>
 <p>A <em>higher-order</em> function takes a function as a parameter or returns one. The standard library has many:</p>
-<div id="869c1fee" class="cell" data-execution_count="4">
+<div id="becf3a44" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fruits <span class="op">=</span> [<span class="st">"strawberry"</span>, <span class="st">"fig"</span>, <span class="st">"apple"</span>, <span class="st">"cherry"</span>, <span class="st">"raspberry"</span>, <span class="st">"banana"</span>]</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>(fruits, key<span class="op">=</span><span class="bu">len</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -571,33 +571,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>sorted</code> calls <code>len(item)</code> for each item and sorts by the result. <code>map</code> and <code>filter</code> are similar:</p>
-<div id="bb672913" class="cell" data-execution_count="5">
+<div id="6b773fc6" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">map</span>(factorial, <span class="bu">range</span>(<span class="dv">6</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>[1, 1, 2, 6, 24, 120]</code></pre>
 </div>
 </div>
-<div id="f5eabce8" class="cell" data-execution_count="6">
+<div id="273affb4" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">filter</span>(<span class="kw">lambda</span> n: n <span class="op">%</span> <span class="dv">2</span>, <span class="bu">range</span>(<span class="dv">10</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>[1, 3, 5, 7, 9]</code></pre>
 </div>
 </div>
 <p>Comprehensions usually read better than <code>map</code>/<code>filter</code>:</p>
-<div id="aafb493a" class="cell" data-execution_count="7">
+<div id="12ecf522" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>[factorial(n) <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">6</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>[1, 1, 2, 6, 24, 120]</code></pre>
 </div>
 </div>
-<div id="5526c7f5" class="cell" data-execution_count="8">
+<div id="517f84fc" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>[n <span class="cf">for</span> n <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">10</span>) <span class="cf">if</span> n <span class="op">%</span> <span class="dv">2</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>[1, 3, 5, 7, 9]</code></pre>
 </div>
 </div>
 <p><code>functools.reduce</code> is the cumulative-sum form:</p>
-<div id="02062889" class="cell" data-execution_count="9">
+<div id="59e58e93" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> <span class="bu">reduce</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> operator <span class="im">import</span> add</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="bu">reduce</span>(add, <span class="bu">range</span>(<span class="dv">100</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -610,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-lambda" class="level2" data-number="19.3">
 <h2 data-number="19.3" class="anchored" data-anchor-id="sec-functions-lambda"><span class="header-section-number">19.3</span> Anonymous functions</h2>
 <p>A <code>lambda</code> is a one-expression function literal. It’s useful when you’d otherwise have to give a name to something the reader will read once:</p>
-<div id="d895bfa2" class="cell" data-execution_count="10">
+<div id="312415aa" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>(fruits, key<span class="op">=</span><span class="kw">lambda</span> word: word[::<span class="op">-</span><span class="dv">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>['banana', 'apple', 'fig', 'raspberry', 'strawberry', 'cherry']</code></pre>
@@ -638,7 +638,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>A worked example. This sort key — “profit per unit minus cost” — packs three operations into one line:</p>
-<div id="fa82e18e" class="cell" data-execution_count="11">
+<div id="8c89b8a0" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> [(<span class="st">"widget"</span>, <span class="dv">10</span>, <span class="dv">5</span>, <span class="dv">2</span>), (<span class="st">"gizmo"</span>, <span class="dv">8</span>, <span class="dv">4</span>, <span class="dv">1</span>), (<span class="st">"gadget"</span>, <span class="dv">12</span>, <span class="dv">6</span>, <span class="dv">5</span>)]</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>(data, key<span class="op">=</span><span class="kw">lambda</span> r: r[<span class="dv">1</span>] <span class="op">*</span> r[<span class="dv">2</span>] <span class="op">-</span> r[<span class="dv">3</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
@@ -646,7 +646,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Apply the recipe — give the expression a name:</p>
-<div id="1a3cf523" class="cell" data-execution_count="12">
+<div id="15370ac7" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> profit(record):</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    name, units, margin, cost <span class="op">=</span> record</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> units <span class="op">*</span> margin <span class="op">-</span> cost</span>
@@ -661,7 +661,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-callables" class="level2" data-number="19.4">
 <h2 data-number="19.4" class="anchored" data-anchor-id="sec-functions-callables"><span class="header-section-number">19.4</span> The kinds of callable</h2>
 <p><code>callable()</code> reports whether an object can be called:</p>
-<div id="3351ff4b" class="cell" data-execution_count="13">
+<div id="347617b0" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="bu">callable</span>(<span class="bu">abs</span>), <span class="bu">callable</span>([])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>(True, False)</code></pre>
@@ -729,7 +729,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-callable-class" class="level2" data-number="19.5">
 <h2 data-number="19.5" class="anchored" data-anchor-id="sec-functions-callable-class"><span class="header-section-number">19.5</span> User-defined callable types</h2>
 <p>Sometimes you want a callable that <em>also</em> keeps state — a function-like thing that remembers what it has done. A plain <code>def</code> can’t easily hold private data; a class can. Define <code>__call__</code> and an instance becomes callable while still being an object with attributes and methods:</p>
-<div id="9ab0ded4" class="cell" data-execution_count="14">
+<div id="2859e11b" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BingoCage:</span>
@@ -765,7 +765,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-params" class="level2" data-number="19.6">
 <h2 data-number="19.6" class="anchored" data-anchor-id="sec-functions-params"><span class="header-section-number">19.6</span> From positional to keyword-only</h2>
 <p>Real-world functions often need a mix: one or two required arguments, an open-ended set of extras, and named options that must be passed by keyword to avoid confusion. Python’s parameter syntax — the <code>/</code>, <code>*</code>, <code>**</code> markers — lets you state exactly which parameters are positional, which are keyword-only, and where the variable-length collectors sit. The <code>tag</code> example exercises most of it:</p>
-<div id="70a005ab" class="cell" data-execution_count="15">
+<div id="2b1a8632" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> tag(name, <span class="op">/</span>, <span class="op">*</span>content, class_<span class="op">=</span><span class="va">None</span>, <span class="op">**</span>attrs):</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Generate one or more HTML tags."""</span></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> class_ <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
@@ -782,26 +782,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>'&lt;br /&gt;'</code></pre>
 </div>
 </div>
-<div id="a51f8d0c" class="cell" data-execution_count="16">
+<div id="b590e539" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>tag(<span class="st">"p"</span>, <span class="st">"hello"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
 <pre><code>'&lt;p&gt;hello&lt;/p&gt;'</code></pre>
 </div>
 </div>
-<div id="dca1444b" class="cell" data-execution_count="17">
+<div id="2ec044c5" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(tag(<span class="st">"p"</span>, <span class="st">"hello"</span>, <span class="st">"world"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>&lt;p&gt;hello&lt;/p&gt;
 &lt;p&gt;world&lt;/p&gt;</code></pre>
 </div>
 </div>
-<div id="a71ae44e" class="cell" data-execution_count="18">
+<div id="6b72570f" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>tag(<span class="st">"p"</span>, <span class="st">"hello"</span>, class_<span class="op">=</span><span class="st">"sidebar"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>'&lt;p class="sidebar"&gt;hello&lt;/p&gt;'</code></pre>
 </div>
 </div>
-<div id="a3745e1b" class="cell" data-execution_count="19">
+<div id="a0ddfdea" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>tag(<span class="st">"img"</span>, src<span class="op">=</span><span class="st">"sunset.jpg"</span>, class_<span class="op">=</span><span class="st">"framed"</span>, alt<span class="op">=</span><span class="st">"sunset"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="19">
 <pre><code>'&lt;img alt="sunset" class="framed" src="sunset.jpg" /&gt;'</code></pre>
@@ -816,7 +816,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The trailing underscore on <code>class_</code> avoids a clash with Python’s reserved word <code>class</code>.</p>
 <p>To see <code>/</code> in isolation — this is how built-ins like <code>divmod</code> are spelled in pure Python:</p>
-<div id="6a5bf7a6" class="cell" data-execution_count="20">
+<div id="a350d356" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> divmod_(a, b, <span class="op">/</span>):</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> a <span class="op">//</span> b, a <span class="op">%</span> b</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -841,7 +841,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-functions-operator" class="level2" data-number="19.7">
 <h2 data-number="19.7" class="anchored" data-anchor-id="sec-functions-operator"><span class="header-section-number">19.7</span> The <code>operator</code> module</h2>
 <p>You’ll often want to pass an operator (<code>*</code>, <code>&lt;</code>, <code>[i]</code>, <code>.attr</code>) as a function — to <code>reduce</code>, <code>sorted(key=...)</code>, <code>map</code>. The natural reflex is <code>lambda a, b: a * b</code> or <code>lambda r: r[1]</code>, but those throwaway lambdas clutter the call site. <code>operator</code> exports the arithmetic, comparison, and access operators as named functions:</p>
-<div id="b7af41e3" class="cell" data-execution_count="21">
+<div id="e251d7f8" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> operator <span class="im">import</span> mul, itemgetter, attrgetter, methodcaller</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> <span class="bu">reduce</span></span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -856,7 +856,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>reduce(mul, range(1, 6))</code> walks <code>[1, 2, 3, 4, 5]</code> left-to-right, computing <code>((((1*2)*3)*4)*5)</code> — i.e., <code>5!</code>. Without <code>operator.mul</code> you’d write <code>reduce(lambda a, b: a * b, ...)</code>, which says the same thing more noisily.</li>
 </ul>
 <p><code>itemgetter(i)</code> is equivalent to <code>lambda r: r[i]</code>:</p>
-<div id="d463a8d3" class="cell" data-execution_count="22">
+<div id="4d92185d" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>metro_data <span class="op">=</span> [</span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Tokyo"</span>, <span class="st">"JP"</span>, <span class="fl">36.933</span>),</span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    (<span class="st">"Delhi NCR"</span>, <span class="st">"IN"</span>, <span class="fl">21.935</span>),</span>
@@ -871,7 +871,7 @@ São Paulo 21.09</code></pre>
 </div>
 </div>
 <p><code>itemgetter</code> accepts multiple indices and returns a tuple — useful for sort keys with tie-breakers, or to project a few fields out of a record:</p>
-<div id="d400b5c4" class="cell" data-execution_count="23">
+<div id="b3b15371" class="cell" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>cc_name <span class="op">=</span> itemgetter(<span class="dv">1</span>, <span class="dv">0</span>)</span>
 <span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>cc_name(metro_data[<span class="dv">0</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
@@ -879,7 +879,7 @@ São Paulo 21.09</code></pre>
 </div>
 </div>
 <p><code>attrgetter</code> is the same trick for attribute access. It understands dotted paths and accepts multiple fields:</p>
-<div id="d792d0e3" class="cell" data-execution_count="24">
+<div id="4f0e78a7" class="cell" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> namedtuple</span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>Coord <span class="op">=</span> namedtuple(<span class="st">"Coord"</span>, <span class="st">"lat lon"</span>)</span>
 <span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>City <span class="op">=</span> namedtuple(<span class="st">"City"</span>, <span class="st">"name pop coord"</span>)</span>
@@ -905,7 +905,7 @@ São Paulo 21.09</code></pre>
 <section id="sec-functions-partial" class="level2" data-number="19.8">
 <h2 data-number="19.8" class="anchored" data-anchor-id="sec-functions-partial"><span class="header-section-number">19.8</span> Freezing arguments with <code>partial</code></h2>
 <p>A function that takes a function (<code>map</code>, <code>sorted(key=...)</code>) usually expects a callable of one specific arity — <code>map</code> wants <code>f(x)</code>, not <code>f(x, y)</code>. When the function you have is wider than the slot you need to fit it into, you’d write <code>lambda x: mul(3, x)</code> to fix one argument. <code>functools.partial</code> does the same job without the lambda:</p>
-<div id="e5ce633d" class="cell" data-execution_count="25">
+<div id="a22825c4" class="cell" data-execution_count="25">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> operator <span class="im">import</span> mul</span>
 <span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> partial</span>
 <span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -922,7 +922,7 @@ São Paulo 21.09</code></pre>
 <li><code>map(triple, range(1, 6))</code> then needs only a one-argument callable, which <code>triple</code> is.</li>
 </ul>
 <p>A useful real-world example — pre-binding the form of Unicode normalization:</p>
-<div id="67849323" class="cell" data-execution_count="26">
+<div id="d3d7f0fd" class="cell" data-execution_count="26">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> unicodedata, functools</span>
 <span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>nfc <span class="op">=</span> functools.partial(unicodedata.normalize, <span class="st">"NFC"</span>)</span>
 <span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>nfc(<span class="st">"café"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

@@ -524,7 +524,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-attrs-frozen-json" class="level2" data-number="34.1">
 <h2 data-number="34.1" class="anchored" data-anchor-id="sec-attrs-frozen-json"><span class="header-section-number">34.1</span> Data wrangling with <code>__getattr__</code></h2>
 <p>You’re reading a JSON feed and the structure is nested four or five levels deep. Writing <code>feed["schedule"]["speakers"][0]["name"]</code> everywhere is noisy — every <code>["..."]</code> is visual clutter. You want <code>feed.schedule.speakers[0].name</code> instead, but the data is a plain dict you don’t control. <code>__getattr__</code> is the hook: it’s called only when normal attribute lookup <em>fails</em>, which means you can intercept any unknown attribute and look it up in the underlying dict.</p>
-<div id="1d7d8a1f" class="cell" data-execution_count="1">
+<div id="ca4ea042" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FrozenJSON:</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Read-only attribute access over a nested dict/list."""</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -572,7 +572,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-attrs-property" class="level2" data-number="34.2">
 <h2 data-number="34.2" class="anchored" data-anchor-id="sec-attrs-property"><span class="header-section-number">34.2</span> <code>@property</code> for validation</h2>
 <p>Plain public attributes are fine until you need a check. The lovely thing about <code>@property</code> is that callers don’t have to change a single line — <code>obj.weight = -1</code> still looks like an attribute assignment, but it now runs through your setter:</p>
-<div id="4c30474b" class="cell" data-execution_count="2">
+<div id="4e40f59c" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> LineItem:</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, description, weight, price):</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.description <span class="op">=</span> description</span>
@@ -610,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>69.5</code></pre>
 </div>
 </div>
-<div id="e3bc763d" class="cell" data-execution_count="3">
+<div id="2a4c6e2a" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>raisins.weight <span class="op">=</span> <span class="dv">0</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -642,7 +642,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-attrs-factory" class="level2" data-number="34.3">
 <h2 data-number="34.3" class="anchored" data-anchor-id="sec-attrs-factory"><span class="header-section-number">34.3</span> A property factory</h2>
 <p>When two attributes need the same validation, the property declarations duplicate. Build a factory that returns a property:</p>
-<div id="0fbec54c" class="cell" data-execution_count="4">
+<div id="63bf3772" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> quantity(storage_name):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> qty_getter(instance):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> instance.__dict__[storage_name]</span>
@@ -669,7 +669,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>10</code></pre>
 </div>
 </div>
-<div id="68daa34c" class="cell" data-execution_count="5">
+<div id="de0e6cf1" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>LineItemF(<span class="st">"bad"</span>, <span class="op">-</span><span class="dv">1</span>, <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -708,7 +708,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-attrs-cached" class="level2" data-number="34.4">
 <h2 data-number="34.4" class="anchored" data-anchor-id="sec-attrs-cached"><span class="header-section-number">34.4</span> <code>cached_property</code></h2>
 <p>When the computation is expensive but the inputs don’t change, <code>functools.cached_property</code> saves the result on the instance dict the first time it’s accessed:</p>
-<div id="d2a936e6" class="cell" data-execution_count="6">
+<div id="81c4e6dd" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> cached_property</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -800,7 +800,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__setattr__</span>(<span class="va">self</span>, name, value):</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.name <span class="op">=</span> value      <span class="co"># ← calls __setattr__ again, recursively</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The fix is to bypass the hook by writing to <code>__dict__</code> directly, or by calling <code>super().__setattr__</code>:</p>
-<div id="3d5e228b" class="cell" data-execution_count="7">
+<div id="68e37528" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Logging:</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__setattr__</span>(<span class="va">self</span>, name, value):</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss"> = </span><span class="sc">{</span>value<span class="sc">!r}</span><span class="ss">"</span>)</span>

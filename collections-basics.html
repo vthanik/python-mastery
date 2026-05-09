@@ -522,7 +522,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-coll-lists" class="level2" data-number="5.1">
 <h2 data-number="5.1" class="anchored" data-anchor-id="sec-coll-lists"><span class="header-section-number">5.1</span> Lists</h2>
 <p>A list is the default “ordered collection of things” in Python — when you have a sequence whose contents you’ll modify (add to, remove from, reorder), reach for a list. Lists are ordered, mutable, and accept any types.</p>
-<div id="6331990d" class="cell" data-execution_count="1">
+<div id="ecd99c12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>numbers <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>mixed <span class="op">=</span> [<span class="dv">1</span>, <span class="st">"two"</span>, <span class="fl">3.0</span>, <span class="va">None</span>]</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>[numbers[<span class="dv">0</span>], numbers[<span class="op">-</span><span class="dv">1</span>], numbers[<span class="dv">1</span>:<span class="dv">3</span>], numbers[::<span class="op">-</span><span class="dv">1</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -538,7 +538,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>numbers[::-1]</code> reverses with a step of <code>-1</code>, returning a new list.</li>
 </ul>
 <p>The mutation methods modify <em>in place</em> and return <code>None</code>:</p>
-<div id="28a54904" class="cell" data-execution_count="2">
+<div id="83309551" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>xs.append(<span class="dv">4</span>)</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>xs.insert(<span class="dv">0</span>, <span class="dv">0</span>)</span>
@@ -554,13 +554,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>xs.extend([5, 6])</code> adds <em>each element</em> of the argument to the end — different from <code>append</code>, which would add the whole list as a single element.</li>
 </ul>
 <p>The general rule: list mutation methods return <code>None</code>. Never write <code>xs = xs.append(4)</code> — you’ll lose your list and bind <code>xs</code> to <code>None</code>.</p>
-<div id="23959ec0" class="cell" data-execution_count="3">
+<div id="ea206a62" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>xs.pop(), xs.pop(<span class="dv">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>(6, 0)</code></pre>
 </div>
 </div>
-<div id="d6dbaddd" class="cell" data-execution_count="4">
+<div id="c846ed93" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>xs.remove(<span class="dv">3</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>xs</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -568,7 +568,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Sorting comes in two flavors — in-place (modifies the original) vs.&nbsp;returning a new list (leaves the original alone). Pick based on whether you still need the unsorted version:</p>
-<div id="443b0235" class="cell" data-execution_count="5">
+<div id="a8e4e4ae" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">3</span>, <span class="dv">1</span>, <span class="dv">4</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">9</span>, <span class="dv">2</span>, <span class="dv">6</span>]</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>sorted_new <span class="op">=</span> <span class="bu">sorted</span>(xs)        <span class="co"># new list; xs unchanged</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>xs.sort(reverse<span class="op">=</span><span class="va">True</span>)          <span class="co"># in-place; xs is now sorted</span></span>
@@ -582,7 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>xs.sort(reverse=True)</code> is the list method — mutates <code>xs</code> in place, returns <code>None</code>. <code>reverse=True</code> sorts descending.</li>
 </ul>
 <p>Sort with a <code>key</code> function — useful when the natural ordering isn’t what you want:</p>
-<div id="f8c3cdce" class="cell" data-execution_count="6">
+<div id="1f10c83d" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>words <span class="op">=</span> [<span class="st">"banana"</span>, <span class="st">"Apple"</span>, <span class="st">"cherry"</span>]</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>(words, key<span class="op">=</span><span class="bu">str</span>.lower)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -604,7 +604,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="1ad517cd" class="cell" data-execution_count="7">
+<div id="20b1ed52" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> a</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>b.append(<span class="dv">4</span>)</span>
@@ -617,7 +617,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-coll-tuples" class="level2" data-number="5.2">
 <h2 data-number="5.2" class="anchored" data-anchor-id="sec-coll-tuples"><span class="header-section-number">5.2</span> Tuples</h2>
 <p>When the items you’re grouping form a fixed record — an <code>(x, y)</code> coordinate, an RGB triple, a <code>(name, age)</code> pair — a list is the wrong choice: you don’t want anyone modifying the slots, and you’d like the structure to be hashable so it can serve as a dict key. Tuples are immutable lists for exactly this case.</p>
-<div id="ad79600f" class="cell" data-execution_count="8">
+<div id="ebfbc936" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>point <span class="op">=</span> (<span class="dv">3</span>, <span class="dv">4</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>single <span class="op">=</span> (<span class="dv">42</span>,)         <span class="co"># trailing comma! (42) is just 42</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>empty <span class="op">=</span> ()</span>
@@ -633,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Tuples have no <code>.append</code>, <code>.pop</code>, or <code>.sort</code> — they’re frozen at construction.</li>
 </ul>
 <p>The most powerful feature of tuples is <strong>unpacking</strong> — taking a tuple apart into named variables in one statement:</p>
-<div id="8dc8c980" class="cell" data-execution_count="9">
+<div id="a15734d2" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>x, y <span class="op">=</span> point</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>first, <span class="op">*</span>rest <span class="op">=</span> (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>)</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>[x, y, first, rest]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -648,7 +648,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: any tuple (or list) can be unpacked into matching names; <code>*name</code> greedily collects the leftovers as a list. The full unpacking treatment is in <a href="sequences.html" class="quarto-xref"><span>Chapter 14</span></a>.</p>
 <p>Tuples can be dict keys (lists cannot, because they’re mutable and unhashable):</p>
-<div id="366509a7" class="cell" data-execution_count="10">
+<div id="31dc54d7" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>locations <span class="op">=</span> {(<span class="fl">40.7</span>, <span class="op">-</span><span class="fl">74.0</span>): <span class="st">"New York"</span>, (<span class="fl">51.5</span>, <span class="op">-</span><span class="fl">0.1</span>): <span class="st">"London"</span>}</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>locations[(<span class="fl">40.7</span>, <span class="op">-</span><span class="fl">74.0</span>)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
@@ -659,7 +659,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-coll-dicts" class="level2" data-number="5.3">
 <h2 data-number="5.3" class="anchored" data-anchor-id="sec-coll-dicts"><span class="header-section-number">5.3</span> Dictionaries</h2>
 <p>When you need to look something up <em>by name</em> — a user record by username, a count by word, a config value by key — a list is wrong (linear scan) and a class is overkill. A dict maps keys to values with O(1) lookup, insertion, and deletion on average.</p>
-<div id="ce147672" class="cell" data-execution_count="11">
+<div id="d8b1162b" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>person <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"Alice"</span>, <span class="st">"age"</span>: <span class="dv">30</span>}</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>person[<span class="st">"name"</span>], person.get(<span class="st">"missing"</span>), person.get(<span class="st">"missing"</span>, <span class="st">"N/A"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
@@ -673,7 +673,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>person.get("missing", "N/A")</code> returns <code>"N/A"</code> as the fallback — a default of your choosing.</li>
 </ul>
 <p>The general rule: <code>d[key]</code> is loud (raises on miss); <code>d.get(key, default)</code> is quiet (returns the default). Modify with assignment, <code>del</code>, or <code>.pop</code>:</p>
-<div id="00bd1e4a" class="cell" data-execution_count="12">
+<div id="de072b79" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>person[<span class="st">"city"</span>] <span class="op">=</span> <span class="st">"London"</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">del</span> person[<span class="st">"age"</span>]</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>person.pop(<span class="st">"city"</span>)</span>
@@ -683,7 +683,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Iterate keys, values, or pairs:</p>
-<div id="4541ae71" class="cell" data-execution_count="13">
+<div id="c798cc9b" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>person <span class="op">=</span> {<span class="st">"name"</span>: <span class="st">"Alice"</span>, <span class="st">"age"</span>: <span class="dv">30</span>, <span class="st">"city"</span>: <span class="st">"London"</span>}</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(person.keys()), <span class="bu">list</span>(person.values()), <span class="bu">list</span>(person.items())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
@@ -692,7 +692,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  [('name', 'Alice'), ('age', 30), ('city', 'London')])</code></pre>
 </div>
 </div>
-<div id="43c724e3" class="cell" data-execution_count="14">
+<div id="22c33dd8" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> key, value <span class="kw">in</span> person.items():</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>key<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>value<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -702,7 +702,7 @@ city: London</code></pre>
 </div>
 </div>
 <p>Two helpers worth memorizing — both spare you the “check if the key exists, create the value if it doesn’t, then update it” boilerplate that comes up constantly:</p>
-<div id="bf7dabdf" class="cell" data-execution_count="15">
+<div id="e201aac6" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> defaultdict, Counter</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> defaultdict(<span class="bu">list</span>)</span>
@@ -719,7 +719,7 @@ city: London</code></pre>
 <li>Without <code>defaultdict</code> you’d write <code>if team not in groups: groups[team] = []; groups[team].append(name)</code> every iteration.</li>
 <li><code>dict(groups)</code> converts it back to a plain dict for display — purely cosmetic.</li>
 </ul>
-<div id="faee0166" class="cell" data-execution_count="16">
+<div id="01fd0754" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> <span class="st">"the cat sat on the mat"</span>.split()</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>Counter(text).most_common(<span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
@@ -732,7 +732,7 @@ city: London</code></pre>
 </ul>
 <p>The general rule: <code>defaultdict(factory)</code> for “missing keys auto-fill via <code>factory()</code>”; <code>Counter</code> for frequency tables. Both live in <code>collections</code>.</p>
 <p>Two dicts can be merged with the union operator <code>|</code> (Python 3.9+). Right-hand keys win on conflict — the idiom for “defaults plus overrides”:</p>
-<div id="d88df7b7" class="cell" data-execution_count="17">
+<div id="f24f3364" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>defaults <span class="op">=</span> {<span class="st">"host"</span>: <span class="st">"localhost"</span>, <span class="st">"port"</span>: <span class="dv">5432</span>, <span class="st">"ssl"</span>: <span class="va">False</span>}</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>overrides <span class="op">=</span> {<span class="st">"port"</span>: <span class="dv">6543</span>, <span class="st">"ssl"</span>: <span class="va">True</span>}</span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>defaults <span class="op">|</span> overrides</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -745,7 +745,7 @@ city: London</code></pre>
 <section id="sec-coll-sets" class="level2" data-number="5.4">
 <h2 data-number="5.4" class="anchored" data-anchor-id="sec-coll-sets"><span class="header-section-number">5.4</span> Sets</h2>
 <p>When you need to ask “have I seen this?” repeatedly, or take the intersection/union/difference of two collections, a list is the wrong tool — <code>x in big_list</code> is O(n). A set holds <em>unique</em> values with O(1) membership testing. Order is not preserved.</p>
-<div id="cb8b24f7" class="cell" data-execution_count="18">
+<div id="da567fbc" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>fruits <span class="op">=</span> {<span class="st">"apple"</span>, <span class="st">"banana"</span>, <span class="st">"cherry"</span>}</span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>empty <span class="op">=</span> <span class="bu">set</span>()              <span class="co"># NOT {} — that's a dict</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co">"apple"</span> <span class="kw">in</span> fruits, <span class="st">"grape"</span> <span class="kw">in</span> fruits</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -759,7 +759,7 @@ city: London</code></pre>
 <li><code>"apple" in fruits</code> is the membership test — <code>True</code>, and constant-time regardless of set size.</li>
 </ul>
 <p>The set-algebra operators are pleasant — and exactly what you’d write on paper:</p>
-<div id="d4ce69a3" class="cell" data-execution_count="19">
+<div id="0a8475b0" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> {<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>}</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> {<span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>}</span>
 <span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>[a <span class="op">|</span> b, a <span class="op">&amp;</span> b, a <span class="op">-</span> b, a <span class="op">^</span> b]   <span class="co"># union, intersection, difference, symmetric difference</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -775,7 +775,7 @@ city: London</code></pre>
 </ul>
 <p>The general rule: reach for a set when you need fast membership, deduplication, or the algebra above.</p>
 <p>A common one-liner: deduplicate a list while preserving uniqueness (order is <em>not</em> preserved):</p>
-<div id="fac1e778" class="cell" data-execution_count="20">
+<div id="1e350e66" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>duplicates <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">4</span>]</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">set</span>(duplicates))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="20">
@@ -787,7 +787,7 @@ city: London</code></pre>
 <section id="sec-coll-comprehensions" class="level2" data-number="5.5">
 <h2 data-number="5.5" class="anchored" data-anchor-id="sec-coll-comprehensions"><span class="header-section-number">5.5</span> Comprehensions</h2>
 <p>The “build an empty collection, loop, append” pattern is so common that Python has a one-line syntax for it. A comprehension is a compact, readable way to build a collection from another collection. There are four kinds: list, dict, set, and generator.</p>
-<div id="b2bba5fb" class="cell" data-execution_count="21">
+<div id="9972acf1" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>squares <span class="op">=</span> [x <span class="op">**</span> <span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">10</span>)]</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>evens <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">20</span>) <span class="cf">if</span> x <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>]</span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>[squares, evens]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -801,7 +801,7 @@ city: London</code></pre>
 <li><code>[x for x in range(20) if x % 2 == 0]</code> adds an <code>if</code> filter — only items satisfying the condition reach the output.</li>
 </ul>
 <p>The same pattern with curly braces builds dicts and sets:</p>
-<div id="9fa8f575" class="cell" data-execution_count="22">
+<div id="bb2acaec" class="cell" data-execution_count="22">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>square_map <span class="op">=</span> {x: x <span class="op">**</span> <span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>)}</span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>unique_lengths <span class="op">=</span> {<span class="bu">len</span>(w) <span class="cf">for</span> w <span class="kw">in</span> <span class="st">"the cat sat on the mat"</span>.split()}</span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>[square_map, unique_lengths]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -815,7 +815,7 @@ city: London</code></pre>
 </ul>
 <p>The general rule: <code>[...]</code> builds a list, <code>{k: v for ...}</code> a dict, <code>{...}</code> a set; add <code>if cond</code> for filtering, change the expression for mapping.</p>
 <p>A list comprehension materialises the whole list at once — fine for thousands of items, wasteful for millions. A <strong>generator expression</strong> is a comprehension in <code>(...)</code> instead of <code>[...]</code>. It does not build a list — it computes values on demand:</p>
-<div id="14e65670" class="cell" data-execution_count="23">
+<div id="73b18a42" class="cell" data-execution_count="23">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>total <span class="op">=</span> <span class="bu">sum</span>(x <span class="op">**</span> <span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1_000_000</span>))</span>
 <span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>total</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
@@ -829,7 +829,7 @@ city: London</code></pre>
 </ul>
 <p>The general rule: when the result is fed straight into a consumer like <code>sum</code>, <code>max</code>, <code>any</code>, or <code>"".join</code>, drop the brackets to a generator and save the intermediate list. Generator expressions are how you scale comprehensions to large or infinite data; the deep dive is in <a href="iterators.html" class="quarto-xref"><span>Chapter 29</span></a>.</p>
 <p>The walrus operator <code>:=</code> (Python 3.8+) lets a comprehension <em>capture</em> a per-item value once and reuse it — useful when a filter and a map both need the same expensive computation:</p>
-<div id="3bc902e2" class="cell" data-execution_count="24">
+<div id="9402479a" class="cell" data-execution_count="24">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
 <span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>lines <span class="op">=</span> [<span class="st">"score: 95"</span>, <span class="st">"noise"</span>, <span class="st">"score: 87"</span>, <span class="st">"noise"</span>, <span class="st">"score: 72"</span>]</span>

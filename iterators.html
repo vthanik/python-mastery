@@ -526,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-iter-for" class="level2" data-number="29.1">
 <h2 data-number="29.1" class="anchored" data-anchor-id="sec-iter-for"><span class="header-section-number">29.1</span> How <code>for</code> actually works</h2>
 <p>Every <code>for</code> loop is desugared into the same pattern:</p>
-<div id="0ab51104" class="cell" data-execution_count="1">
+<div id="70dac537" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="st">"ABC"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>it <span class="op">=</span> <span class="bu">iter</span>(s)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it), <span class="bu">next</span>(it), <span class="bu">next</span>(it)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -534,7 +534,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>('A', 'B', 'C')</code></pre>
 </div>
 </div>
-<div id="8356bcd8" class="cell" data-execution_count="2">
+<div id="18e54921" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(it)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
@@ -567,7 +567,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Every <code>for</code> loop is this dance. Custom iterables only need to answer two questions: how do I produce an iterator (<code>__iter__</code>)? how does that iterator yield the next value (<code>__next__</code>)?</p>
 <p>A useful side form: <code>iter(callable, sentinel)</code> creates an iterator that calls <code>callable()</code> until the result equals the sentinel. It’s the cleanest way to wrap a “call until done” function — file readers, queue pollers, network reads — into something a <code>for</code> loop can drive.</p>
-<div id="c84dea14" class="cell" data-execution_count="3">
+<div id="c7c8d425" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>fp <span class="op">=</span> io.StringIO(<span class="st">"line one</span><span class="ch">\n</span><span class="st">line two</span><span class="ch">\n\n</span><span class="st">ignored</span><span class="ch">\n</span><span class="st">"</span>)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> line <span class="kw">in</span> <span class="bu">iter</span>(fp.readline, <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>):</span>
@@ -593,7 +593,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>An <strong>iterator</strong> has <code>__next__</code> <em>and</em> <code>__iter__</code> (which returns <code>self</code>).</li>
 </ul>
 <p>The most common bug is making one class do both — then iterating consumes the only iterator and the next loop sees nothing.</p>
-<div id="3761de5a" class="cell" data-execution_count="4">
+<div id="7a75c354" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Sentence:</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, text):</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._words <span class="op">=</span> text.split()</span>
@@ -633,7 +633,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-iter-generators" class="level2" data-number="29.3">
 <h2 data-number="29.3" class="anchored" data-anchor-id="sec-iter-generators"><span class="header-section-number">29.3</span> Generator functions</h2>
 <p>A <em>generator function</em> — any function with <code>yield</code> — produces an iterator without the boilerplate. The two-class <code>Sentence</code>/<code>SentenceIterator</code> setup collapses to a few lines:</p>
-<div id="bdfe264a" class="cell" data-execution_count="5">
+<div id="8dd4dec0" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> SentenceGen:</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, text):</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>._text <span class="op">=</span> text</span>
@@ -656,7 +656,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Two passes both work: each call to <code>__iter__</code> builds a <em>new</em> generator with its own <code>for word in ...</code> cursor.</p>
 <p>The general pattern: any time you’d write a separate iterator class with a manual cursor, write a generator function instead. Same protocol, a fraction of the code.</p>
 <p>A <em>generator expression</em> is the inline version:</p>
-<div id="ac3120a8" class="cell" data-execution_count="6">
+<div id="3fa16c26" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>gen_exp <span class="op">=</span> (word <span class="cf">for</span> word <span class="kw">in</span> <span class="st">"Hello beautiful world"</span>.split())</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">next</span>(gen_exp), <span class="bu">next</span>(gen_exp)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
@@ -664,7 +664,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>For lazy iteration over a regex, the generator-expression form is even shorter:</p>
-<div id="8e39893b" class="cell" data-execution_count="7">
+<div id="9cc6d6dd" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>RE_WORD <span class="op">=</span> re.<span class="bu">compile</span>(<span class="vs">r"</span><span class="dv">\w</span><span class="op">+</span><span class="vs">"</span>)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -684,7 +684,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-iter-itertools" class="level2" data-number="29.4">
 <h2 data-number="29.4" class="anchored" data-anchor-id="sec-iter-itertools"><span class="header-section-number">29.4</span> The <code>itertools</code> cookbook</h2>
 <p><code>itertools</code> is the standard library’s lazy-iterator toolkit. Worth knowing by category:</p>
-<div id="5b5837aa" class="cell" data-execution_count="8">
+<div id="9e4f172b" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools, operator, functools</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.compress(<span class="st">"ABCDEF"</span>, [<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -692,64 +692,64 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>['A', 'C', 'E', 'F']</code></pre>
 </div>
 </div>
-<div id="8bb2c004" class="cell" data-execution_count="9">
+<div id="5c8ce4ec" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.dropwhile(<span class="kw">lambda</span> x: x <span class="op">&lt;</span> <span class="dv">5</span>, [<span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">2</span>, <span class="dv">6</span>, <span class="dv">7</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>[5, 2, 6, 7]</code></pre>
 </div>
 </div>
-<div id="bc16700b" class="cell" data-execution_count="10">
+<div id="a9bb714d" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.takewhile(<span class="kw">lambda</span> x: x <span class="op">&lt;</span> <span class="dv">5</span>, [<span class="dv">1</span>, <span class="dv">4</span>, <span class="dv">6</span>, <span class="dv">4</span>, <span class="dv">1</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>[1, 4]</code></pre>
 </div>
 </div>
-<div id="959339a3" class="cell" data-execution_count="11">
+<div id="f55af60e" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.accumulate([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>])), <span class="bu">list</span>(itertools.accumulate([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>], operator.mul))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>([1, 3, 6, 10, 15], [1, 2, 6, 24, 120])</code></pre>
 </div>
 </div>
-<div id="192e483f" class="cell" data-execution_count="12">
+<div id="c51e479c" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.chain(<span class="st">"ABC"</span>, <span class="bu">range</span>(<span class="dv">2</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>['A', 'B', 'C', 0, 1]</code></pre>
 </div>
 </div>
-<div id="40df828d" class="cell" data-execution_count="13">
+<div id="f1cf32f1" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.product(<span class="st">"AB"</span>, <span class="bu">range</span>(<span class="dv">2</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>[('A', 0), ('A', 1), ('B', 0), ('B', 1)]</code></pre>
 </div>
 </div>
-<div id="f649a2a8" class="cell" data-execution_count="14">
+<div id="418163ab" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.combinations(<span class="st">"ABC"</span>, <span class="dv">2</span>)), <span class="bu">list</span>(itertools.permutations(<span class="st">"ABC"</span>, <span class="dv">2</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="14">
 <pre><code>([('A', 'B'), ('A', 'C'), ('B', 'C')],
  [('A', 'B'), ('A', 'C'), ('B', 'A'), ('B', 'C'), ('C', 'A'), ('C', 'B')])</code></pre>
 </div>
 </div>
-<div id="5651118e" class="cell" data-execution_count="15">
+<div id="2f6a9a10" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.islice(itertools.cycle(<span class="st">"ABC"</span>), <span class="dv">7</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>['A', 'B', 'C', 'A', 'B', 'C', 'A']</code></pre>
 </div>
 </div>
 <p>Two more daily idioms — keep <code>filterfalse</code> for “the rejected items” and <code>starmap</code> for “the same function on tuples”:</p>
-<div id="8bced2f5" class="cell" data-execution_count="16">
+<div id="99bef95c" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.filterfalse(<span class="kw">lambda</span> x: x <span class="op">%</span> <span class="dv">2</span>, <span class="bu">range</span>(<span class="dv">10</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
 <pre><code>[0, 2, 4, 6, 8]</code></pre>
 </div>
 </div>
-<div id="5ebf3c66" class="cell" data-execution_count="17">
+<div id="3922fcf6" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(itertools.starmap(<span class="bu">pow</span>, [(<span class="dv">2</span>, <span class="dv">3</span>), (<span class="dv">3</span>, <span class="dv">2</span>), (<span class="dv">10</span>, <span class="dv">3</span>)]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>[8, 9, 1000]</code></pre>
 </div>
 </div>
 <p>The reduction functions — <code>all</code>, <code>any</code>, <code>sum</code>, <code>max</code>, <code>min</code>, <code>functools.reduce</code> — consume an iterable and return a single value:</p>
-<div id="f26101f1" class="cell" data-execution_count="18">
+<div id="794d724a" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="bu">all</span>([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]), <span class="bu">any</span>([<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>]), <span class="bu">sum</span>([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]), functools.<span class="bu">reduce</span>(operator.add, [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>(True, True, 6, 15)</code></pre>
@@ -759,7 +759,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-iter-walrus" class="level2" data-number="29.5">
 <h2 data-number="29.5" class="anchored" data-anchor-id="sec-iter-walrus"><span class="header-section-number">29.5</span> Walrus in iteration</h2>
 <p>The walrus operator <code>:=</code> (3.8+) is the cleanest way to write “read until empty”:</p>
-<div id="ecb1e112" class="cell" data-execution_count="19">
+<div id="d2ac6a58" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> io</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>buf <span class="op">=</span> io.BytesIO(<span class="st">b"abcdefghij"</span>)</span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>chunks <span class="op">=</span> []</span>
@@ -783,7 +783,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-iter-yield-from" class="level2" data-number="29.6">
 <h2 data-number="29.6" class="anchored" data-anchor-id="sec-iter-yield-from"><span class="header-section-number">29.6</span> <code>yield from</code></h2>
 <p><code>yield from sub_iterable</code> is more than a <code>for x in sub: yield x</code> — it forwards <code>send()</code> and <code>throw()</code> to the inner generator, which is what makes it the foundation of <code>asyncio</code>.</p>
-<div id="1b390539" class="cell" data-execution_count="20">
+<div id="c6257acf" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> chain(<span class="op">*</span>iterables):</span>
 <span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> it <span class="kw">in</span> iterables:</span>
 <span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> <span class="cf">from</span> it</span>
@@ -799,7 +799,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>For each one, <code>yield from it</code> re-yields every value the sub-iterable produces. The outer caller sees one flat stream — <code>'A', 'B', 'C', 0, 1, 2, 10, 20</code>.</li>
 <li>The same loop <em>without</em> <code>yield from</code> would be <code>for x in it: yield x</code>. Equivalent for value flow, but <code>yield from</code> also forwards <code>send</code> and <code>throw</code> — the machinery <code>asyncio</code> relies on.</li>
 </ul>
-<div id="b9551da0" class="cell" data-execution_count="21">
+<div id="482a444c" class="cell" data-execution_count="21">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Tree:</span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, value, <span class="op">*</span>children):</span>
 <span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.value <span class="op">=</span> value</span>

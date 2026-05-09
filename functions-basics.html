@@ -526,7 +526,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-defining" class="level2" data-number="6.1">
 <h2 data-number="6.1" class="anchored" data-anchor-id="sec-fn-defining"><span class="header-section-number">6.1</span> Defining a function</h2>
 <p>When you find yourself writing the same few lines twice, factor them into a function: a named, parameterised block of code you can call from anywhere. Even one-line bodies earn their keep when the name documents intent.</p>
-<div id="115df7af" class="cell" data-execution_count="1">
+<div id="e41a5435" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greet(name):</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Return a greeting string."""</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Hello, </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">!"</span></span>
@@ -544,7 +544,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>def name(params):</code> opens a function, the body is indented, the first string is the docstring, and <code>return</code> produces the result.</p>
 <p>Without <code>return</code>, a function returns <code>None</code>:</p>
-<div id="70df4be7" class="cell" data-execution_count="2">
+<div id="a1d1b9e7" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shout(message):</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(message.upper())</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -561,7 +561,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-parameters" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="sec-fn-parameters"><span class="header-section-number">6.2</span> Parameters</h2>
 <p>A serious function rarely takes just one positional argument. Real APIs need optional defaults, keyword-only flags that read clearly at the call site, and “any number of extras” for forwarding. Python packs all five mechanisms into one syntax — positional, default, keyword-only, <code>*args</code>, <code>**kwargs</code>:</p>
-<div id="5d098cb9" class="cell" data-execution_count="3">
+<div id="c438fd41" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="ex">connect</span>(host, port<span class="op">=</span><span class="dv">5432</span>, <span class="op">*</span>, timeout<span class="op">=</span><span class="dv">30</span>, <span class="op">**</span>options):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"host"</span>: host,</span>
@@ -582,7 +582,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>timeout=30</code> is a keyword-only default — callers must pass it by name (<code>timeout=60</code>), never positionally.</li>
 <li><code>**options</code> collects any <em>other</em> keyword arguments into a dict — a catch-all for forwarding.</li>
 </ul>
-<div id="c0769ba9" class="cell" data-execution_count="4">
+<div id="9d854a16" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">connect</span>(<span class="st">"localhost"</span>, <span class="dv">6543</span>, timeout<span class="op">=</span><span class="dv">60</span>, ssl<span class="op">=</span><span class="va">True</span>, retries<span class="op">=</span><span class="dv">3</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>{'host': 'localhost',
@@ -598,7 +598,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: parameters before <code>*</code> accept positional or keyword; parameters after <code>*</code> are keyword-only; <code>**name</code> sweeps up any leftover keyword arguments. So <code>connect("localhost", 5432, 60)</code> would fail — <code>timeout</code> must be named.</p>
 <p><code>*args</code> and <code>**kwargs</code> work as parameters too — they accept any number of extra arguments:</p>
-<div id="4ecb0a42" class="cell" data-execution_count="5">
+<div id="342e0bc8" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> total(<span class="op">*</span>numbers):</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(numbers)</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -615,7 +615,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>**fields</code> collects all keyword arguments into a dict — <code>record(name="Alice", age=30)</code> makes <code>fields = {"name": "Alice", "age": 30}</code>.</li>
 </ul>
 <p>When <em>calling</em>, the same <code>*</code> and <code>**</code> syntax <strong>unpacks</strong> an iterable or dict back into arguments:</p>
-<div id="4feb580a" class="cell" data-execution_count="6">
+<div id="297998ef" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>args <span class="op">=</span> [<span class="dv">6543</span>]</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>kwargs <span class="op">=</span> {<span class="st">"timeout"</span>: <span class="dv">60</span>, <span class="st">"ssl"</span>: <span class="va">True</span>}</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">connect</span>(<span class="st">"localhost"</span>, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -635,7 +635,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="callout-body-container">
 <p><strong>The mutable-default trap.</strong> Default arguments are evaluated <em>once</em>, at definition time. So a default like <code>target=[]</code> creates a single list shared across every call.</p>
-<div id="c2df8c6e" class="cell" data-execution_count="7">
+<div id="80ca29d0" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_item_buggy(item, target<span class="op">=</span>[]):</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    target.append(item)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> target</span>
@@ -646,7 +646,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The fix is the <code>None</code> sentinel:</p>
-<div id="e2702831" class="cell" data-execution_count="8">
+<div id="a3f0dfee" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_item(item, target<span class="op">=</span><span class="va">None</span>):</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> target <span class="kw">is</span> <span class="va">None</span>:</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>        target <span class="op">=</span> []</span>
@@ -665,7 +665,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-return" class="level2" data-number="6.3">
 <h2 data-number="6.3" class="anchored" data-anchor-id="sec-fn-return"><span class="header-section-number">6.3</span> Returning multiple values</h2>
 <p>Some functions naturally produce more than one value — <code>min_max</code> wants to return both the minimum and maximum in one pass. Languages that allow only a single return value force you to wrap it in a struct or use out-parameters; Python piggy-backs on tuples and unpacking instead.</p>
-<div id="c6fce9bd" class="cell" data-execution_count="9">
+<div id="c864278a" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> min_max(data):</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">min</span>(data), <span class="bu">max</span>(data)</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -692,7 +692,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>G</strong>lobal — at the module/file level</li>
 <li><strong>B</strong>uilt-in — <code>len</code>, <code>range</code>, <code>print</code>, …</li>
 </ul>
-<div id="5bfdc783" class="cell" data-execution_count="10">
+<div id="248cd6ca" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="dv">10</span>                <span class="co"># global</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> outer():</span>
@@ -716,7 +716,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: each function’s <em>assignments</em> create local names by default, even if the same name exists in an enclosing scope. Lookup walks outward (Local → Enclosing → Global → Built-in) until something matches; assignment creates a new local unless declared otherwise.</p>
 <p>To <strong>modify</strong> an outer variable from inside a function, you need an explicit declaration: <code>global</code> or <code>nonlocal</code>. Without it, Python’s “assignments make locals” rule will silently shadow the outer name instead.</p>
-<div id="19884142" class="cell" data-execution_count="11">
+<div id="c4bbdbc9" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_counter():</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> increment():</span>
@@ -739,7 +739,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>nonlocal name</code> says “modify the enclosing function’s <code>name</code>”; <code>global name</code> says “modify the module-level <code>name</code>”. The function <code>increment</code> is a <strong>closure</strong> — it carries <code>count</code> with it after <code>make_counter</code> returns.</p>
 <p>A closure can hold more than a single counter. Here’s a running-average factory — the inner function remembers its own list of samples between calls:</p>
-<div id="f2d57e8e" class="cell" data-execution_count="12">
+<div id="7334bfa5" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_averager():</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    samples <span class="op">=</span> []</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> averager(value):</span>
@@ -776,7 +776,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-first-class" class="level2" data-number="6.5">
 <h2 data-number="6.5" class="anchored" data-anchor-id="sec-fn-first-class"><span class="header-section-number">6.5</span> Functions are objects</h2>
 <p>In many languages, functions are second-class — you can call them but not pass them around. In Python, a function is just an object you happen to be able to invoke. That single property unlocks higher-order patterns: storing functions in lists, passing them as arguments, returning them from other functions.</p>
-<div id="37d92c7c" class="cell" data-execution_count="13">
+<div id="d5aefdb5" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> double(x): <span class="cf">return</span> x <span class="op">*</span> <span class="dv">2</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> square(x): <span class="cf">return</span> x <span class="op">**</span> <span class="dv">2</span></span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -792,7 +792,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>[op(5) for op in ops]</code> iterates the list, calling each function on <code>5</code>, and collects the results.</li>
 </ul>
 <p>The same idea is what makes <code>key=</code> arguments work — pass a function in, the caller calls it for you:</p>
-<div id="550cef2b" class="cell" data-execution_count="14">
+<div id="871cebe3" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>([<span class="st">"banana"</span>, <span class="st">"Apple"</span>, <span class="st">"cherry"</span>], key<span class="op">=</span><span class="bu">str</span>.lower)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="14">
 <pre><code>['Apple', 'banana', 'cherry']</code></pre>
@@ -804,7 +804,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>The original strings stay in the result; only the comparison uses the lowered form, giving a case-insensitive sort.</li>
 </ul>
 <p><code>lambda</code> is a one-line, anonymous function form — useful when you’d rather not invent a name for a throwaway helper:</p>
-<div id="70c694d9" class="cell" data-execution_count="15">
+<div id="72888d87" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>([(<span class="st">"apple"</span>, <span class="dv">3</span>), (<span class="st">"banana"</span>, <span class="dv">1</span>), (<span class="st">"cherry"</span>, <span class="dv">2</span>)], key<span class="op">=</span><span class="kw">lambda</span> pair: pair[<span class="dv">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>[('banana', 1), ('cherry', 2), ('apple', 3)]</code></pre>
@@ -816,7 +816,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: <code>lambda args: expression</code> is shorthand for a single-expression <code>def</code>, useful when you’d prefer not to name the function.</p>
 <p>Use <code>lambda</code> only for trivial expressions. If it needs a comment to explain it, use <code>def</code> and give it a name. Compare:</p>
-<div id="366911bf" class="cell" data-execution_count="16">
+<div id="ed6f426e" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> [{<span class="st">"name"</span>: <span class="st">"Alice"</span>, <span class="st">"score"</span>: <span class="dv">95</span>}, {<span class="st">"name"</span>: <span class="st">"Bob"</span>, <span class="st">"score"</span>: <span class="dv">87</span>}]</span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Trivial — lambda is fine:</span></span>
@@ -825,7 +825,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>[{'name': 'Bob', 'score': 87}, {'name': 'Alice', 'score': 95}]</code></pre>
 </div>
 </div>
-<div id="ed219546" class="cell" data-execution_count="17">
+<div id="7c5cb87f" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Needs a comment to explain — promote to a named def:</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> by_score_then_name(record):</span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""Sort key: descending score, then name ascending for ties."""</span></span>
@@ -841,7 +841,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-decorator" class="level2" data-number="6.6">
 <h2 data-number="6.6" class="anchored" data-anchor-id="sec-fn-decorator"><span class="header-section-number">6.6</span> A first decorator</h2>
 <p>You want to time how long a function takes — and you want it for <em>several</em> functions, without copying timing code into each one. A decorator is a function that takes a function and returns a (usually wrapped) function — the natural way to add the same behavior around many call sites. The <code>@</code> syntax applies it.</p>
-<div id="88bf91e7" class="cell" data-execution_count="18">
+<div id="a09dee92" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> functools, time</span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> timer(func):</span>
@@ -860,7 +860,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>slow_sum(<span class="dv">1_000_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>slow_sum: 0.0056s</code></pre>
+<pre><code>slow_sum: 0.0057s</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>499999500000</code></pre>
@@ -879,7 +879,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-fn-generator" class="level2" data-number="6.7">
 <h2 data-number="6.7" class="anchored" data-anchor-id="sec-fn-generator"><span class="header-section-number">6.7</span> A first generator</h2>
 <p>Sometimes you want to produce a sequence of values, but materialising the whole list up front is wasteful — or impossible (the sequence is infinite). A function that uses <code>yield</code> instead of <code>return</code> is a <strong>generator</strong>. It produces values one at a time, on demand, and pauses between them.</p>
-<div id="bffde7cb" class="cell" data-execution_count="19">
+<div id="07f74806" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> countdown(n):</span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> n <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">yield</span> n</span>
@@ -896,7 +896,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>When the consumer asks for the next value, the function resumes after the <code>yield</code>, runs <code>n -= 1</code>, and loops back to <code>yield n</code> again.</li>
 <li><code>list(countdown(5))</code> walks the generator to exhaustion, collecting all yielded values into a list.</li>
 </ul>
-<div id="60ce91e4" class="cell" data-execution_count="20">
+<div id="fb9316f8" class="cell" data-execution_count="20">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>gen <span class="op">=</span> countdown(<span class="dv">3</span>)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>[<span class="bu">next</span>(gen), <span class="bu">next</span>(gen), <span class="bu">next</span>(gen)]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="20">

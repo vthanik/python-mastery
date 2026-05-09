@@ -538,7 +538,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-operator-unary" class="level2" data-number="28.2">
 <h2 data-number="28.2" class="anchored" data-anchor-id="sec-operator-unary"><span class="header-section-number">28.2</span> Unary operators</h2>
 <p>The minus, plus, and absolute-value operators each call one method. We need a class to overload them on — a small <code>Vector</code> of numeric components is the running example for the rest of the chapter.</p>
-<div id="e73c39b8" class="cell" data-execution_count="1">
+<div id="0ac33e01" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> array <span class="im">import</span> array</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -584,7 +584,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-operator-add" class="level2" data-number="28.3">
 <h2 data-number="28.3" class="anchored" data-anchor-id="sec-operator-add"><span class="header-section-number">28.3</span> Overloading <code>+</code></h2>
 <p>Adding two vectors should produce a third — <code>Vector([1, 2, 3]) + Vector([10, 20, 30])</code> should be <code>Vector([11, 22, 33])</code>. And we want <code>[1, 2, 3] + v1</code> to work too, even though <code>list</code> knows nothing about <code>Vector</code>. That’s what <code>__add__</code> and its reflected partner <code>__radd__</code> cover.</p>
-<div id="d84b5d16" class="cell" data-execution_count="2">
+<div id="f8451388" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> itertools</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector(Vector):</span>
@@ -612,7 +612,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>__radd__(self, other)</code> is the <strong>reflected</strong> form, called when the <em>other</em> operand is on the left. We just delegate to <code>self + other</code>, since vector addition is commutative.</li>
 </ul>
 <p><code>zip_longest</code> lets us add vectors of different length:</p>
-<div id="2dfb9102" class="cell" data-execution_count="3">
+<div id="887c3531" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>v1 <span class="op">+</span> Vector([<span class="dv">1</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>Vector([2.0, 2.0, 3.0])</code></pre>
@@ -624,7 +624,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-operator-mul" class="level2" data-number="28.4">
 <h2 data-number="28.4" class="anchored" data-anchor-id="sec-operator-mul"><span class="header-section-number">28.4</span> Scalar multiplication</h2>
 <p><code>v * 3</code> should scale every component by 3. <code>3 * v</code> should do the same — the user shouldn’t have to remember which side the scalar goes on. Same pattern as <code>+</code>: define <code>__mul__</code> for the left-hand case, <code>__rmul__</code> for the right.</p>
-<div id="cce7a717" class="cell" data-execution_count="4">
+<div id="bae184e1" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector(Vector):</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__mul__</span>(<span class="va">self</span>, scalar):</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">try</span>:</span>
@@ -655,7 +655,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-operator-compare" class="level2" data-number="28.5">
 <h2 data-number="28.5" class="anchored" data-anchor-id="sec-operator-compare"><span class="header-section-number">28.5</span> Rich comparison</h2>
 <p>Comparison operators each have a dunder. The most important pair is <code>__eq__</code> (returns <code>True</code>, <code>False</code>, or <code>NotImplemented</code>) and <code>__hash__</code> (must agree with <code>__eq__</code>).</p>
-<div id="0cc1677e" class="cell" data-execution_count="5">
+<div id="45ea9055" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Vector(Vector):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__eq__</span>(<span class="va">self</span>, other):</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">isinstance</span>(other, Vector):</span>
@@ -677,7 +677,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>1 == 1.0</code> is <code>True</code> in Python, so a <code>Vector</code> of ints equals the same <code>Vector</code> of floats. That’s <code>__eq__</code> deferring to each component’s own <code>__eq__</code>.</li>
 </ul>
 <p>For ordering, define one of <code>__lt__</code>, <code>__le__</code>, <code>__gt__</code>, <code>__ge__</code> and use <code>@functools.total_ordering</code> to fill in the rest:</p>
-<div id="8107e061" class="cell" data-execution_count="6">
+<div id="6cec121b" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> total_ordering</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">@total_ordering</span></span>
@@ -695,9 +695,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>(True,
  False,
  True,
- [&lt;__main__.Angle at 0x10a219cd0&gt;,
-  &lt;__main__.Angle at 0x10a0c1950&gt;,
-  &lt;__main__.Angle at 0x10a21a8b0&gt;])</code></pre>
+ [&lt;__main__.Angle at 0x10884dcd0&gt;,
+  &lt;__main__.Angle at 0x1086f5950&gt;,
+  &lt;__main__.Angle at 0x10884e8b0&gt;])</code></pre>
 </div>
 </div>
 <p>Walking through how this works:</p>

@@ -601,7 +601,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Let tools (mypy, pyright, IDEs) catch errors before runtime.</li>
 <li>Make code easier to read.</li>
 </ul>
-<div id="744163d6" class="cell" data-execution_count="1">
+<div id="312a1624" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greet(name: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span>:</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f"Hello, </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">!"</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -620,7 +620,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>At runtime these annotations are stored on the function (in <code>__annotations__</code>) but never enforced — <code>greet(123)</code> still runs, the type checker just flags it.</li>
 </ul>
 <p>Use the abstract types from <code>collections.abc</code> for <em>parameter</em> hints — <code>Iterable</code>, <code>Mapping</code>, <code>Callable</code>, <code>Sequence</code>. They accept any conforming type (a plain dict, a <code>defaultdict</code>, a custom class) without locking the caller into one concrete container:</p>
-<div id="a6b0e871" class="cell" data-execution_count="2">
+<div id="269d7ae8" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Mapping</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> total_price(prices: Mapping[<span class="bu">str</span>, <span class="bu">float</span>]) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
@@ -656,7 +656,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> <span class="bu">apply</span>(func: Callable[[<span class="bu">int</span>], <span class="bu">str</span>], xs: <span class="bu">list</span>[<span class="bu">int</span>]) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
 <span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [func(x) <span class="cf">for</span> x <span class="kw">in</span> xs]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Two recent typing features pay off immediately. Python 3.12 (PEP 695) adds inline syntax for generic functions — no <code>TypeVar</code> import, no module-level boilerplate:</p>
-<div id="658a49c7" class="cell" data-execution_count="3">
+<div id="2bcf9c07" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> first[T](xs: <span class="bu">list</span>[T]) <span class="op">-&gt;</span> T:</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> xs[<span class="dv">0</span>]</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -672,7 +672,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: when a function’s input and output types are linked, introduce a type parameter; the <code>[T]</code> syntax is the modern, boilerplate-free way. Same shape for classes: <code>class Box[T]: ...</code>.</p>
 <p>Python 3.12 also adds <code>@typing.override</code> — an explicit marker that a method is overriding a parent’s method. Type-checkers will flag a typo or a renamed parent method that the marker no longer matches:</p>
-<div id="993d3ee4" class="cell" data-execution_count="4">
+<div id="3f5af115" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> override</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Animal:</span>

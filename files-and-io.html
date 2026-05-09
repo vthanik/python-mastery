@@ -521,19 +521,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Replace ad-hoc <code>print</code> debugging with <code>logging</code>.</li>
 </ol>
 <p>We’ll demonstrate everything against a writable temporary directory so the cells render without leaving stray files.</p>
-<div id="2c09b1f7" class="cell" data-execution_count="1">
+<div id="838830e5" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>work <span class="op">=</span> Path(tempfile.mkdtemp())</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>work</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpv9cka9rk')</code></pre>
+<pre><code>PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpvjx20pct')</code></pre>
 </div>
 </div>
 <section id="sec-io-text" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="sec-io-text"><span class="header-section-number">8.1</span> Reading and writing text files</h2>
 <p>The simplest “real” I/O task: write a string to a file, then read it back. Two rules turn this from fragile to robust — always use <code>with</code>, always pass <code>encoding="utf-8"</code> explicitly.</p>
-<div id="0eaa46e0" class="cell" data-execution_count="2">
+<div id="708292b1" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> work <span class="op">/</span> <span class="st">"hello.txt"</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(target, <span class="st">"w"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    f.write(<span class="st">"Hello</span><span class="ch">\n</span><span class="st">World</span><span class="ch">\n</span><span class="st">"</span>)</span>
@@ -553,7 +553,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general rule: every file operation goes through <code>with open(...) as f:</code> with an explicit <code>encoding=</code>. Never rely on the platform default — it varies across OSes and locales.</p>
 <p>For <em>line-by-line</em> reading on a large file, iterate the file object directly. It reads one line at a time, never loading the whole thing into memory:</p>
-<div id="34f664ab" class="cell" data-execution_count="3">
+<div id="05d1babf" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(target, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> line <span class="kw">in</span> f:</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(line.rstrip())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -572,7 +572,7 @@ World</code></pre>
 <section id="sec-io-pathlib" class="level2" data-number="8.2">
 <h2 data-number="8.2" class="anchored" data-anchor-id="sec-io-pathlib"><span class="header-section-number">8.2</span> <code>pathlib.Path</code> — the modern path API</h2>
 <p>The traditional way to manipulate paths in Python is string concatenation plus the <code>os.path</code> module — <code>os.path.join</code>, <code>os.path.dirname</code>, <code>os.path.splitext</code>, etc. It works but it’s verbose and error-prone (Windows separators, trailing slashes). <code>pathlib.Path</code> replaces half of <code>os.path</code> with one object-oriented, cross-platform API.</p>
-<div id="e23f3f8a" class="cell" data-execution_count="4">
+<div id="2bb8d86a" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>p <span class="op">=</span> work <span class="op">/</span> <span class="st">"subdir"</span> <span class="op">/</span> <span class="st">"data.txt"</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>p.parent.mkdir(parents<span class="op">=</span><span class="va">True</span>, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>p.write_text(<span class="st">"first line</span><span class="ch">\n</span><span class="st">second line</span><span class="ch">\n</span><span class="st">"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
@@ -589,7 +589,7 @@ World</code></pre>
 <li><code>p.name</code> is <code>"data.txt"</code> (filename); <code>p.stem</code> is <code>"data"</code> (filename without extension); <code>p.suffix</code> is <code>".txt"</code> (the extension including the dot); <code>p.parent.name</code> is <code>"subdir"</code>.</li>
 </ul>
 <p><code>p.read_text()</code> and <code>p.write_text()</code> are one-liners for whole-file I/O — handy when you don’t need streaming:</p>
-<div id="47d50609" class="cell" data-execution_count="5">
+<div id="de72f4ad" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>p.read_text(encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>'first line\nsecond line\n'</code></pre>
@@ -599,7 +599,7 @@ World</code></pre>
 <li>One call: open in read mode with the given encoding, read the whole file, close it, return the contents as a string.</li>
 </ul>
 <p>Walking a directory’s immediate children:</p>
-<div id="76e497ad" class="cell" data-execution_count="6">
+<div id="721c32cd" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> child <span class="kw">in</span> <span class="bu">sorted</span>(work.iterdir()):</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(child.name, <span class="st">"(dir)"</span> <span class="cf">if</span> child.is_dir() <span class="cf">else</span> <span class="st">"(file)"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -613,11 +613,11 @@ subdir (dir)</code></pre>
 <li><code>child.is_dir()</code> tags each entry.</li>
 </ul>
 <p>For recursive search by pattern, <strong>glob</strong>:</p>
-<div id="3ffa139f" class="cell" data-execution_count="7">
+<div id="cbfd2e6e" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(work.glob(<span class="st">"**/*.txt"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>[PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpv9cka9rk/hello.txt'),
- PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpv9cka9rk/subdir/data.txt')]</code></pre>
+<pre><code>[PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpvjx20pct/hello.txt'),
+ PosixPath('/var/folders/t9/q01rxlm14zj3bg27k292l5tr0000gn/T/tmpvjx20pct/subdir/data.txt')]</code></pre>
 </div>
 </div>
 <ul>
@@ -626,14 +626,14 @@ subdir (dir)</code></pre>
 </ul>
 <p>The general rule: build paths with <code>/</code>, ask for properties as attributes (<code>.name</code>, <code>.suffix</code>), and use <code>iterdir</code>/<code>glob</code>/<code>walk</code> for directory traversal. <code>Path.exists()</code>, <code>.is_file()</code>, <code>.is_dir()</code>, <code>.unlink()</code>, <code>.rename()</code>, <code>.mkdir()</code> round out the common operations.</p>
 <p>For a recursive walk that gives you each directory’s children separately — like <code>os.walk</code> but with <code>Path</code> objects — use <code>Path.walk()</code> (Python 3.12+):</p>
-<div id="8420a76a" class="cell" data-execution_count="8">
+<div id="dd5f9dee" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>(work <span class="op">/</span> <span class="st">"logs"</span>).mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>(work <span class="op">/</span> <span class="st">"logs"</span> <span class="op">/</span> <span class="st">"app.log"</span>).write_text(<span class="st">"ok</span><span class="ch">\n</span><span class="st">"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> root, dirs, files <span class="kw">in</span> work.walk():</span>
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(root.name <span class="kw">or</span> root, <span class="bu">sorted</span>(dirs), <span class="bu">sorted</span>(files))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>tmpv9cka9rk ['logs', 'subdir'] ['hello.txt']
+<pre><code>tmpvjx20pct ['logs', 'subdir'] ['hello.txt']
 subdir [] ['data.txt']
 logs [] ['app.log']</code></pre>
 </div>
@@ -643,7 +643,7 @@ logs [] ['app.log']</code></pre>
 <section id="sec-io-tomllib" class="level2" data-number="8.3">
 <h2 data-number="8.3" class="anchored" data-anchor-id="sec-io-tomllib"><span class="header-section-number">8.3</span> Reading TOML config: <code>tomllib</code></h2>
 <p>Python 3.11 added <code>tomllib</code> — a TOML parser in the standard library. TOML is the format for <code>pyproject.toml</code> and most modern Python tooling configs. <code>tomllib</code> is read-only and binary-mode:</p>
-<div id="c3834ef4" class="cell" data-execution_count="9">
+<div id="5696f044" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tomllib</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>snippet <span class="op">=</span> <span class="st">b"""</span></span>
@@ -664,7 +664,7 @@ logs [] ['app.log']</code></pre>
 <section id="sec-io-csv" class="level2" data-number="8.4">
 <h2 data-number="8.4" class="anchored" data-anchor-id="sec-io-csv"><span class="header-section-number">8.4</span> CSV</h2>
 <p>CSV looks deceptively simple — fields separated by commas, rows separated by newlines — but real CSV has quoted fields, embedded commas, embedded newlines, and platform-specific line endings. Always use the <code>csv</code> module — never parse it by hand with <code>.split(",")</code>.</p>
-<div id="5285b208" class="cell" data-execution_count="10">
+<div id="c14ab197" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> csv</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> work <span class="op">/</span> <span class="st">"people.csv"</span></span>
@@ -690,7 +690,7 @@ logs [] ['app.log']</code></pre>
 <li><code>writer.writerows(people)</code> writes one row per dict, taking values in the order of <code>fieldnames</code>.</li>
 <li><code>newline=""</code> tells <code>open</code> <em>not</em> to translate line endings — <code>csv</code> handles them internally.</li>
 </ul>
-<div id="6465cbd4" class="cell" data-execution_count="11">
+<div id="d1e44166" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(target, encoding<span class="op">=</span><span class="st">"utf-8"</span>, newline<span class="op">=</span><span class="st">""</span>) <span class="im">as</span> f:</span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> <span class="bu">list</span>(csv.DictReader(f))</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>rows</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -710,7 +710,7 @@ logs [] ['app.log']</code></pre>
 <section id="sec-io-json" class="level2" data-number="8.5">
 <h2 data-number="8.5" class="anchored" data-anchor-id="sec-io-json"><span class="header-section-number">8.5</span> JSON</h2>
 <p>When two programs need to exchange structured data — a Python script writing a config a Rust service reads, or an API returning a payload to a JavaScript front-end — JSON is the universal format. The <code>json</code> module converts between JSON text and Python objects.</p>
-<div id="b8bf790e" class="cell" data-execution_count="12">
+<div id="bfb86d53" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> work <span class="op">/</span> <span class="st">"config.json"</span></span>
@@ -729,7 +729,7 @@ logs [] ['app.log']</code></pre>
 <li><code>indent=2</code> pretty-prints with 2-space indentation — readable for humans, slightly bigger than the compact form.</li>
 <li>The Python dict, list, and string values map to the matching JSON types (object, array, string).</li>
 </ul>
-<div id="d70edbdd" class="cell" data-execution_count="13">
+<div id="333bd0f4" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(target, encoding<span class="op">=</span><span class="st">"utf-8"</span>) <span class="im">as</span> f:</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    loaded <span class="op">=</span> json.load(f)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>loaded</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -747,7 +747,7 @@ logs [] ['app.log']</code></pre>
 <section id="sec-io-stdio" class="level2" data-number="8.6">
 <h2 data-number="8.6" class="anchored" data-anchor-id="sec-io-stdio"><span class="header-section-number">8.6</span> Standard streams and command-line arguments</h2>
 <p><code>print()</code> writes to <code>stdout</code> by default; pass <code>file=sys.stderr</code> to write to standard error:</p>
-<div id="3d3aa264" class="cell" data-execution_count="14">
+<div id="85f0b871" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"normal output"</span>)            <span class="co"># → stdout</span></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"warning!"</span>, <span class="bu">file</span><span class="op">=</span>sys.stderr)  <span class="co"># → stderr</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -772,7 +772,7 @@ logs [] ['app.log']</code></pre>
 <section id="sec-io-logging" class="level2" data-number="8.7">
 <h2 data-number="8.7" class="anchored" data-anchor-id="sec-io-logging"><span class="header-section-number">8.7</span> <code>logging</code> — when <code>print</code> isn’t enough</h2>
 <p><code>print</code> debugging is fine for a 50-line script. Past that, you need <em>levels</em> (info vs.&nbsp;error), <em>destinations</em> (stderr, a file, a remote sink), and a way to silence noisy output without deleting calls. <code>print</code> is for users; <code>logging</code> is for developers and operators.</p>
-<div id="a164da97" class="cell" data-execution_count="15">
+<div id="e8eb5728" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> logging</span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>logger <span class="op">=</span> logging.getLogger(<span class="st">"demo"</span>)</span>

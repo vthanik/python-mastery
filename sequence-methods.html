@@ -519,7 +519,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-vector-protocol" class="level2" data-number="24.1">
 <h2 data-number="24.1" class="anchored" data-anchor-id="sec-vector-protocol"><span class="header-section-number">24.1</span> Protocols and duck typing</h2>
 <p>Python’s <em>sequence protocol</em> requires only two methods: <code>__len__</code> and <code>__getitem__</code>. Anything that has them behaves as a sequence — slicing, iteration, <code>in</code> — without inheriting from anything. To see the protocol in action, we’ll generalize <code>Vector2d</code> to N dimensions and earn slicing, iteration, and <code>len()</code> from just those two dunders.</p>
-<div id="e19e6cfa" class="cell" data-execution_count="1">
+<div id="fdba1c55" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> operator</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> array <span class="im">import</span> array</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -566,7 +566,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul></li>
 </ul>
 <p>The general pattern: <code>__len__</code> + <code>__getitem__</code> is the <em>minimum</em> sequence interface. The clever part is the slice handling. Without it, <code>v[1:4]</code> would return an <code>array.array</code> — losing the <code>Vector</code> type. With it, slicing returns another <code>Vector</code>:</p>
-<div id="ec89eb5e" class="cell" data-execution_count="2">
+<div id="2bae6f78" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>v[<span class="dv">1</span>:<span class="dv">4</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>Vector([1.0, 2.0, 3.0])</code></pre>
@@ -577,7 +577,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-vector-getattr" class="level2" data-number="24.2">
 <h2 data-number="24.2" class="anchored" data-anchor-id="sec-vector-getattr"><span class="header-section-number">24.2</span> Dynamic attribute access</h2>
 <p>The first few components of a vector deserve familiar names: <code>x</code>, <code>y</code>, <code>z</code>, <code>t</code>. Writing four properties (one per name) is repetitive and doesn’t scale to higher dimensions. <code>__getattr__</code> is the single hook: Python calls it whenever a normal attribute lookup <em>fails</em>, and it’s free to return whatever it wants.</p>
-<div id="9130cde6" class="cell" data-execution_count="3">
+<div id="75836df5" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> VectorXYZT(Vector):</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    shortcut_names <span class="op">=</span> <span class="st">"xyzt"</span></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -604,7 +604,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p>The general pattern: <code>__getattr__</code> is the catch-all for “compute an attribute on demand.” Use it when the attribute set is rule-based (like positional shortcuts) rather than fixed.</p>
 <p>There’s a trap. If we don’t override <code>__setattr__</code>, the user can do this:</p>
-<div id="a30f59e8" class="cell" data-execution_count="4">
+<div id="8e9f0fd9" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>v.x <span class="op">=</span> <span class="dv">99</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>v.x, v[<span class="dv">0</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -612,7 +612,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p><code>v.x = 99</code> <em>created</em> an instance attribute that shadows our <code>__getattr__</code>. Now <code>v.x</code> and <code>v[0]</code> disagree. The fix is to override <code>__setattr__</code> and forbid those names:</p>
-<div id="d340bda7" class="cell" data-execution_count="5">
+<div id="f7bdca66" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> VectorXYZT2(VectorXYZT):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__setattr__</span>(<span class="va">self</span>, name, value):</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        cls <span class="op">=</span> <span class="bu">type</span>(<span class="va">self</span>)</span>
@@ -643,7 +643,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-vector-hash" class="level2" data-number="24.3">
 <h2 data-number="24.3" class="anchored" data-anchor-id="sec-vector-hash"><span class="header-section-number">24.3</span> Hashing a sequence</h2>
 <p>Hashing two components used <code>hash((self.x, self.y))</code> — building a tuple. For an N-component vector, the same trick works, but it’s instructive to do it manually with a fold — the pattern generalizes to any “combine the hashes of the parts” computation.</p>
-<div id="b4f06345" class="cell" data-execution_count="6">
+<div id="8a0d7a0e" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> functools</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HashableVector(Vector):</span>
@@ -686,7 +686,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-vector-zip" class="level2" data-number="24.4">
 <h2 data-number="24.4" class="anchored" data-anchor-id="sec-vector-zip"><span class="header-section-number">24.4</span> The awesome <code>zip</code></h2>
 <p><code>zip</code> is the standard parallel-iteration tool — it pairs elements from multiple iterables so you can walk them in lockstep. It has three variants worth knowing because each handles uneven lengths differently. The default <em>stops at the shortest</em>:</p>
-<div id="972b8056" class="cell" data-execution_count="7">
+<div id="336b59b4" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">zip</span>(<span class="bu">range</span>(<span class="dv">3</span>), <span class="st">"ABC"</span>)), <span class="bu">list</span>(<span class="bu">zip</span>(<span class="bu">range</span>(<span class="dv">3</span>), <span class="st">"ABCDE"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>([(0, 'A'), (1, 'B'), (2, 'C')], [(0, 'A'), (1, 'B'), (2, 'C')])</code></pre>
@@ -697,7 +697,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>zip(strict=True)</code> (Python 3.10+) raises <code>ValueError</code> if the inputs have different lengths.</li>
 <li><code>itertools.zip_longest</code> fills the gap with a sentinel rather than truncating:</li>
 </ul>
-<div id="eab34707" class="cell" data-execution_count="8">
+<div id="d61ec041" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itertools <span class="im">import</span> zip_longest</span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(zip_longest(<span class="bu">range</span>(<span class="dv">3</span>), <span class="st">"ABCDE"</span>, fillvalue<span class="op">=</span><span class="st">"?"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
@@ -705,7 +705,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>A nice idiom: <code>zip(*matrix)</code> <em>transposes</em> a list of equal-length sequences:</p>
-<div id="b8d9a92f" class="cell" data-execution_count="9">
+<div id="d1e32953" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>matrix <span class="op">=</span> [(<span class="dv">1</span>, <span class="dv">2</span>), (<span class="dv">3</span>, <span class="dv">4</span>), (<span class="dv">5</span>, <span class="dv">6</span>)]</span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(<span class="bu">zip</span>(<span class="op">*</span>matrix))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">

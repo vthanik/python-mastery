@@ -522,7 +522,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-unicode-boundary" class="level2" data-number="16.1">
 <h2 data-number="16.1" class="anchored" data-anchor-id="sec-unicode-boundary"><span class="header-section-number">16.1</span> The <code>str</code> / <code>bytes</code> boundary</h2>
 <p>A <code>str</code> is a sequence of <em>code points</em> — abstract numbers like <code>U+0041</code> for <code>A</code>. A <code>bytes</code> is a sequence of 8-bit integers. The two never mix.</p>
-<div id="3563b0e9" class="cell" data-execution_count="1">
+<div id="cae521d4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="st">"café"</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">len</span>(s)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
@@ -530,7 +530,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>Four characters. But the byte representation is encoding-dependent. UTF-8 takes one byte for ASCII characters and two bytes for <code>é</code>:</p>
-<div id="234cbef5" class="cell" data-execution_count="2">
+<div id="61829c15" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> s.encode(<span class="st">"utf-8"</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>b, <span class="bu">len</span>(b)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
@@ -538,14 +538,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The reverse trip is <code>decode</code>:</p>
-<div id="3555c801" class="cell" data-execution_count="3">
+<div id="cabaa6e7" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>b.decode(<span class="st">"utf-8"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>'café'</code></pre>
 </div>
 </div>
 <p><code>bytes</code> is immutable; <code>bytearray</code> is its mutable sibling. Slicing <code>bytes</code> returns <code>bytes</code>, but indexing returns an <code>int</code>:</p>
-<div id="a534ee02" class="cell" data-execution_count="4">
+<div id="1ef0a77e" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>cafe <span class="op">=</span> <span class="bu">bytes</span>(<span class="st">"café"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>cafe[<span class="dv">0</span>], cafe[:<span class="dv">1</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -562,7 +562,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-unicode-errors" class="level2" data-number="16.2">
 <h2 data-number="16.2" class="anchored" data-anchor-id="sec-unicode-errors"><span class="header-section-number">16.2</span> Encode and decode errors</h2>
 <p>Encoding can fail when the target charset can’t represent a character. Decoding can fail when the bytes are invalid for the chosen encoding.</p>
-<div id="2cfc0dca" class="cell" data-execution_count="5">
+<div id="cc1aad56" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>city <span class="op">=</span> <span class="st">"São Paulo"</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>city.encode(<span class="st">"cp437"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
@@ -583,26 +583,26 @@ encoding with 'cp437' codec failed</pre>
 </div>
 </div>
 <p><code>cp437</code> is an old DOS code page that doesn’t include <code>ã</code>. The <code>errors=</code> parameter chooses what happens on failure:</p>
-<div id="03590ad4" class="cell" data-execution_count="6">
+<div id="24da2c7c" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>city.encode(<span class="st">"cp437"</span>, errors<span class="op">=</span><span class="st">"ignore"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>b'So Paulo'</code></pre>
 </div>
 </div>
-<div id="0963f25d" class="cell" data-execution_count="7">
+<div id="f0825cb2" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>city.encode(<span class="st">"cp437"</span>, errors<span class="op">=</span><span class="st">"replace"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>b'S?o Paulo'</code></pre>
 </div>
 </div>
-<div id="6be08f61" class="cell" data-execution_count="8">
+<div id="205e3fe0" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>city.encode(<span class="st">"cp437"</span>, errors<span class="op">=</span><span class="st">"xmlcharrefreplace"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>b'S&amp;#227;o Paulo'</code></pre>
 </div>
 </div>
 <p>Decoding is the harder direction because <em>any</em> sequence of bytes can be misinterpreted under the wrong encoding.</p>
-<div id="8ec6f7c1" class="cell" data-execution_count="9">
+<div id="d3e852bc" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>octets <span class="op">=</span> <span class="st">b"Montr</span><span class="ch">\xe9</span><span class="st">al"</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>octets.decode(<span class="st">"utf-8"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
@@ -617,13 +617,13 @@ encoding with 'cp437' codec failed</pre>
 </div>
 </div>
 </div>
-<div id="54e61b84" class="cell" data-execution_count="10">
+<div id="64fe7572" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>octets.decode(<span class="st">"iso8859-1"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>'Montréal'</code></pre>
 </div>
 </div>
-<div id="e5cdc748" class="cell" data-execution_count="11">
+<div id="6672a2a7" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>octets.decode(<span class="st">"utf-8"</span>, errors<span class="op">=</span><span class="st">"replace"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>'Montr�al'</code></pre>
@@ -640,7 +640,7 @@ encoding with 'cp437' codec failed</pre>
 <section id="sec-unicode-sandwich" class="level2" data-number="16.3">
 <h2 data-number="16.3" class="anchored" data-anchor-id="sec-unicode-sandwich"><span class="header-section-number">16.3</span> The Unicode sandwich</h2>
 <p>The right design for any text-handling program: <em>decode bytes on input, work with <code>str</code> throughout, encode to bytes on output</em>. This is the <strong>Unicode sandwich</strong>.</p>
-<div id="88215e53" class="cell" data-execution_count="12">
+<div id="b3f30e8a" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile, os</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.NamedTemporaryFile(<span class="st">"w"</span>, encoding<span class="op">=</span><span class="st">"utf-8"</span>, suffix<span class="op">=</span><span class="st">".txt"</span>, delete<span class="op">=</span><span class="va">False</span>) <span class="im">as</span> fp:</span>
@@ -680,7 +680,7 @@ encoding with 'cp437' codec failed</pre>
 <section id="sec-unicode-normalization" class="level2" data-number="16.4">
 <h2 data-number="16.4" class="anchored" data-anchor-id="sec-unicode-normalization"><span class="header-section-number">16.4</span> Normalizing Unicode for comparisons</h2>
 <p>The same visible text can be represented two ways. <code>é</code> can be a single code point (<code>U+00E9</code>) or <code>e</code> followed by a combining accent (<code>U+0301</code>):</p>
-<div id="bb520c7a" class="cell" data-execution_count="13">
+<div id="31bd2cd0" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">=</span> <span class="st">"café"</span>          <span class="co"># composed</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>s2 <span class="op">=</span> <span class="st">"cafe</span><span class="ch">\u0301</span><span class="st">"</span>    <span class="co"># decomposed</span></span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>s1 <span class="op">==</span> s2, <span class="bu">len</span>(s1), <span class="bu">len</span>(s2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -695,7 +695,7 @@ encoding with 'cp437' codec failed</pre>
 <li><code>s1 == s2</code> is <code>False</code> because <code>==</code> on <code>str</code> compares code-point sequences, not visual appearance.</li>
 </ul>
 <p><code>unicodedata.normalize</code> collapses both to a canonical form:</p>
-<div id="cb399d0f" class="cell" data-execution_count="14">
+<div id="d181767f" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> unicodedata <span class="im">import</span> normalize</span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>normalize(<span class="st">"NFC"</span>, s1) <span class="op">==</span> normalize(<span class="st">"NFC"</span>, s2)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="14">
@@ -735,7 +735,7 @@ encoding with 'cp437' codec failed</pre>
 </tbody>
 </table>
 <p>For case-insensitive comparison, prefer <code>casefold</code> over <code>lower</code>:</p>
-<div id="a8e28640" class="cell" data-execution_count="15">
+<div id="f2b6c8de" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">"ß"</span>.casefold(), <span class="st">"Σ"</span>.casefold()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
 <pre><code>('ss', 'σ')</code></pre>
@@ -746,7 +746,7 @@ encoding with 'cp437' codec failed</pre>
 <section id="sec-unicode-sorting" class="level2" data-number="16.5">
 <h2 data-number="16.5" class="anchored" data-anchor-id="sec-unicode-sorting"><span class="header-section-number">16.5</span> Sorting Unicode text</h2>
 <p>The default <code>sorted</code> orders by code point, which gives the wrong answer for any language with diacritics:</p>
-<div id="43a88766" class="cell" data-execution_count="16">
+<div id="ebdeb01b" class="cell" data-execution_count="16">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>fruits <span class="op">=</span> [<span class="st">"caju"</span>, <span class="st">"atemoia"</span>, <span class="st">"cajá"</span>, <span class="st">"açaí"</span>, <span class="st">"acerola"</span>]</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="bu">sorted</span>(fruits)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
@@ -765,20 +765,20 @@ encoding with 'cp437' codec failed</pre>
 <section id="sec-unicode-database" class="level2" data-number="16.6">
 <h2 data-number="16.6" class="anchored" data-anchor-id="sec-unicode-database"><span class="header-section-number">16.6</span> The Unicode database</h2>
 <p><code>unicodedata</code> exposes the metadata that ships with Python:</p>
-<div id="543f33a3" class="cell" data-execution_count="17">
+<div id="830ede98" class="cell" data-execution_count="17">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> unicodedata</span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>unicodedata.name(<span class="st">"A"</span>), unicodedata.name(<span class="st">"€"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="17">
 <pre><code>('LATIN CAPITAL LETTER A', 'EURO SIGN')</code></pre>
 </div>
 </div>
-<div id="f531de50" class="cell" data-execution_count="18">
+<div id="eb96402f" class="cell" data-execution_count="18">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>unicodedata.lookup(<span class="st">"SNOWMAN"</span>), unicodedata.lookup(<span class="st">"EURO SIGN"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>('☃', '€')</code></pre>
 </div>
 </div>
-<div id="5ae33178" class="cell" data-execution_count="19">
+<div id="24570f1a" class="cell" data-execution_count="19">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>unicodedata.numeric(<span class="st">"⅔"</span>), unicodedata.digit(<span class="st">"3"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="19">
 <pre><code>(0.6666666666666666, 3)</code></pre>

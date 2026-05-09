@@ -525,7 +525,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-typing-overload" class="level2" data-number="27.1">
 <h2 data-number="27.1" class="anchored" data-anchor-id="sec-typing-overload"><span class="header-section-number">27.1</span> Overloaded signatures</h2>
 <p>Some functions have inputs and outputs that depend on each other. <code>max</code> is the canonical example: with no <code>key</code>, the elements must be <code>LT</code>-comparable and the return is one of them; with a <code>key=Callable[[T], LT]</code>, the elements only need whatever the key produces but the return is still a <code>T</code>. A single signature can’t express that — you need <em>one annotation per calling shape</em>. <code>@overload</code> is how you declare them all and still ship a single implementation.</p>
-<div id="fd9a002a" class="cell" data-execution_count="1">
+<div id="b25b7582" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> overload, TypeVar, Any</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Iterable, Callable</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -568,7 +568,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-typing-typeddict" class="level2" data-number="27.2">
 <h2 data-number="27.2" class="anchored" data-anchor-id="sec-typing-typeddict"><span class="header-section-number">27.2</span> <code>TypedDict</code> for structured dicts</h2>
 <p>When you receive a JSON-like dict whose keys you know, the bare <code>dict[str, Any]</code> annotation throws away everything useful — every key is <code>Any</code>, every value is <code>Any</code>, and the type checker can’t catch typos. <code>TypedDict</code> is the static fix: it documents the exact shape while keeping the runtime as a plain <code>dict</code>.</p>
-<div id="c778ea1f" class="cell" data-execution_count="2">
+<div id="035e888b" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypedDict</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BookDict(TypedDict):</span>
@@ -638,7 +638,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>dogs: <span class="bu">list</span>[Dog] <span class="op">=</span> [Dog()]</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>add_cat(dogs)        <span class="co"># mypy correctly REJECTS this</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>But for <em>read-only</em> containers, the relationship holds:</p>
-<div id="6f920c39" class="cell" data-execution_count="3">
+<div id="700c5077" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar, Generic</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections.abc <span class="im">import</span> Iterable, Iterator</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -658,7 +658,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>That’s why <code>ImmutableBag[Dog]</code> can substitute for <code>ImmutableBag[Animal]</code>: any caller expecting to <em>receive</em> <code>Animal</code>s from the bag will be perfectly happy with <code>Dog</code>s.</li>
 </ul>
 <p>The opposite case — <em>contravariance</em> — is for things that only <em>consume</em> <code>T</code>:</p>
-<div id="efd41e57" class="cell" data-execution_count="4">
+<div id="446bee16" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>T_contra <span class="op">=</span> TypeVar(<span class="st">"T_contra"</span>, contravariant<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> TrashCan(Generic[T_contra]):</span>
@@ -710,7 +710,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="pep-695-generic-syntax-3.12" class="level3" data-number="27.4.1">
 <h3 data-number="27.4.1" class="anchored" data-anchor-id="pep-695-generic-syntax-3.12"><span class="header-section-number">27.4.1</span> PEP 695 generic syntax (3.12)</h3>
 <p>Before 3.12 you had to declare each type variable as a free-standing <code>TypeVar</code> and then mention it in the function signature — a two-step dance even for one-off generics:</p>
-<div id="51dcb411" class="cell" data-execution_count="5">
+<div id="4bfb0278" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> TypeVar</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>T_old <span class="op">=</span> TypeVar(<span class="st">"T_old"</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -719,7 +719,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p>Walking through the old form: <code>TypeVar("T_old")</code> allocates a type variable bound to the <em>string</em> <code>"T_old"</code>; <code>T_old</code> is then a Python object that mypy recognizes as a generic placeholder. You declare it once and reuse it across all signatures that share the parameter.</p>
 <p>The 3.12 form drops the boilerplate — type parameters live on the <code>def</code> itself:</p>
-<div id="96fe82c0" class="cell" data-execution_count="6">
+<div id="6cceec65" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> first[T](xs: <span class="bu">list</span>[T]) <span class="op">-&gt;</span> T:</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> xs[<span class="dv">0</span>]</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -734,7 +734,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>first([1, 2, 3])</code> resolves <code>T = int</code>; the return type is <code>int</code>. <code>first(["a", "b"])</code> resolves <code>T = str</code>; same function, different inferred parameter.</li>
 <li>The same syntax works for classes:</li>
 </ul>
-<div id="818cd8e2" class="cell" data-execution_count="7">
+<div id="20a46631" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Box[T]:</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, item: T) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.item <span class="op">=</span> item</span>
@@ -746,7 +746,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <p><code>Box[T]</code> makes <code>T</code> a class-scoped parameter — every method body can reference it. <code>Box(7)</code> infers <code>T = int</code>; <code>Box("hi")</code> would infer <code>T = str</code>. Each instance carries its own <code>T</code>.</p>
 <p>Type aliases get a dedicated <code>type</code> statement:</p>
-<div id="c6d8e39b" class="cell" data-execution_count="8">
+<div id="394c5973" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span> Vector <span class="op">=</span> <span class="bu">list</span>[<span class="bu">float</span>]</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">type</span> StrOrInt <span class="op">=</span> <span class="bu">str</span> <span class="op">|</span> <span class="bu">int</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
@@ -756,7 +756,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="self-pep-673-3.11-for-fluent-builders" class="level3" data-number="27.4.2">
 <h3 data-number="27.4.2" class="anchored" data-anchor-id="self-pep-673-3.11-for-fluent-builders"><span class="header-section-number">27.4.2</span> <code>Self</code> (PEP 673, 3.11) for fluent builders</h3>
 <p>In a fluent-builder class, every method returns <code>self</code> so calls can chain. Annotating the return type as <code>"QueryBuilder"</code> (a string forward-reference) works for the base class — but on a subclass, mypy still types each chained call as <code>QueryBuilder</code>, losing the subclass type. <code>Self</code> is the fix: it means “instance of the class this method is defined on” and <em>follows subclasses</em> automatically.</p>
-<div id="2ade9ae7" class="cell" data-execution_count="9">
+<div id="9070feb4" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Self</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> QueryBuilder:</span>
@@ -782,7 +782,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="override-pep-698-3.12" class="level3" data-number="27.4.3">
 <h3 data-number="27.4.3" class="anchored" data-anchor-id="override-pep-698-3.12"><span class="header-section-number">27.4.3</span> <code>@override</code> (PEP 698, 3.12)</h3>
 <p>A common refactoring bug: you rename a method on the parent class but forget to update the override on a subclass. Now the subclass has a <em>new</em> method with the old name, the parent’s method runs unchanged, and nothing flags the mistake. <code>@override</code> is the static guard: mark every intentional override, and mypy errors out the moment the parent loses the matching method.</p>
-<div id="c3862492" class="cell" data-execution_count="10">
+<div id="4cde3182" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> override</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> Animal:</span>
@@ -808,7 +808,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="never-and-literalstring-one-line-each" class="level3" data-number="27.4.4">
 <h3 data-number="27.4.4" class="anchored" data-anchor-id="never-and-literalstring-one-line-each"><span class="header-section-number">27.4.4</span> <code>Never</code> and <code>LiteralString</code> (one-line each)</h3>
 <p><code>Never</code> annotates a function that doesn’t return — <code>raise</code> or infinite loop. <code>LiteralString</code> accepts only strings the type checker can prove are literal — useful for SQL/shell APIs that must refuse user-supplied strings.</p>
-<div id="4fec7328" class="cell" data-execution_count="11">
+<div id="d3e4ff06" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Never, LiteralString</span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fail(msg: <span class="bu">str</span>) <span class="op">-&gt;</span> Never:</span>
@@ -821,7 +821,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-typing-runtime" class="level2" data-number="27.5">
 <h2 data-number="27.5" class="anchored" data-anchor-id="sec-typing-runtime"><span class="header-section-number">27.5</span> Reading hints at runtime</h2>
 <p>Sometimes you need annotations at <em>runtime</em> — to drive a serializer, build a CLI from a function signature, or generate documentation. The raw <code>__annotations__</code> dict is the underlying storage, but it’s brittle: under <code>from __future__ import annotations</code> the values are unresolved strings, and forward references are never expanded. <code>typing.get_type_hints</code> is the safer accessor — it resolves strings to real types and follows forward references.</p>
-<div id="f66f6758" class="cell" data-execution_count="12">
+<div id="03d03949" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> get_type_hints</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> HintedClass:</span>
@@ -835,7 +835,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>{'attr': int, 'other': str}</code></pre>
 </div>
 </div>
-<div id="ad827924" class="cell" data-execution_count="13">
+<div id="91d8ea18" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>get_type_hints(HintedClass.method)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>{'x': float, 'return': bool}</code></pre>

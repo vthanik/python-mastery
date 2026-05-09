@@ -555,7 +555,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The decorator is a function that takes a function and returns <em>something</em> (usually a function):</p>
-<div id="8ef970eb" class="cell" data-execution_count="1">
+<div id="a03b4f47" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> deco(func):</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> inner():</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">"running inner()"</span>)</span>
@@ -575,7 +575,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-decorators-when" class="level2" data-number="21.2">
 <h2 data-number="21.2" class="anchored" data-anchor-id="sec-decorators-when"><span class="header-section-number">21.2</span> When Python executes decorators</h2>
 <p>Decorator <em>code</em> runs at <em>import time</em> — when the <code>def</code> is processed — not when the decorated function is called. This is the foundation of registry decorators:</p>
-<div id="4339f9b7" class="cell" data-execution_count="2">
+<div id="9404f2c8" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>registry <span class="op">=</span> []</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> register(func):</span>
@@ -603,7 +603,7 @@ running register(f2)</code></pre>
 <section id="sec-decorators-scope" class="level2" data-number="21.3">
 <h2 data-number="21.3" class="anchored" data-anchor-id="sec-decorators-scope"><span class="header-section-number">21.3</span> Variable scope rules</h2>
 <p>To understand decorators you must understand Python’s LEGB rule: a name is resolved in <strong>L</strong>ocal, <strong>E</strong>nclosing, <strong>G</strong>lobal, then <strong>B</strong>uilt-in scope.</p>
-<div id="9f37fcd7" class="cell" data-execution_count="3">
+<div id="4cd43e72" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> f1(a):</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(a, b)</span>
@@ -614,7 +614,7 @@ running register(f2)</code></pre>
 </div>
 </div>
 <p><code>b</code> is read from the <em>global</em> scope. But this fails:</p>
-<div id="e87002e5" class="cell" data-execution_count="4">
+<div id="4f74beaa" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> f2(a):</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(a, b)</span>
@@ -642,7 +642,7 @@ running register(f2)</code></pre>
 </div>
 <p><code>UnboundLocalError</code>. Python sees the assignment <code>b = 9</code> and decides <code>b</code> is <em>local</em> throughout <code>f2</code> — even before the assignment line. The earlier <code>print(b)</code> then fails because the local <code>b</code> hasn’t been bound yet.</p>
 <p>The fix is to declare your intent:</p>
-<div id="013828d6" class="cell" data-execution_count="5">
+<div id="b76a51c4" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> <span class="dv">6</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> f3(a):</span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> b</span>
@@ -662,7 +662,7 @@ running register(f2)</code></pre>
 <section id="sec-decorators-closures" class="level2" data-number="21.4">
 <h2 data-number="21.4" class="anchored" data-anchor-id="sec-decorators-closures"><span class="header-section-number">21.4</span> Closures</h2>
 <p>A function that needs to remember things across calls usually holds them as instance state on a class. But classes are heavy when the state is just one or two variables. Python’s lighter alternative is a <em>closure</em>: a function that retains the bindings of free variables from its enclosing scope, even after the enclosing function has returned.</p>
-<div id="1c5fe530" class="cell" data-execution_count="6">
+<div id="02c3f740" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_averager():</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    series <span class="op">=</span> []</span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> averager(new_value):</span>
@@ -683,13 +683,13 @@ running register(f2)</code></pre>
 <li><code>avg(10)</code>, <code>avg(11)</code>, <code>avg(12)</code> all share the <em>same</em> <code>series</code> list — calls accumulate. That’s the closure: <code>make_averager</code>’s frame is gone, but the <code>series</code> it created lives on inside <code>avg</code>.</li>
 </ul>
 <p>You can look at the capture directly:</p>
-<div id="53c10138" class="cell" data-execution_count="7">
+<div id="63169e3a" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>avg.__code__.co_freevars</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>('series',)</code></pre>
 </div>
 </div>
-<div id="e148e843" class="cell" data-execution_count="8">
+<div id="1ac0b7c6" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>avg.__closure__[<span class="dv">0</span>].cell_contents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>[10, 11, 12]</code></pre>
@@ -699,7 +699,7 @@ running register(f2)</code></pre>
 <section id="sec-decorators-nonlocal" class="level2" data-number="21.5">
 <h2 data-number="21.5" class="anchored" data-anchor-id="sec-decorators-nonlocal"><span class="header-section-number">21.5</span> <code>nonlocal</code></h2>
 <p>The closure trick works because <code>series.append</code> <em>mutates</em> the list — it doesn’t rebind the name. Try the same idea with an <code>int</code>:</p>
-<div id="261ef843" class="cell" data-execution_count="9">
+<div id="8646dfc8" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_averager_v2():</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
@@ -733,7 +733,7 @@ running register(f2)</code></pre>
 </div>
 </div>
 <p>Same <code>UnboundLocalError</code>. <code>count += 1</code> is a rebinding, so Python decides <code>count</code> is local to <code>averager</code>. The fix:</p>
-<div id="1a503bfa" class="cell" data-execution_count="10">
+<div id="9fa82f37" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_averager_v3():</span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
@@ -755,7 +755,7 @@ running register(f2)</code></pre>
 <section id="sec-decorators-simple" class="level2" data-number="21.6">
 <h2 data-number="21.6" class="anchored" data-anchor-id="sec-decorators-simple"><span class="header-section-number">21.6</span> A simple decorator</h2>
 <p>Putting it all together, a <code>clock</code> decorator that times a call. The problem: you want to add timing to several functions without editing each body. The solution: a wrapper function that records the time around the original, and a decorator to install it.</p>
-<div id="cf398fd3" class="cell" data-execution_count="11">
+<div id="651b0146" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time, functools</span>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> clock(func):</span>
@@ -777,11 +777,11 @@ running register(f2)</code></pre>
 <span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a>factorial(<span class="dv">6</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[0.000000s] factorial(1) -&gt; 1
-[0.000021s] factorial(2) -&gt; 2
-[0.000026s] factorial(3) -&gt; 6
-[0.000030s] factorial(4) -&gt; 24
-[0.000033s] factorial(5) -&gt; 120
-[0.000037s] factorial(6) -&gt; 720</code></pre>
+[0.000018s] factorial(2) -&gt; 2
+[0.000023s] factorial(3) -&gt; 6
+[0.000026s] factorial(4) -&gt; 24
+[0.000029s] factorial(5) -&gt; 120
+[0.000033s] factorial(6) -&gt; 720</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>720</code></pre>
@@ -802,7 +802,7 @@ running register(f2)</code></pre>
 <h2 data-number="21.7" class="anchored" data-anchor-id="sec-decorators-stdlib"><span class="header-section-number">21.7</span> Decorators in the standard library</h2>
 <p><code>functools</code> ships three decorators you’ll reach for routinely.</p>
 <p><strong><code>@cache</code></strong> (Python 3.9+) — memoize without a size limit, no eviction. Equivalent to <code>@lru_cache(maxsize=None)</code>:</p>
-<div id="20bc38c4" class="cell" data-execution_count="12">
+<div id="dbcd0b01" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="at">@functools.cache</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fibonacci(n):</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> n <span class="cf">if</span> n <span class="op">&lt;</span> <span class="dv">2</span> <span class="cf">else</span> fibonacci(n<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> fibonacci(n<span class="op">-</span><span class="dv">2</span>)</span>
@@ -816,7 +816,7 @@ running register(f2)</code></pre>
 <p><strong><code>@lru_cache(maxsize=N)</code></strong> — bounded memoization. When the cache fills, the <em>least recently used</em> entry is evicted. Use <code>@cache</code> when keys are bounded (small integers, an enum); use <code>@lru_cache(maxsize=N)</code> when the input space is open-ended and you want a memory ceiling.</p>
 <p><strong><code>@functools.cached_property</code></strong> — a related tool: compute an expensive instance attribute once on first access, store it on the instance, return the stored value thereafter. Like <code>@cache</code> but per-instance and tied to attribute access.</p>
 <p><strong><code>@singledispatch</code></strong> — write a “generic function” that dispatches on the first argument’s type. The naive way to render a value as HTML is a long <code>if isinstance(x, str): ... elif isinstance(x, list): ...</code> chain — which couples every type to one big function and forces you to edit it whenever you add a new case. <code>singledispatch</code> flips this: each type gets its own implementation, registered separately, looked up by type at call time:</p>
-<div id="be9e76bc" class="cell" data-execution_count="13">
+<div id="b915c845" class="cell" data-execution_count="13">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> html</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> functools <span class="im">import</span> singledispatch</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -864,7 +864,7 @@ running register(f2)</code></pre>
 <section id="sec-decorators-parameterized" class="level2" data-number="21.8">
 <h2 data-number="21.8" class="anchored" data-anchor-id="sec-decorators-parameterized"><span class="header-section-number">21.8</span> Parameterized decorators</h2>
 <p>A decorator that takes arguments is really a <em>factory</em> that returns a decorator. Three function nesting levels:</p>
-<div id="abd784b2" class="cell" data-execution_count="14">
+<div id="28979c48" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> register_if(active<span class="op">=</span><span class="va">True</span>):</span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> decorate(func):</span>
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> active:</span>
@@ -887,7 +887,7 @@ running register(f2)</code></pre>
 </div>
 <p>Read it from the inside out: <code>register_if(active=True)</code> <em>evaluates first</em>, returning the actual decorator <code>decorate</code>. <code>decorate</code> then receives <code>g2</code> and registers it.</p>
 <p>A parameterized version of <code>clock</code>, where the caller picks the output format:</p>
-<div id="0136b370" class="cell" data-execution_count="15">
+<div id="eadb537a" class="cell" data-execution_count="15">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>DEFAULT_FMT <span class="op">=</span> <span class="st">"[</span><span class="sc">{elapsed:0.8f}</span><span class="st">s] </span><span class="sc">{name}</span><span class="st">(</span><span class="sc">{args}</span><span class="st">) -&gt; </span><span class="sc">{result}</span><span class="st">"</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> clock(fmt<span class="op">=</span>DEFAULT_FMT):</span>
@@ -915,7 +915,7 @@ running register(f2)</code></pre>
 <span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>snooze(<span class="fl">0.01</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>snooze: 0.0125s</code></pre>
+<pre><code>snooze: 0.0104s</code></pre>
 </div>
 </div>
 <p>Walking through the three nested levels — read them outside-in:</p>

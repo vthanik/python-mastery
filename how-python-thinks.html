@@ -523,11 +523,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-how-python-thinks-objects" class="level2" data-number="1.1">
 <h2 data-number="1.1" class="anchored" data-anchor-id="sec-how-python-thinks-objects"><span class="header-section-number">1.1</span> An object has value, type, and identity</h2>
 <p>Every object Python creates carries three pieces of information: its <strong>value</strong> (what it contains), its <strong>type</strong> (what kind of thing it is), and its <strong>identity</strong> (its address in memory). These three together explain almost every “why does this work that way?” question in the language.</p>
-<div id="14757ad7" class="cell" data-execution_count="1">
+<div id="0cc2067f" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="dv">42</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>x, <span class="bu">type</span>(x), <span class="bu">id</span>(x)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>(42, int, 4375730872)</code></pre>
+<pre><code>(42, int, 4338195128)</code></pre>
 </div>
 </div>
 <p>Walking through what we just asked Python to tell us:</p>
@@ -537,7 +537,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>id(x)</code> is the <strong>identity</strong> — a number unique to this object during its lifetime, in CPython the memory address.</li>
 </ul>
 <p>Now the same three questions on two lists that <em>look</em> the same:</p>
-<div id="9d489b84" class="cell" data-execution_count="2">
+<div id="07bfc2df" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>a <span class="op">==</span> b, a <span class="kw">is</span> b</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -554,7 +554,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-how-python-thinks-labels" class="level2" data-number="1.2">
 <h2 data-number="1.2" class="anchored" data-anchor-id="sec-how-python-thinks-labels"><span class="header-section-number">1.2</span> Variables are labels</h2>
 <p>Most languages teach variables as boxes: <code>x = 42</code> puts <code>42</code> into a box named <code>x</code>. Python doesn’t work that way, and the distinction matters. Assignment does not copy a value into a box — it creates an object and ties a name tag to it.</p>
-<div id="d2b55d66" class="cell" data-execution_count="3">
+<div id="5979f9de" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="dv">42</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> x</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>x, y, x <span class="kw">is</span> y</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -568,7 +568,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><code>x is y</code> asks the identity question: yes, both names refer to the same object.</li>
 </ul>
 <p>This single idea explains most of Python’s surprises: why a list modified through one variable shows the change through another, why functions can mutate the objects you pass them, and why mutable defaults are a trap.</p>
-<div id="cf0520ba" class="cell" data-execution_count="4">
+<div id="408b8705" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ys <span class="op">=</span> xs</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>ys.append(<span class="dv">4</span>)</span>
@@ -604,7 +604,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="1.3" class="anchored" data-anchor-id="sec-how-python-thinks-duck"><span class="header-section-number">1.3</span> Protocols, not types — the duck-typing rule</h2>
 <p>Python rarely asks “what type is this object?” It asks “can this object <em>do</em> what I need?” That question is answered by <em>protocols</em> — sets of special methods like <code>__iter__</code>, <code>__len__</code>, <code>__getitem__</code>.</p>
 <p>A <code>for</code> loop doesn’t care if the thing being iterated is a list, a string, a file, a dictionary, or a custom class — it asks only “can I iterate over you?”</p>
-<div id="9bdd7ff5" class="cell" data-execution_count="5">
+<div id="1cbc3593" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> first_two(thing):</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    seen <span class="op">=</span> []</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> thing:</span>
@@ -628,7 +628,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-how-python-thinks-indentation" class="level2" data-number="1.4">
 <h2 data-number="1.4" class="anchored" data-anchor-id="sec-how-python-thinks-indentation"><span class="header-section-number">1.4</span> Indentation is syntax</h2>
 <p>Most languages mark blocks with <code>{</code> and <code>}</code> (or <code>begin</code>/<code>end</code>) and treat indentation as cosmetic. Python flips that: indentation <em>is</em> the syntax. There are no braces; the parser reads the indent level to know where a block begins and ends.</p>
-<div id="9c942aca" class="cell" data-execution_count="6">
+<div id="4db089c7" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> classify(n):</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">&gt;</span> <span class="dv">0</span>:</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">"positive"</span></span>

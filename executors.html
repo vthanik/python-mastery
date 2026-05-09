@@ -532,7 +532,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-exec-map" class="level2" data-number="32.2">
 <h2 data-number="32.2" class="anchored" data-anchor-id="sec-exec-map"><span class="header-section-number">32.2</span> <code>executor.map</code></h2>
 <p>The simplest parallel form is <code>executor.map(func, iterable)</code>. It looks just like the built-in <code>map</code>, but the calls run in parallel:</p>
-<div id="d8e81842" class="cell" data-execution_count="1">
+<div id="58b7255a" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -568,7 +568,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="sec-exec-submit" class="level2" data-number="32.3">
 <h2 data-number="32.3" class="anchored" data-anchor-id="sec-exec-submit"><span class="header-section-number">32.3</span> <code>submit</code> and <code>as_completed</code></h2>
 <p><code>executor.map</code> returns results in submission order. When you want results <em>as they finish</em> — and want to handle each one individually — use <code>submit</code> plus <code>as_completed</code>:</p>
-<div id="808f4520" class="cell" data-execution_count="2">
+<div id="22e0608e" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor, as_completed</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> task(name, duration):</span>
