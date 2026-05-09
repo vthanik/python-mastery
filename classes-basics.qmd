@@ -427,7 +427,32 @@ The full descriptor and MRO story is in @sec-data-model and @sec-inheritance.
 
 ## A glimpse of `@dataclass` {#sec-cls-dataclass}
 
-For a class that's mostly *data* — a 2-D point, a config struct, a row of a record — the `__init__` / `__repr__` / `__eq__` boilerplate is the same every time. `@dataclass` reads the type-annotated body and generates them for you.
+So far you've written every method of every class by hand. For most code that's fine — but one pattern shows up *constantly*: a class whose only job is to bundle a few named values together. A 2-D point. A config struct. A row of a record. For those, `__init__` / `__repr__` / `__eq__` are always the same shape, just with different field names. `@dataclass` is a decorator from the standard library that *reads the class's type annotations and writes those three methods for you*. Three small steps make the saving visible.
+
+**Step 1: the boilerplate, written by hand.** Two fields, three dunder methods — and we're already typing the same code we'd write a hundred times in a real codebase:
+
+```{python}
+class Point:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Point(x={self.x!r}, y={self.y!r})"
+
+    def __eq__(self, other):
+        return isinstance(other, Point) and self.x == other.x and self.y == other.y
+
+p = Point(3.0, 4.0)
+[p, p == Point(3.0, 4.0), p == Point(3.0, 5.0)]
+```
+
+- `__init__` assigns each argument to `self`. Mechanical.
+- `__repr__` returns `Point(x=3.0, y=4.0)`. Mechanical.
+- `__eq__` compares the two instances field by field. Mechanical.
+- Imagine the class had ten fields. All three methods grow linearly with the field list — a recipe for typos and forgotten edits.
+
+**Step 2: `@dataclass` writes the boilerplate for you.** Annotate the fields in the class body, decorate, done:
 
 ```{python}
 from dataclasses import dataclass
@@ -441,21 +466,14 @@ p = Point(3.0, 4.0)
 [p, p == Point(3.0, 4.0), p == Point(3.0, 5.0)]
 ```
 
-Walking through what `@dataclass` does:
+- `x: float` and `y: float` are type-annotated names — `@dataclass` reads them and uses the *names* (the types are documentation; `@dataclass` doesn't enforce them at runtime).
+- The decorator generates `__init__(self, x: float, y: float)`, `__repr__`, and `__eq__` automatically. You don't write them.
+- The class behaves identically to the hand-written one in step 1 — same constructor, same repr, same equality. The generated code is real, not magic; you can see it via `inspect.getsource(Point.__init__)`.
+- Reach for `@dataclass` whenever a class is *mostly data*. Reach for a hand-written class when you need real custom behavior. The full treatment (`frozen=True`, `field(default_factory=...)`, the four data-class builders) is @sec-dataclasses.
 
-- It reads the annotated names in the class body (`x: float`, `y: float`) as **fields**.
-- It generates `__init__(self, x: float, y: float)` that assigns `self.x = x; self.y = y`.
-- It generates `__repr__` that prints `Point(x=3.0, y=4.0)`.
-- It generates `__eq__` that compares the two instances field-by-field.
-
-The generated code is real, not magic — you can see it via `inspect.getsource(Point.__init__)`. `@dataclass` just saves you from typing it. Reach for it whenever a class is mostly data; reach for a hand-written class when you need custom behavior.
-
-The full treatment of `frozen=True`, `field(default_factory=...)`, and the four data-class builders is @sec-dataclasses.
-
-Two modern flags are worth knowing exist now, even though we'll deconstruct them later. `slots=True` (3.10+) tells Python to allocate a fixed set of attribute slots — smaller per-instance memory and faster attribute access, at the cost of no dynamic attributes. `kw_only=True` (3.10+) makes every field keyword-only at the constructor — no positional confusion when fields are reordered:
+**Step 3: two modern flags worth knowing.** `slots=True` and `kw_only=True` (both 3.10+) are opt-in upgrades. `slots` shrinks per-instance memory; `kw_only` forces keyword-only construction so reordered fields don't silently change call meanings:
 
 ```{python}
-from dataclasses import dataclass
 from typing import Self
 
 @dataclass(slots=True, kw_only=True)
@@ -470,21 +488,38 @@ u = User(name="Alice", age=30)
 [u, u.renamed("Bob"), User.__slots__]
 ```
 
-Walking through the new flags:
-
-- `slots=True` adds `__slots__ = ('name', 'age')` to the class — Python pre-allocates exactly those attribute slots and no `__dict__`. Smaller per-instance memory and faster attribute access, but you can't add new attributes at runtime (`u.email = ...` raises `AttributeError`). Worth it for classes you create at scale.
+- `slots=True` adds `__slots__ = ('name', 'age')` to the class — Python pre-allocates exactly those attribute slots and skips the per-instance `__dict__`. Smaller memory and faster attribute access, but `u.email = "..."` raises `AttributeError`. Worth it for classes you create at scale.
 - `kw_only=True` makes every field keyword-only at the constructor — `User("Alice", 30)` raises `TypeError`, only `User(name="Alice", age=30)` is allowed. No more positional confusion when fields get reordered or added.
-- `Self` (3.11+) is the right return type for "an instance of the same class". On a `User` subclass, it tightens to the subclass automatically — no `TypeVar` boilerplate. `type(self)(...)` constructs an instance of *whatever* `self`'s actual class is, so subclasses get the right return type at runtime.
+- `Self` (3.11+) is the right return type for "an instance of the same class." On a `User` subclass, it tightens to the subclass automatically — no `TypeVar` boilerplate. `type(self)(...)` constructs an instance of *whatever* `self`'s actual class is, so subclasses get the right return type at runtime.
 
-The general guidance: reach for `slots=True` when memory matters, `kw_only=True` when the field list is non-trivial, and `Self` whenever a method returns "another one of these". The full story is @sec-dataclasses and @sec-advanced-typing.
+The general guidance: reach for `slots=True` when memory matters, `kw_only=True` when the field list is non-trivial, and `Self` whenever a method returns "another one of these." The full story is @sec-dataclasses and @sec-advanced-typing.
 
 ## A glimpse of abstract base classes {#sec-cls-abc}
 
-Sometimes you want to say "every shape has an area and a perimeter — but the formulas are shape-specific". You don't want anyone to instantiate `Shape` itself (it has no meaningful area), and you want Python to *enforce* that subclasses implement both methods. That's an **abstract base class** (ABC).
+Sometimes you want a base class that says "every subclass must provide these methods" — and *refuses to be instantiated itself*. A bare `Animal` doesn't have a meaningful `speak`; only concrete animals do. You'd like Python to fail loudly the moment someone writes `Animal("Rex")` instead of letting it slip through and crashing later when something tries to call `speak`. That's an **abstract base class** (ABC). Two pieces of machinery make a class abstract: it inherits from `abc.ABC`, and at least one method is decorated with `@abstractmethod`. Build it in two steps.
+
+**Step 1: a minimum ABC.** One abstract method, no concrete subclass yet. Trying to instantiate the abstract class itself raises `TypeError`:
 
 ```{python}
 from abc import ABC, abstractmethod
 
+class Animal(ABC):
+    @abstractmethod
+    def speak(self): ...
+```
+
+```{python}
+#| error: true
+Animal()
+```
+
+- `class Animal(ABC):` inherits from `abc.ABC`. Python now tracks any methods marked `@abstractmethod` and refuses to construct an instance until *every* one of them has been overridden.
+- `@abstractmethod` declares that `speak` is required. The body `...` is just a placeholder — Python never runs it, since concrete subclasses are required to provide the real implementation.
+- `Animal()` fails at construction with `TypeError: Can't instantiate abstract class ...`. That's the safety: a half-built type can't enter the wild.
+
+**Step 2: a concrete subclass — and the enforcement is per-method.** Provide the implementation in a subclass and the same constructor works. Adding a *second* abstract method shows that the enforcement is per-method — a subclass that overrides only one is still abstract:
+
+```{python}
 class Shape(ABC):
     @abstractmethod
     def area(self): ...
@@ -506,15 +541,14 @@ r = Rectangle(3, 4)
 
 ```{python}
 #| error: true
-Shape()
+class HalfBaked(Shape):
+    def area(self):              # overrides area but not perimeter
+        return 0
+HalfBaked()
 ```
 
-Walking through what ABC does:
-
-- `class Shape(ABC):` makes `Shape` an *abstract* class — Python tracks which methods are abstract and refuses to instantiate any subclass that hasn't overridden all of them.
-- `@abstractmethod` decorates each method that subclasses *must* implement. The body `...` is just a placeholder — Python never runs it, since concrete subclasses are required to override.
-- `Rectangle(Shape)` provides both `area` and `perimeter`, so it's *concrete* — instantiable, usable like any class.
-- `Shape()` raises `TypeError` because the abstract methods are still unimplemented. That's the enforcement: you cannot accidentally create a half-built shape.
+- `Rectangle(Shape)` overrides *both* abstract methods, so it's **concrete** — instantiable like any class.
+- `HalfBaked` only implements `area`. `Shape.perimeter` is still abstract, so `HalfBaked()` raises `TypeError` — and the error message names the method that's still missing. Diagnostics for free.
 
 The general pattern: ABCs are how you write contracts in Python. They're useful when you have a base class that genuinely shouldn't be instantiated, and you want a missed override to fail at construction (loud) instead of at first call (quiet). The deep treatment, including the related but more flexible **`Protocol`** for structural typing, is @sec-protocols-abcs.
 
