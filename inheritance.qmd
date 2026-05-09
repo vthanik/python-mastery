@@ -15,7 +15,7 @@ In this chapter you will learn to:
 
 ## Always use `super()` {#sec-inheritance-super}
 
-When overriding a method on a subclass, call the parent through `super()`:
+When overriding a method on a subclass, you almost always need to call back to the parent's version — to do the work it would have done, plus your additions. `super()` is the right tool: it walks the inheritance chain in the canonical order and finds the next method up.
 
 ```{python}
 class DoppelDictUserDict:
@@ -23,11 +23,17 @@ class DoppelDictUserDict:
         super().__setitem__(key, [value] * 2)
 ```
 
-Never call the parent class directly (`dict.__setitem__(self, ...)`). `super()` respects the MRO; direct calls bypass it, which silently breaks multiple inheritance.
+Walking through this fragment:
+
+- `super()` (no arguments, from inside a method) returns a proxy bound to "the next class in the MRO." Calling `.__setitem__` on it invokes the parent's implementation.
+- `[value] * 2` doubles the value into a two-element list — that's the override's contribution. The parent then stores the doubled value under the original key.
+- We never write `dict.__setitem__(self, key, [value] * 2)` even though it would work for single inheritance. The moment a *second* parent enters the picture, hard-coding `dict` skips past anything else in the chain.
+
+The general rule: `super()` respects the MRO; direct calls bypass it. Reach for `super()` every time, even before multiple inheritance is on the horizon.
 
 ## Subclassing built-ins is tricky {#sec-inheritance-builtins}
 
-The dangerous part: when you subclass a *built-in* type like `dict`, the C-level methods don't always call your overrides.
+The dangerous part: when you subclass a *built-in* type like `dict`, the C-level methods don't always call your overrides. We override `__setitem__` to double every value — and watch one assignment route through us while another doesn't:
 
 ```{python}
 class DoppelDict(dict):
@@ -40,7 +46,11 @@ dd["two"] = 2                 # explicit __setitem__ — does call our override
 print(dd)
 ```
 
-`DoppelDict(one=1)` did *not* call `__setitem__` — `dict.__init__` is implemented in C and bypasses Python-level overrides. Only the explicit `dd["two"] = 2` triggered our doubled-value logic.
+Walking through what happened:
+
+- `DoppelDict(one=1)` calls `dict.__init__` to populate the dict from the keyword. `dict.__init__` is implemented in C — it writes directly to the hash table and never goes through `__setitem__`. So our doubling logic is bypassed and the dict stores `{"one": 1}` instead of `{"one": [1, 1]}`.
+- `dd["two"] = 2` is the assignment syntax, which Python *does* desugar to `__setitem__`. That call lands on our override and the value gets doubled.
+- The result is a class where assignments through `[]` are doubled but assignments through `__init__`, `update`, or `setdefault` are not — almost guaranteed to surprise the next reader.
 
 The fix is to subclass `collections.UserDict`, which is written in pure Python and *does* call your overrides:
 
@@ -55,11 +65,16 @@ dd = DoppelUserDict(one=1)
 print(dd)
 ```
 
-Now `__init__` correctly routed through `__setitem__`. The same rule applies to `UserList` (instead of `list`) and `UserString` (instead of `str`).
+Walking through the fix:
+
+- `UserDict` is a thin pure-Python wrapper that holds a real dict in `self.data` and delegates every operation through Python-level methods.
+- Because `UserDict.__init__` is Python (not C), it routes through our `__setitem__` for every key it inserts — so `DoppelUserDict(one=1)` produces `{"one": [1, 1]}`.
+
+The general rule: don't subclass built-in C types when you need to override methods consistently. The same wrapper pattern is available for `UserList` (instead of `list`) and `UserString` (instead of `str`).
 
 ## Multiple inheritance and the MRO {#sec-inheritance-mro}
 
-Python supports multiple inheritance, and resolves which method to call using the *Method Resolution Order* — a linearization of the inheritance graph.
+Python supports multiple inheritance, and resolves which method to call using the *Method Resolution Order* — a linearization of the inheritance graph. To see it in action we'll build the classic diamond: `A` at the top, `B` and `C` both inheriting from `A`, and `D` inheriting from both. Both `B` and `C` define `pong`; we'll see which one wins.
 
 ```{python}
 class A:
@@ -81,6 +96,13 @@ class D(B, C):
 
 D.__mro__
 ```
+
+Walking through what each class adds:
+
+- `A` defines `ping` only. It's the shared root.
+- `B` and `C` both inherit `A`'s `ping` and add their own `pong` — but with different output (`"pong"` vs `"PONG"`). This is the key conflict the MRO has to resolve.
+- `D(B, C)` inherits from both. It overrides `ping` to call `super().ping()` and then print a follow-up. It does *not* define `pong`, so a `D().pong()` call has to find one in the chain.
+- `D.__mro__` is the linearization: `D → B → C → A → object`.
 
 ::: {layout-ncol=2}
 
@@ -122,7 +144,7 @@ But that's exactly the trap — direct calls don't compose with multiple inherit
 
 ## Mixin classes {#sec-inheritance-mixins}
 
-A *mixin* is a class that adds focused behavior — usually no state — to other classes. Multiple mixins compose by inheritance. The convention is to suffix the class name with `Mixin` to signal intent.
+A *mixin* is a class that adds focused behavior — usually no state — to other classes. Multiple mixins compose by inheritance. The convention is to suffix the class name with `Mixin` to signal intent. To see one in practice, we'll add case-insensitive key lookup to a dict by intercepting every keyed operation and lowercasing the key before forwarding upstream.
 
 ```{python}
 from collections import UserDict
@@ -143,6 +165,13 @@ class CaseInsensitiveDict(CaseInsensitiveMixin, UserDict):
 d = CaseInsensitiveDict({"Color": "red"})
 d["Color"], d["color"], "COLOR" in d
 ```
+
+Walking through the mixin:
+
+- `CaseInsensitiveMixin` doesn't inherit from anything. It's not a complete dict — it has no storage of its own. Each method calls `super()`, which means "whatever class this gets mixed into."
+- Each method does the same micro-step: lowercase the key, then delegate. `__setitem__`, `__getitem__`, `__contains__`, and `get` each cover a different access pattern (write, read, `in`, default-get).
+- `class CaseInsensitiveDict(CaseInsensitiveMixin, UserDict):` is the assembly. The empty `pass` body is the whole point — the mixin contributes the override, `UserDict` contributes the storage.
+- The order matters: `CaseInsensitiveMixin` first, then `UserDict`. `super()` calls inside the mixin land on `UserDict` next, so the lowercased key reaches the real dict.
 
 Look at the MRO:
 

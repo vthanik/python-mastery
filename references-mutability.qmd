@@ -157,7 +157,12 @@ bus2.passengers.append("Carrie")
 bus3.passengers
 ```
 
-`bus3.passengers` is `["Carrie"]` even though we never told `bus3` about Carrie. Both `bus2` and `bus3` share the same default list.
+Walking through what happened:
+
+- The expression `passengers=[]` is evaluated *once*, when Python compiles the `def`. That single empty list is stored as the default and reused on every call that doesn't supply one.
+- `HauntedBus(["Alice", "Bill"])` is fine — `bus1.passengers` is the caller's list.
+- `HauntedBus()` (no argument) makes `bus2.passengers` point to *the* shared default list. `HauntedBus()` again makes `bus3.passengers` point to the same list.
+- `bus2.passengers.append("Carrie")` mutates that shared list. `bus3.passengers` sees the mutation, because there's only one list.
 
 The fix is the standard idiom — `None` sentinel plus a copy:
 
@@ -175,7 +180,13 @@ bus_a.passengers.append("Carrie")
 bus_a.passengers, bus_b.passengers
 ```
 
-`list(passengers)` makes a copy, so the caller's list is not aliased into the new bus.
+Walking through the fix:
+
+- `passengers=None` is a *sentinel*: `None` is immutable, so there's no shared-state risk.
+- `if passengers is None: self.passengers = []` builds a *fresh* list per call. Each `Bus()` instance gets its own.
+- `else: self.passengers = list(passengers)` makes a shallow copy of whatever the caller passed. Without this copy, mutating `bus.passengers` would also mutate the caller's list — same aliasing problem in a different shape.
+
+The general rule: never write a *mutable* expression after `=` in a `def`. Use `None` plus a fresh allocation inside the body.
 
 ## `del` and garbage collection {#sec-references-gc}
 
@@ -205,7 +216,14 @@ gc.collect()
 print(wref())
 ```
 
-Once the only strong reference is gone, the weak reference returns `None`. This is the building block for caches, observers, and any structure that should not extend an object's lifetime.
+Walking through the moving parts:
+
+- `weakref.ref(s1)` creates a *weak* reference object. Unlike a regular variable assignment (`s2 = s1`, which would bump the reference count), a weak ref does not count toward keeping the object alive.
+- `wref()` (calling the weakref like a function) returns the object if it's still alive, else `None`.
+- `del s1` removes the only *strong* reference. The reference count drops to zero — the `Holder` is collected.
+- `wref()` now returns `None` because the underlying object is gone.
+
+The general rule: a weak reference lets you *observe* an object without prolonging its life — the building block for caches, observers, and any structure that should not extend an object's lifetime.
 
 `weakref.WeakValueDictionary` is the everyday tool — a dict whose values are weak. Entries vanish as soon as their last strong reference dies, so the dict can never extend an object's lifetime:
 
@@ -230,7 +248,15 @@ gc.collect()
 sorted(stock.keys())
 ```
 
-Once nothing else holds the cheeses, `stock` empties itself. Caches that should *not* extend an object's lifetime use this exactly.
+Walking through what each piece does:
+
+- `stock = weakref.WeakValueDictionary()` is a dict whose *values* are held weakly. Keys are normal — only values are special.
+- The `for cheese in catalog` loop registers each cheese in `stock` keyed by its kind. While `catalog` is alive, the cheeses are alive, so all three keys appear.
+- `del catalog` removes the strong references in the list. But the loop variable `cheese` is still bound to the last cheese (`"Brie"`) — Python doesn't clear it when the loop ends.
+- `del cheese` removes that last strong reference. Now nothing keeps any of the cheeses alive *except* the weak entries in `stock`, which don't count.
+- `gc.collect()` forces the cycle detector to run; afterwards `stock` is empty.
+
+The general rule: caches and registries that *must not* extend object lifetime use `WeakValueDictionary` — entries clean themselves up as soon as the underlying objects are no longer needed elsewhere.
 
 ## Tricks Python plays with immutables {#sec-references-interning}
 

@@ -27,7 +27,7 @@ def show_count(count, word):
 show_count(3, "cat")
 ```
 
-Hints are added when they earn their keep — usually at API boundaries:
+Without hints, you can call `show_count("three", "cat")` and the bug only surfaces when the format string runs. Hints let a static checker catch this *before* the program runs:
 
 ```{python}
 def show_count(count: int, word: str) -> str:
@@ -38,7 +38,14 @@ def show_count(count: int, word: str) -> str:
 show_count(1, "fish"), show_count(0, "bird"), show_count(3, "cat")
 ```
 
-The `: int` and `: str` hint the parameters; `-> str` hints the return type. None of this affects runtime — `mypy` (or `pyright`) reads it; the interpreter ignores it.
+Walking through the syntax:
+
+- `count: int` annotates the parameter — "I expect `count` to be an `int`." The colon plus type expression is Python's annotation syntax; it works on parameters, return values, and bare assignments alike.
+- `word: str` is the same for the second parameter.
+- `-> str` annotates the *return type* — "this function returns a `str`." The arrow goes between the parameter list and the body's colon.
+- None of this affects runtime. Python parses and stores the annotations on the function object (`show_count.__annotations__`) but doesn't enforce them. A static checker like `mypy` or `pyright` reads them and flags mismatches; the interpreter shrugs.
+
+The general pattern: hints are documentation that a tool can verify. Add them when they earn their keep — usually at API boundaries where wrong types would cause real bugs.
 
 For optional parameters, write `X | None` (Python 3.10+) or `Optional[X]`:
 
@@ -133,7 +140,7 @@ divmod_pair(17, 5)
 Putting this at the top of a module turns *all* annotations into strings (PEP 563 — postponed evaluation). Two practical wins: forward references work without quoting (`def f() -> "MyClass":` becomes `def f() -> MyClass:`), and there is zero runtime cost for evaluating the annotation expression. Tools like `mypy` still type-check normally; introspection-heavy libraries (`pydantic`, `dataclasses` in some modes) need to opt in.
 :::
 
-For a callable parameter, use `collections.abc.Callable`:
+When a parameter is a function, you'd like the type hint to record both *what arguments it takes* and *what it returns*, so a wrong-shaped callback gets caught. That's `Callable`:
 
 ```{python}
 from collections.abc import Callable
@@ -142,6 +149,12 @@ def apply(func: Callable[[int], str], value: int) -> str:
 
 apply(str, 42)
 ```
+
+Walking through the `Callable` syntax:
+
+- `Callable[[int], str]` reads "a callable that takes one `int` and returns a `str`." The first bracketed list is the *argument* types (in order); the second item is the *return* type.
+- For a callable taking no arguments, you write `Callable[[], str]` — empty inner list. For a variadic callable where you don't want to spell the args, write `Callable[..., str]` with the literal `...`.
+- `apply(str, 42)` type-checks because `str` is `Callable[[int], str]`-compatible (calling `str(42)` produces `"42"`). Passing `apply(len, 42)` would still work at runtime for many inputs, but `mypy` would object — `len` returns `int`, not `str`.
 
 ## Abstract types beat concrete types {#sec-types-abstract}
 
@@ -155,6 +168,12 @@ def column(matrix: Sequence[Sequence[float]], i: int) -> list[float]:
 
 column([[1, 2], [3, 4], [5, 6]], 0)
 ```
+
+Walking through the type chosen here:
+
+- `Sequence[Sequence[float]]` says "a thing you can iterate *and* index, whose elements are themselves indexable sequences of floats." `list[list[float]]` would also work for the test call, but `Sequence` is more permissive — a `tuple` of `tuple`s would be accepted too.
+- We need `Sequence` (not `Iterable`) on the inner type because `row[i]` needs indexing. Picking the *minimum* abstraction the body actually needs is the discipline.
+- The return is `list[float]` — concrete, because callers benefit from knowing it's a real list they can index, append to, and pass on.
 
 ```{python}
 def total(items: Iterable[int]) -> int:
@@ -178,7 +197,7 @@ The opposite rule applies to *return types*: be concrete. Returning `list[int]` 
 
 ## `TypeVar` and parameterized generics {#sec-types-typevar}
 
-A `TypeVar` lets a function preserve the relationship between input and output types:
+`first(seq)` should return the same kind of thing the sequence holds — `int` in, `int` out; `str` in, `str` out. Annotating it as `Any -> Any` loses that information; spelling it out as `int -> int` plus `str -> str` plus everything else is impossible. `TypeVar` lets you write it once and let the type checker fill in the type at each call:
 
 ```{python}
 from typing import TypeVar
@@ -191,7 +210,11 @@ def first(seq: Sequence[T]) -> T:
 first([1, 2, 3]), first(["a", "b"])
 ```
 
-`mypy` infers `first([1, 2, 3])` as `int` and `first(["a", "b"])` as `str`. The single function is generic over the element type.
+Walking through this:
+
+- `T = TypeVar("T")` introduces a *type variable* — a placeholder a checker will resolve at each call site. The string `"T"` must match the variable name; that's just how `TypeVar` is spelled.
+- `Sequence[T]` says "a sequence whose elements are some type `T`." `-> T` says "I return that same type."
+- At the call `first([1, 2, 3])`, the checker matches `Sequence[T]` against `list[int]` and infers `T = int`, so the return type is `int`. At `first(["a", "b"])` it infers `T = str`. The single function is *generic* over the element type.
 
 A *constrained* `TypeVar` lists allowed types — the value must be exactly one of them:
 
@@ -248,9 +271,14 @@ render(Square())
 isinstance(Circle(), Drawable)
 ```
 
-`@runtime_checkable` is the only reason `isinstance` works against a `Protocol`. Without it, the protocol is purely a static-checker contract.
+Walking through the moving parts:
 
-We will return to protocols, ABCs, and the line between them in @sec-protocols-abcs.
+- `class Drawable(Protocol):` declares a *structural* type. Any class with the listed methods (here, `draw(self) -> None`) is automatically a `Drawable` — no `class Circle(Drawable):` inheritance line needed.
+- `def draw(self) -> None: ...` is a method *signature* with `...` as the body. It's a placeholder — the protocol only describes the shape, never executes.
+- `def render(shape: Drawable) -> None:` accepts any object whose class satisfies the protocol. `Circle` and `Square` both qualify because they happen to define `draw(self) -> None`.
+- `@runtime_checkable` is the only reason `isinstance(Circle(), Drawable)` works at runtime — it asks Python to actually inspect attributes when asked. Without it, the protocol is purely a static-checker contract.
+
+The general pattern: `Protocol` is duck typing made checkable. You write the shape you depend on; any class that fits is accepted; nothing has to inherit from anything. We will return to protocols, ABCs, and the line between them in @sec-protocols-abcs.
 
 ::: {.callout-tip}
 ## Why this matters

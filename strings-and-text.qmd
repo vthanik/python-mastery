@@ -14,6 +14,8 @@ In this chapter you will learn to:
 
 ## Creating strings {#sec-strings-creating}
 
+Python gives you four quoting forms because text comes in four shapes: short and clean, full of one quote character, multi-line, or full of backslashes. Picking the right form keeps the literal readable.
+
 ```{python}
 a = "hello"
 b = 'hello'
@@ -23,7 +25,11 @@ d = r"C:\Users\Alice"   # raw string — backslashes are literal
 [a, b, c, d]
 ```
 
-Single and double quotes are interchangeable. Use whichever avoids escaping. Triple quotes preserve newlines. **Raw strings** (`r"..."`) treat backslash as a normal character — essential for Windows paths and regular-expression patterns.
+- `"hello"` and `'hello'` are equivalent — Python doesn't distinguish single and double quotes. Use whichever lets you avoid escaping (`"don't"` is cleaner than `'don\'t'`).
+- `"""..."""` (triple-quoted) preserves embedded newlines, no `\n` needed. Used for docstrings and any multi-line literal.
+- `r"C:\Users\Alice"` is a **raw string** — the leading `r` switches off backslash escaping, so `\U` doesn't try to be a Unicode escape. Essential for Windows paths and regex patterns.
+
+The general rule: pick the form that minimises escapes. Single/double for one-liners, triple for multi-line, raw whenever you have many backslashes.
 
 ```{python}
 # Without raw, you'd write \\d+ to mean \d+
@@ -34,7 +40,7 @@ re.findall(pattern, "abc 12 def 345")
 
 ## f-strings {#sec-strings-fstrings}
 
-f-strings ("formatted string literals") embed expressions directly inside a string. Always prefer them to `+` concatenation or `%` formatting.
+Building output from variables used to mean either string concatenation (`"Hello, " + name + "!"`) or `%`-style formatting (`"Hello, %s!" % name`). Both get unwieldy fast. f-strings ("formatted string literals", introduced in 3.6) put the expression *inside* the string with `{...}` — always prefer them.
 
 ```{python}
 name = "Alice"
@@ -50,7 +56,14 @@ score = 95.6789
 ]
 ```
 
-The format spec is `{value:[align][width][.precision][type]}`:
+- The leading `f` turns the literal into an f-string; everything in `{...}` is evaluated as a Python expression.
+- `{score:.2f}` uses the **format spec** after the colon — `.2f` means "fixed-point, 2 decimals".
+- `{42:5d}` pads to width 5 with leading spaces; `{1_000_000:,}` adds thousands separators.
+- `{name=}` (Python 3.8+) is the **debug form** — it prints both the expression text and its value, which is gold for logging.
+- `{name!r}` applies `repr()` to the value before formatting — adds the quotes you'd see in a debugger.
+- `{2 + 2}` shows the slot accepts *any* expression, not just a name.
+
+The general rule: the slot is `{expression[!conversion][:format_spec]}`. The format spec is `{value:[align][width][.precision][type]}`:
 
 ```{python}
 [
@@ -73,14 +86,20 @@ The inner f-string and the outer f-string can both use single quotes, and the co
 
 ## Indexing and slicing {#sec-strings-slicing}
 
-A string is a sequence of characters, indexed from `0`. Negative indices count from the end.
+You constantly need to grab one character or a substring — the first character, the last, the file extension, the prefix. Python gives you indexing for one element and **slicing** for a contiguous range, both with one syntax.
 
 ```{python}
 s = "Hello, World!"
 [s[0], s[-1], s[7:12], s[:5], s[::-1]]
 ```
 
-`s[start:stop:step]` is the slicing form. `step=-1` reverses. The deep treatment of slicing — and how it generalizes to all sequences — is in @sec-sequences.
+- `s[0]` is the first character — strings are zero-indexed.
+- `s[-1]` is the last character — negative indices count back from the end, so you don't need `s[len(s) - 1]`.
+- `s[7:12]` is a **slice**: characters at positions 7 through 11 (the stop index is exclusive). Result: `"World"`.
+- `s[:5]` omits the start, defaulting to 0 — the first 5 characters.
+- `s[::-1]` uses the optional **step** of `-1` — walk the string backwards, which reverses it.
+
+The general rule: `s[start:stop:step]` — `start` defaults to 0, `stop` to `len(s)`, `step` to 1. The deep treatment of slicing — and how it generalizes to all sequences — is in @sec-sequences.
 
 `len(s)` is the character count; `in` is a membership test:
 
@@ -90,14 +109,18 @@ s = "Hello, World!"
 
 ## Joining and splitting {#sec-strings-joining}
 
-Concatenation works with `+`, but for *many* strings, `.join()` is dramatically faster — and more idiomatic:
+You constantly need to glue a list of strings together with a separator — comma, space, newline, nothing — or do the reverse and chop one string into pieces. Concatenation works with `+`, but for *many* strings, `.join()` is dramatically faster — and more idiomatic:
 
 ```{python}
 words = ["Hello", "World", "Python"]
 [" ".join(words), ", ".join(words), "".join(words)]
 ```
 
-`split()` reverses it:
+- `" ".join(words)` glues the list together with a single space between elements — the *separator* is the string `.join` is called on.
+- `", ".join(words)` uses comma-space — the standard CSV-style separator.
+- `"".join(words)` uses no separator at all — pure concatenation.
+
+The general rule: the separator string is the receiver, the iterable of strings is the argument. `split()` reverses it:
 
 ```{python}
 [
@@ -111,7 +134,7 @@ The rule: **never** use `+=` in a loop to build a string. Each `+=` allocates a 
 
 ## String methods {#sec-strings-methods}
 
-Strings are immutable, so every method returns a *new* string.
+Almost every string task is built from a small set of methods: trim whitespace, change case, replace a substring, ask whether a string starts/ends/contains something. Strings are immutable, so every method returns a *new* string — none of these mutate in place.
 
 ```{python}
 s = "  Hello, World!  "
@@ -126,7 +149,14 @@ s = "  Hello, World!  "
 ]
 ```
 
-Useful predicates: `.isdigit()`, `.isalpha()`, `.isalnum()`, `.isspace()`, `.startswith(prefix)`, `.endswith(suffix)`.
+- `s.strip()` returns a new string with leading/trailing whitespace removed; `s` itself is unchanged.
+- `s.lower()` and `s.upper()` return case-converted copies.
+- `s.replace(old, new)` swaps every occurrence — useful but be aware it's substring-based, not word-based.
+- `s.startswith(prefix)` returns `True`/`False`.
+- `s.find(sub)` returns the first index of `sub`, or `-1` if not found. (Use `s.index(sub)` if you'd rather it raise `ValueError` on a miss.)
+- `"abc123".isalnum()` returns `True` only if every character is alphanumeric.
+
+The general rule: every method that "modifies" a string actually returns a new one — assign the result if you want to keep it. Useful predicates: `.isdigit()`, `.isalpha()`, `.isalnum()`, `.isspace()`, `.startswith(prefix)`, `.endswith(suffix)`.
 
 ```{python}
 [

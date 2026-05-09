@@ -33,7 +33,7 @@ flowchart LR
 
 ## Object representations {#sec-pythonic-repr}
 
-Python has two string-conversion dunders. `__repr__` is for developers — it should be unambiguous and ideally `eval()`-able. `__str__` is for users — readable.
+Python has two string-conversion dunders. `__repr__` is for developers — it should be unambiguous and ideally `eval()`-able. `__str__` is for users — readable. To see them work together, we'll build a 2-D vector that integrates with `repr()`, `str()`, `abs()`, `bool()`, iteration, and `==` — the canonical "Pythonic object."
 
 ```{python}
 import math
@@ -78,15 +78,21 @@ v = Vector2d(3, 4)
 repr(v), str(v), abs(v), bool(v)
 ```
 
-A few things are subtle:
+Walking through the moving parts:
 
-- `__x` (double underscore) triggers Python's *name mangling*: outside the class, you access it as `_Vector2d__x`. The single `_` convention says "private by convention"; the double `__` says "private to this class, even subclasses see a different name." We use `__x` here so subclasses don't accidentally clobber the field.
-- `@property` exposes `x` and `y` as read-only attributes — the getter has no setter.
-- `__iter__` makes the vector iterable, which is what enables `tuple(self)` and unpacking like `x, y = v`.
+- `typecode = "d"` is a *class attribute* — a shared default we'll use later for byte-level serialization. Every instance reads this value unless it shadows it.
+- `__x` (double underscore prefix) triggers Python's *name mangling*: outside the class, you access it as `_Vector2d__x`. The single `_` convention says "private by convention"; the double `__` says "private to this class, even subclasses see a different name." We use `__x` here so subclasses don't accidentally clobber the field.
+- `@property` exposes `x` and `y` as read-only attributes — the getter has no setter, so `v.x = 99` raises `AttributeError`.
+- `__iter__` makes the vector iterable. Once it exists, `tuple(self)` works, unpacking like `x, y = v` works, and `__repr__` and `__eq__` can lean on it.
+- `__repr__` uses `type(self).__name__` instead of hard-coding `"Vector2d"` — that way subclasses report their own type. The `!r` format spec calls `repr()` on each component, which matters once components are non-numeric.
+- `__abs__` is what `abs(v)` calls; we return the Euclidean length. `__bool__` is what `bool(v)` and `if v:` call — we make zero-length vectors falsy, mirroring how zero numbers are falsy.
+- `__eq__` compares components by reducing both sides to tuples — quick and correct for any other iterable with the same components, but loose: `Vector2d(3, 4) == (3, 4)` is `True`. Tighter equality is exercise material.
+
+The general shape: a Pythonic class implements the small handful of dunders that the built-ins (`repr`, `str`, `abs`, `bool`, `iter`, `==`) reach into. Each one buys a piece of native-feeling integration.
 
 ## `classmethod` versus `staticmethod` {#sec-pythonic-classmethod}
 
-A `@classmethod` receives the class as its first argument. The most common use is *alternative constructors*:
+A `@classmethod` receives the class as its first argument. The most common use is *alternative constructors* — you've serialized a vector to bytes and now want to read it back. `__init__` only takes `(x, y)`; bytes need their own factory. Rather than a free-standing function, we put it on the class as a `@classmethod`:
 
 ```{python}
 import array
@@ -104,13 +110,20 @@ b = bytes([ord(v.typecode)]) + bytes(array.array(v.typecode, v))
 Vector2dV2.frombytes(b)
 ```
 
-`cls(*memv)` is the point — by referring to `cls`, the alternative constructor works in subclasses too. A `@staticmethod` has no special first argument; it's just a plain function that happens to live in the class namespace. Use `@classmethod` by default; reach for `@staticmethod` rarely.
+Walking through `frombytes`:
+
+- `@classmethod` makes the first parameter `cls` — the class itself, not an instance. When you call `Vector2dV2.frombytes(b)`, Python passes `Vector2dV2` in as `cls`.
+- `chr(octets[0])` reads the first byte as the typecode (`"d"` for double, `"f"` for float). The serialization format we're parsing prepends the typecode so we know how to interpret the rest.
+- `memoryview(octets[1:]).cast(typecode)` reinterprets the remaining bytes as numeric components — no copy, just a view.
+- `return cls(*memv)` is the point. By calling `cls` instead of hard-coding `Vector2dV2`, the constructor returns an instance of *whatever class was used to call it* — so subclasses get their own type back automatically.
+
+The general pattern: a `@classmethod` is the right home for an "alternative constructor" — `from_string`, `from_dict`, `frombytes`. A `@staticmethod` has no special first argument; it's just a plain function that happens to live in the class namespace. Use `@classmethod` by default; reach for `@staticmethod` rarely.
 
 `__bytes__` is the dunder for `bytes(v)`. Modern code typically serializes through `json`/`pickle`/`struct` instead — exercise 2 has you implement it.
 
 ## Formatted displays {#sec-pythonic-format}
 
-`__format__` is what `format(obj, spec)` and `f"{obj:spec}"` call. The format spec is a string; you parse it however you like.
+`__format__` is what `format(obj, spec)` and `f"{obj:spec}"` call. The format spec is a string; you parse it however you like. We'll add a custom `p` suffix that switches the vector to polar coordinates, and pass the rest of the spec straight through to the components — so all the usual numeric format codes (`.2f`, `.3e`, …) keep working.
 
 ```{python}
 class Vector2dF(Vector2d):
@@ -132,7 +145,14 @@ v = Vector2dF(3, 4)
 format(v, ".2f"), format(v, ".3ep"), f"{v:.1f}"
 ```
 
-We added a custom format code `p` for polar coordinates. The default behavior — when the spec doesn't end in `p` — passes through to the components, so all the standard numeric format codes (`.2f`, `.3e`, `b`, etc.) keep working.
+Walking through `__format__`:
+
+- The argument `fmt_spec` is the part *after* the colon in `f"{v:.2f}"` — Python strips the colon and passes the rest. An empty spec means "use defaults."
+- `endswith("p")` recognizes our custom polar code. We strip it, then build `(magnitude, angle)` instead of `(x, y)`, and wrap them in angle brackets to flag the change visually.
+- For the default Cartesian path, we iterate `self` (which works because we defined `__iter__` earlier) and use round parens.
+- `format(c, fmt_spec)` recursively formats each component — that's how `.2f` gets applied to each float. The result of the comprehension is two pre-formatted strings, which `outer.format(*components)` slots into the wrapper.
+
+The general pattern: `__format__` lets your class participate in `format()` and f-strings. The convention is to add a custom suffix for class-specific behavior and pass the rest through to the components — that way you extend the format mini-language without breaking it.
 
 ## A hashable `Vector2d` {#sec-pythonic-hashable}
 
@@ -148,7 +168,13 @@ v2 = Vector2dH(3.0, 4.0)
 hash(v1) == hash(v2), v1 == v2, len({v1, v2})
 ```
 
-`{v1, v2}` collapses to a single element because `v1 == v2`. Hashing a tuple of components is the standard recipe: it composes the hashes of immutable parts.
+Walking through what happened:
+
+- `hash((self.x, self.y))` builds a tuple of the components and asks the built-in tuple hash to compose them. Tuples already know how to hash their elements; we don't have to invent a mixing function.
+- `v1 == v2` is `True` because `__eq__` on the base class reduces both sides to tuples and `(3.0, 4.0) == (3.0, 4.0)`. Their hashes match because both tuples-of-floats hash identically.
+- `{v1, v2}` collapses to a single element. Sets first compare hashes (cheap), then `==` to confirm — and both agree.
+
+The general pattern: hashing a tuple of the immutable components is the standard recipe. Compose the hashes of the parts, don't try to mix them by hand.
 
 ::: {.callout-warning}
 ## `__hash__` and `__eq__` go together
@@ -183,9 +209,13 @@ class V2dDict:
 sys.getsizeof(Vector2dSlots(3, 4)), sys.getsizeof(V2dDict(3, 4)) + sys.getsizeof(V2dDict(3, 4).__dict__)
 ```
 
-The slotted version is dramatically smaller. The cost: instances can't grow new attributes (`v.z = 7` raises `AttributeError`), and subclasses must also define `__slots__` to keep the saving.
+Walking through the comparison:
 
-Reach for `__slots__` only when you have *millions* of instances. For everything else, the dict is fine and the flexibility is worth the bytes.
+- `__slots__ = ("__x", "__y")` declares the *only* attribute names this class will ever have. Python pre-allocates exactly those two slots and refuses to create a `__dict__`.
+- The control class `V2dDict` is the same data without slots. We measure both the instance *and* its `__dict__` because the dict lives in a separate allocation — `getsizeof(V2dDict(3, 4))` alone undercounts.
+- The numbers will vary by Python build, but the slotted class is dramatically smaller — typically 3–4× — because the per-instance dict is gone.
+
+The general pattern: `__slots__` is a memory-density tool. The cost is that instances can't grow new attributes (`v.z = 7` raises `AttributeError`), and subclasses must redeclare `__slots__` to keep the saving. Reach for it only when you have *millions* of instances. For everything else, the dict is fine and the flexibility is worth the bytes.
 
 ::: {.callout-note}
 ## Modern alternative: `@dataclass(slots=True)`
@@ -201,6 +231,8 @@ v = Vector2d(1, 2)
 v.typecode, Vector2d.typecode
 ```
 
+Both reads return `"d"`. The instance has no `typecode` of its own, so attribute lookup walks up to the class.
+
 Assigning to `v.typecode` *creates* an instance attribute, shadowing the class one:
 
 ```{python}
@@ -208,7 +240,7 @@ v.typecode = "f"
 v.typecode, Vector2d.typecode
 ```
 
-The class attribute is untouched. The idiomatic way to change the default for a *kind* of vector is to subclass:
+Now `v.typecode` finds the instance copy first and returns `"f"`. `Vector2d.typecode` is untouched at `"d"` — only this one instance changed. The idiomatic way to change the default for a *kind* of vector (not just one instance) is to subclass:
 
 ```{python}
 class ShortVector2d(Vector2d):
@@ -216,6 +248,10 @@ class ShortVector2d(Vector2d):
 
 ShortVector2d(1, 2).typecode, Vector2d(1, 2).typecode
 ```
+
+`ShortVector2d` declares its own class attribute. Lookup on a `ShortVector2d` instance walks the MRO (instance → `ShortVector2d` → `Vector2d`) and finds `"f"` first. The original `Vector2d` is unaffected.
+
+The general rule: writing through an instance always creates an instance attribute. To change a default for the whole class, write to the class. To change it for a category, subclass.
 
 ::: {.callout-tip}
 ## Why this matters

@@ -43,7 +43,14 @@ async def main():
 await main()
 ```
 
-`await asyncio.sleep(...)` is the canonical "do nothing for a while *but yield control*" call. It's the simplest awaitable.
+Walking through the pieces:
+
+- `async def hello(...)` declares a **coroutine function**. Calling `hello("world", 0.05)` does *not* run the body — it returns a coroutine object that has to be `await`-ed (or scheduled as a task) before it does anything.
+- `await asyncio.sleep(delay)` is the canonical "yield control for a while" call. The current coroutine pauses; the event loop is free to run anything else; after the delay, the loop resumes this coroutine.
+- `return f"hello, {name}"` is just like a normal function return — the `await` on the caller's side receives this value.
+- `await main()` runs `main` to completion. In a Jupyter cell we use `await` directly because Jupyter already has an event loop; in a script you'd write `asyncio.run(main())`.
+
+The general pattern: `async def` defines a coroutine; `await` is the yield point. A coroutine is *just code* until something — `asyncio.run`, `create_task`, or another `await` — drives it.
 
 ```{mermaid}
 flowchart TB
@@ -77,6 +84,13 @@ async def main():
 await main()
 ```
 
+Walking through `gather`:
+
+- `hello("a", 0.1)`, `hello("b", 0.1)`, `hello("c", 0.1)` are three coroutine objects — *not yet running*.
+- `asyncio.gather(*coros)` schedules them all and returns an awaitable that completes when *every* one finishes.
+- `await` on that awaitable waits for the whole batch. While each `hello` is paused inside `asyncio.sleep`, the event loop can run the others — that's where the concurrency comes from.
+- Results come back in the order the coroutines were *submitted*, not the order they finished. Compare with `as_completed` later in this chapter.
+
 Three sleeps of 0.1 seconds finished in ~0.1 seconds — they were *concurrent*, not sequential. `asyncio.gather` waits for all of them and returns their results in order.
 
 `asyncio.create_task(coro)` schedules a coroutine and returns a Task immediately, so you can fire something off and continue:
@@ -89,6 +103,14 @@ async def main():
 
 await main()
 ```
+
+Walking through this shape:
+
+- `asyncio.create_task(coro)` wraps the coroutine in a `Task` and schedules it on the loop *now*. The function returns immediately — the task starts running while we keep going.
+- `print("(doing something else)")` runs while the task waits in the background. The two interleave on the same thread.
+- `await task` joins the task and returns its result. If we never awaited, the task would still run, but its return value would be lost.
+
+The general pattern: `gather` for "wait for all of these"; `create_task` for "fire and forget, await later". Both schedule coroutines; the difference is who does the awaiting and when.
 
 ## Structured concurrency with `TaskGroup` {#sec-async-taskgroup}
 
@@ -105,7 +127,17 @@ async def main():
 await main()
 ```
 
+Walking through the structured form:
+
+- `async with asyncio.TaskGroup() as tg:` opens an async context manager — it has `__aenter__` and `__aexit__` instead of `__enter__`/`__exit__`, awaitable versions of the same protocol.
+- `tg.create_task(coro)` schedules a task that's *owned* by the group. Each call returns immediately, just like `asyncio.create_task`.
+- The body of the `async with` exits *after* every owned task completes — the group implicitly awaits its children. No explicit `gather` needed.
+- `t1.result()` reads the finished task's return value. Because the group has already awaited the tasks, calling `.result()` is non-blocking here.
+- If any task raises, the group cancels the rest and re-raises an `ExceptionGroup` — no orphan tasks running silently after a failure.
+
 The block exits only when every task finishes. Errors compose into an `ExceptionGroup` (see @sec-with-exception-group), which `except*` matches by type.
+
+The general pattern: prefer `TaskGroup` over `gather` for new code. Same concurrency, plus structured cancellation and clean error aggregation.
 
 ## Deadlines with `asyncio.timeout` {#sec-async-timeout}
 
@@ -122,7 +154,16 @@ async def main():
 await main()
 ```
 
+Walking through the timeout dance:
+
+- `asyncio.timeout(0.05)` is an async context manager that arms a 50-millisecond deadline when we enter.
+- Inside the block, `await asyncio.sleep(0.5)` would normally pause for half a second — but the deadline fires first.
+- When the deadline expires, the timeout context manager **cancels** the awaiting coroutine. The `await` raises `CancelledError` internally, which the context manager translates to `TimeoutError` on exit.
+- The outer `try` catches `TimeoutError`. The cleanup is automatic — the timer was scoped to the `async with` block.
+
 Inside the block, *any* `await` that exceeds the deadline raises `TimeoutError`. Outside, the timer is gone — no cleanup needed.
+
+The general pattern: `asyncio.timeout(secs)` puts a deadline on a region of awaits — far cleaner than threading a timeout argument through every call.
 
 ## Iterating as coroutines complete {#sec-async-as-completed}
 
@@ -143,7 +184,16 @@ async def main():
 await main()
 ```
 
+Walking through the loop:
+
+- `coros` is a list of three coroutine objects with delays 0.3, 0.1, 0.2 — submission order, not finish order.
+- `asyncio.as_completed(coros)` returns an iterator. Each item is an awaitable that becomes ready when *some* coroutine in the input finishes — but you don't know which one until you await.
+- `await coro` inside the loop unwraps the next-finished coroutine's return value. The shortest sleep finishes first, so `b` arrives first, then `c`, then `a`.
+- We collect the results in `finished` in the order they arrived — `['b', 'c', 'a']`.
+
 `b` finished first because it had the shortest sleep. The loop *awaits* each future as it becomes ready.
+
+The general pattern: `gather` returns results in submission order *after everything finishes*; `as_completed` lets you process each result *as it arrives* — useful for streaming output, progress reporting, or early-exit logic.
 
 ## Throttling with `Semaphore` {#sec-async-semaphore}
 
@@ -165,7 +215,16 @@ async def main():
 await main()
 ```
 
+Walking through the throttle:
+
+- `asyncio.Semaphore(2)` builds a counter starting at 2. Each `async with sem:` decrements it on entry and increments it on exit.
+- When the counter is at 0, a new `async with sem:` *awaits* until someone releases — that's the cooperative throttle.
+- `fetch` does its sleep *inside* the `async with sem:` block, so only two `fetch` coroutines can be sleeping at once. The other four wait their turn.
+- `asyncio.gather(*coros)` schedules all six. The semaphore enforces the cap; gather waits for all of them.
+
 Six tasks; two-at-a-time throttle; six 0.05-s tasks complete in ~0.15 s instead of ~0.30 s sequential or ~0.05 s unbounded. The `async with sem:` form is exactly like the synchronous `with` — it acquires on entry, releases on exit.
+
+The general pattern: when you want concurrency *up to a limit* (rate limits, connection pools, "don't pound this API"), share one `Semaphore` across the tasks and gate the work region with `async with`.
 
 ## Async file I/O? No. Async network I/O? Yes. {#sec-async-real}
 
@@ -211,7 +270,17 @@ async def main():
 await main()
 ```
 
-`None` means "use the default thread pool." Pass a `ProcessPoolExecutor` if the function is CPU-bound. The pattern keeps the event loop responsive — the blocking work happens off-loop.
+Walking through the bridge:
+
+- `blocking` is a plain (non-async) function — `time.sleep` would freeze the event loop if called directly from a coroutine.
+- `asyncio.get_running_loop()` returns the current event loop. We need it because `run_in_executor` is a method on the loop, not a top-level function.
+- `loop.run_in_executor(None, blocking, 21)` schedules `blocking(21)` on a thread pool and returns an awaitable. The event loop stays free to run other coroutines while the thread does its blocking work.
+- `await` waits for the thread pool result without blocking the loop.
+- `None` means "use the default thread pool." Pass a `ProcessPoolExecutor` instead if the function is CPU-bound and benefits from a real second core.
+
+The pattern keeps the event loop responsive — the blocking work happens off-loop.
+
+The general pattern: never call a blocking function directly from a coroutine. Hand it to `run_in_executor` so the event loop keeps serving the rest of your coroutines.
 
 ::: {.callout-tip}
 ## Why this matters

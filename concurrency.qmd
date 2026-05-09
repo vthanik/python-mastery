@@ -36,6 +36,8 @@ These programs print to a real terminal. They run in a notebook but the spinner 
 
 ### Threads
 
+The threading version uses an `Event` as the cross-thread signal that says "we're done, stop spinning":
+
 ```{python}
 import threading, itertools, time
 
@@ -58,7 +60,16 @@ spinner.join()
 result
 ```
 
-`threading.Thread` runs `spin` concurrently with `slow`. They share memory; the `done` event is the synchronization tool that tells `spin` to stop.
+Walking through the threading pieces:
+
+- `itertools.cycle(r"\|/-")` is an infinite iterator over the spinner glyphs — `\`, `|`, `/`, `-`, `\`, ... The loop never ends on its own; it relies on the `done` signal.
+- `done.wait(0.1)` blocks for up to 0.1 seconds. It returns `True` if `done` was set (the signal arrived), `False` on timeout. So this is both the frame delay *and* the cancellation check.
+- `threading.Thread(target=..., args=...)` builds a thread but does not start it. `.start()` schedules it with the OS.
+- `slow()` runs on the *main* thread while `spin` runs on the spinner thread — they share memory, including the `done` Event.
+- `done.set()` flips the event to "set". On the next `done.wait(0.1)` call inside `spin`, that returns `True` and the loop breaks.
+- `spinner.join()` blocks until the spinner thread actually finishes — without it, the main thread could exit before the spinner's last frame.
+
+The general pattern: shared mutable state (the `Event`) is the coordination channel between threads. Threads share everything by default, which is what makes them cheap to start and dangerous to write.
 
 ### Processes
 
@@ -105,6 +116,8 @@ No threads, no processes — one thread, one event loop, two coroutines. `await`
 
 ## The real impact of the GIL {#sec-conc-gil}
 
+Talk about the GIL is cheap; let's measure it. We run the same CPU-bound work twice — once sequentially, once on two threads — and compare wall-clock time. If threads gave real parallelism, the threaded version would take half as long. They don't, so it won't.
+
 ```{python}
 import time, threading
 
@@ -131,7 +144,17 @@ threaded = time.perf_counter() - t0
 f"sequential: {seq:.3f}s, two threads: {threaded:.3f}s"
 ```
 
+Walking through the benchmark:
+
+- `cpu_bound(n)` is pure-Python arithmetic — no I/O, no `sleep`, just a loop. That makes it 100% CPU work, exactly the workload the GIL serializes.
+- `time.perf_counter()` is the right clock for benchmarking — high resolution, monotonic.
+- The sequential block runs `cpu_bound` twice in a row on the main thread.
+- The threaded block hands the same two calls to two threads. They share memory and the GIL — only one thread executes Python bytecode at a time, so the work serializes.
+- `t1.start(); t2.start(); t1.join(); t2.join()` is the spawn-and-wait pattern: start both, then wait for both.
+
 Two threads doing CPU work take about the same time as the sequential version — the GIL serializes them. For *real* parallelism on CPU work you need processes.
+
+The general pattern: threads overlap *I/O waits* (the GIL is released during blocking I/O), not *CPU work*. If your workload is CPU-bound, threads buy you nothing — reach for `multiprocessing` instead.
 
 (Python 3.12 introduced per-interpreter GILs (PEP 684) and 3.13 added the experimental `interpreters` module — true Python parallelism in one process is on the horizon, but tooling is still maturing.)
 

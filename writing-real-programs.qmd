@@ -93,6 +93,8 @@ Three things this template gets right:
 
 ## Type hints {#sec-real-types}
 
+Without hints, every function is a black box: you read the body to learn what it expects. Type hints are non-binding annotations that document the expected types right at the signature — Python ignores them at runtime, but readers and tools (mypy, pyright, IDE auto-complete) use them to catch mistakes before the program runs.
+
 Type hints don't change runtime behavior. They:
 
 - Document what a function expects and returns.
@@ -109,6 +111,11 @@ def get_items(count: int, price: float) -> list[dict]:
 [greet("Alice"), get_items(2, 9.99)]
 ```
 
+- `name: str` annotates the parameter — `name` is expected to be a `str`.
+- `-> str` annotates the *return* type after the parameter list.
+- `list[dict]` is the parameterised form (Python 3.9+) — a list of dicts. Older code wrote `List[Dict]` from the `typing` module; the lowercase forms are the modern syntax.
+- At runtime these annotations are stored on the function (in `__annotations__`) but never enforced — `greet(123)` still runs, the type checker just flags it.
+
 Use the abstract types from `collections.abc` for *parameter* hints — `Iterable`, `Mapping`, `Callable`, `Sequence`. They accept any conforming type (a plain dict, a `defaultdict`, a custom class) without locking the caller into one concrete container:
 
 ```{python}
@@ -120,7 +127,10 @@ def total_price(prices: Mapping[str, float]) -> float:
 total_price({"apple": 1.0, "pear": 0.5})
 ```
 
-Concrete types like `list[int]` are right for *return* types — you commit to what you produce, but stay flexible about what you accept.
+- `Mapping[str, float]` is the abstract "anything you can do dict-style lookup on with string keys and float values" — a plain `dict` qualifies, but so does a `defaultdict`, a `ChainMap`, or any custom class implementing the mapping protocol.
+- The annotation is a contract: "I'll only call `.values()` and other read-only mapping operations" — narrower than `dict`, more flexible for callers.
+
+The general rule: hint *parameters* with abstract types (`Iterable`, `Mapping`, `Sequence`) and *returns* with concrete ones (`list[int]`) — accept broadly, commit narrowly.
 
 Common forms:
 
@@ -154,7 +164,11 @@ def first[T](xs: list[T]) -> T:
 [first([1, 2, 3]), first(["a", "b"])]
 ```
 
-The `[T]` after the function name declares `T` as a fresh type parameter scoped to this function. Same shape for classes: `class Box[T]: ...`.
+- `[T]` after the function name declares `T` as a fresh **type parameter** scoped to this function only.
+- The signature now reads "give me a list whose elements are of *some type* `T`, and I'll return one element of *the same* `T`."
+- A type checker treats `first([1, 2, 3])` as returning `int`, and `first(["a", "b"])` as returning `str` — the connection is preserved instead of collapsing to `Any`.
+
+The general rule: when a function's input and output types are linked, introduce a type parameter; the `[T]` syntax is the modern, boilerplate-free way. Same shape for classes: `class Box[T]: ...`.
 
 Python 3.12 also adds `@typing.override` — an explicit marker that a method is overriding a parent's method. Type-checkers will flag a typo or a renamed parent method that the marker no longer matches:
 
@@ -173,7 +187,12 @@ class Dog(Animal):
 Dog().speak()
 ```
 
-At runtime `@override` is a no-op; its value is the static check. Apply it to every overriding method in a non-trivial class hierarchy.
+- `Animal.speak` is the parent method.
+- `@override` above `Dog.speak` declares intent: "this is overriding a method from a parent."
+- If `Animal.speak` is later renamed to `talk`, a type checker flags `Dog.speak`'s `@override` because it no longer overrides anything — catching what would otherwise be a silent bug.
+- At runtime `@override` is a no-op; its value is purely the static check.
+
+The general rule: apply `@override` to every overriding method in a non-trivial class hierarchy — cheap to add, catches a real class of bug.
 
 The deep treatment of type hints — `Protocol`, generics, variance, `TypeVar` — is in @sec-type-hints and @sec-advanced-typing.
 

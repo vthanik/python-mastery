@@ -157,7 +157,16 @@ print(handle_command(["DROP", "ax", "bow"]))
 print(handle_command(["WHAT"]))
 ```
 
-Each `case` is a pattern, not an expression. Names like `direction`, `obj`, `*objects` are *bound* by the match if the structure fits. We will see pattern matching applied to mappings in @sec-dicts-sets and to classes in @sec-with-match-else.
+Walking through the cases:
+
+- `match message:` evaluates `message` once, then tries each `case` top-to-bottom until one matches.
+- `case ["QUIT"]:` matches a one-element sequence whose single element equals the *literal* string `"QUIT"`. Literals in patterns are matched by equality.
+- `case ["GO", direction]:` matches any two-element sequence whose first element equals `"GO"`. The *name* `direction` is a binding — it captures the second element so the body can use it.
+- `case ["GET", obj, location]:` does the same for a three-element sequence — two captures.
+- `case ["DROP", *objects]:` is the variable-length case. `*objects` collects every element after `"DROP"` into a list. So `["DROP", "ax", "bow"]` gives `objects == ["ax", "bow"]`.
+- `case _:` is the catch-all wildcard. `_` matches anything and doesn't bind.
+
+The general rule: each `case` is a *pattern*, not an expression — literals match by `==`, bare names bind, `*name` collects the rest, and `_` is the wildcard. We will see pattern matching applied to mappings in @sec-dicts-sets and to classes in @sec-with-match-else.
 
 ## Slicing {#sec-sequences-slicing}
 
@@ -215,7 +224,13 @@ board[0][1] = "X"
 board
 ```
 
-Every row is the *same* inner list — mutating one mutates all three. The fix is a comprehension, which builds a fresh inner list per iteration:
+Walking through what just happened:
+
+- `["_"] * 3` builds one list: `["_", "_", "_"]`. Strings are immutable, so the three slots point to the same `"_"` object — harmless.
+- The outer `* 3` then takes that *one* list and makes three references to it. The result is `[L, L, L]` where every `L` is the same object.
+- `board[0][1] = "X"` mutates that single shared list. Every row is just a label on it, so all three rows show the change.
+
+The fix is a comprehension, which builds a fresh inner list per iteration:
 
 ```{python}
 board = [["_"] * 3 for _ in range(3)]
@@ -223,7 +238,7 @@ board[0][1] = "X"
 board
 ```
 
-This is the first hint of the references-vs-values story we tell in full in @sec-references-mutability.
+The general rule: `[expr] * n` repeats *the reference*, not the object — safe for immutables, dangerous for anything you might mutate. Use a comprehension when the inner element is mutable. This is the first hint of the references-vs-values story we tell in full in @sec-references-mutability.
 
 ## `list.sort` versus `sorted` {#sec-sequences-sort}
 
@@ -293,7 +308,14 @@ memv_oct = memv.cast("B")
 memv_oct.tolist()
 ```
 
-`cast("B")` reinterprets the same memory as unsigned bytes, with no copy.
+Walking through what each line does:
+
+- `array.array("h", [...])` allocates a flat block of *signed short* integers (`"h"` = 2-byte signed). Five `h` values take 10 bytes of contiguous memory.
+- `memoryview(numbers)` wraps that buffer in a view — no copy, just a handle to the same memory.
+- `memv.cast("B")` reinterprets the *same bytes* as unsigned 8-bit ints (`"B"`). The 10 bytes that were "5 shorts" are now "10 bytes", with no allocation.
+- `tolist()` materializes them so we can inspect — `[254, 255, 255, 255, 0, 0, 1, 0, 2, 0]` shows the little-endian layout of the underlying shorts.
+
+The general rule: a `memoryview` is the cheap way to look at the same bytes through a different lens — useful for parsing binary formats and slicing without copying.
 
 ::: {.callout-tip}
 ## Why this matters

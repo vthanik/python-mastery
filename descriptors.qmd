@@ -130,7 +130,7 @@ m.non, m.__dict__
 
 ## Methods are descriptors {#sec-desc-methods}
 
-This is the deep cut. A function defined in a class body is a non-overriding descriptor. When you access it through an instance, Python calls `function.__get__(instance, class)` — and that returns a *bound method*:
+You've been writing `obj.method(arg)` since chapter 1 and it Just Works — `self` ends up bound to `obj` automatically. Where does that binding come from? There's no special compiler magic; it's the descriptor protocol again. A function defined in a class body is a non-overriding descriptor, and accessing it through an instance triggers `__get__` to produce a *bound method*.
 
 ```{python}
 class C:
@@ -140,7 +140,11 @@ class C:
 C.method, C().method
 ```
 
-`C.method` is the function. `C().method` is a *bound method* — a small wrapper that pre-binds the instance as the first argument. The whole "implicit `self`" of Python is just the descriptor protocol wrapping a function.
+Walking through what just happened:
+
+- `C.method` — accessed through the class, no instance — is just the plain function. No binding.
+- `C().method` — accessed through an instance — is a `bound method`, a small wrapper that pre-binds the instance as the first argument. Calling `bound()` is the same as calling `method(instance)`.
+- The two access paths produce different objects because Python's attribute lookup notices `method` has a `__get__` and calls it on the instance access. On the class access, `__get__` is called too — but with `instance=None` — and the function just returns itself.
 
 You can call `__get__` directly to see the binding happen:
 
@@ -150,9 +154,12 @@ bound = C.method.__get__(c, C)
 bound, bound() == c.method()
 ```
 
-`bound` is `c.method`. Python performs exactly this call every time you write `c.method`.
+Walking through this:
 
-The same mechanism explains `@classmethod` and `@staticmethod`:
+- `C.method.__get__(c, C)` is exactly what Python does internally for `c.method`. The first argument is the instance to bind; the second is the class (used by `super()` and a few introspection paths).
+- The returned `bound` *is* `c.method` for all practical purposes — calling it is identical to calling `c.method()`. The `==` confirms equality of the resulting strings.
+
+The general insight: there's no "implicit `self`" in Python. There's just the descriptor protocol — a function's `__get__` returns a callable with the instance pre-bound. The same mechanism explains `@classmethod` and `@staticmethod`:
 
 - `@classmethod` is a descriptor whose `__get__` binds the *class* (not the instance).
 - `@staticmethod` is a descriptor whose `__get__` returns the function unchanged.
@@ -161,7 +168,7 @@ There's no "magic." The same pattern — descriptor + `__get__` — implements a
 
 ## A complete validating descriptor {#sec-desc-complete}
 
-A common production pattern: an abstract base descriptor that defines the protocol, with subclasses for specific validation:
+The earlier `Quantity` baked one validation rule (`> 0`) into the descriptor. Real codebases need a family of rules — positive numbers, non-empty strings, valid emails — and you don't want to rewrite the storage-and-retrieval boilerplate each time. The clean answer is an abstract base descriptor that handles the protocol, with concrete subclasses that implement only the rule.
 
 ```{python}
 import abc
@@ -210,7 +217,16 @@ Order("widget", 3).__dict__
 Order("", 3)
 ```
 
-The descriptor handles all the boring storage-and-retrieval work; subclasses just implement `validate`. This is the right structure when the same validation pattern repeats across attributes or classes.
+Walking through the structure:
+
+- `Validated(abc.ABC)` is the base. It implements `__set_name__`, `__get__`, and `__set__` once — the protocol plumbing — and declares `validate` abstract so subclasses are forced to provide it.
+- `__set_name__` records both `public_name` (for error messages) and `private_name` (the underscore-prefixed key used for storage). Python calls this automatically when the class body completes.
+- `__get__` returns the descriptor itself when accessed on the class (`if instance is None`) — that's how `Order.qty` shows the descriptor for introspection. On an instance access, it fetches `_qty` from the instance via `getattr`.
+- `__set__` runs validation first, then stores via `setattr(instance, self.private_name, value)`. Storing under a *different* name than the descriptor's name is the trick — otherwise the descriptor's `__set__` would intercept its own write and recurse.
+- `Positive` and `NonEmpty` add nothing but a `validate` method. Each subclass is the rule, nothing else.
+- `Order` declares `qty = Positive()` and `name = NonEmpty()` — same syntax as `Quantity()` earlier, but now with a family of validators to choose from.
+
+The general pattern: lift the descriptor protocol into a base class, leave only the validation rule for subclasses. This is the right structure when the same validation pattern repeats across attributes or classes.
 
 For library authors: `typing.dataclass_transform` (PEP 681, 3.11) tells type-checkers that a descriptor-based decorator behaves like `@dataclass` — so mypy and pyright recognize the synthesized `__init__`. Reach for it only when shipping a public API that wants ORM-style ergonomics.
 

@@ -121,7 +121,7 @@ b
 
 ## Closures {#sec-decorators-closures}
 
-A *closure* is a function that retains the bindings of free variables from its enclosing scope, even after the enclosing function has returned.
+A function that needs to remember things across calls usually holds them as instance state on a class. But classes are heavy when the state is just one or two variables. Python's lighter alternative is a *closure*: a function that retains the bindings of free variables from its enclosing scope, even after the enclosing function has returned.
 
 ```{python}
 def make_averager():
@@ -135,7 +135,13 @@ avg = make_averager()
 avg(10), avg(11), avg(12)
 ```
 
-`make_averager` returned. Its local frame is gone. Yet `avg` still has access to `series` — because `series` was captured by `averager`'s closure. You can look at the capture directly:
+Walking through what just happened:
+
+- `make_averager` defines a *local* variable `series = []` and a *nested* function `averager`. `averager` reads and mutates `series` even though `series` isn't in its own local scope — `series` is a *free variable* (free in `averager`, bound in the enclosing `make_averager`).
+- `make_averager()` returns the inner function. Normally a function's locals (here `series`) are discarded when it returns; but because `averager` references `series`, Python keeps that binding alive in a hidden cell attached to `averager`.
+- `avg(10)`, `avg(11)`, `avg(12)` all share the *same* `series` list — calls accumulate. That's the closure: `make_averager`'s frame is gone, but the `series` it created lives on inside `avg`.
+
+You can look at the capture directly:
 
 ```{python}
 avg.__code__.co_freevars
@@ -185,7 +191,7 @@ avg(10), avg(11), avg(12)
 
 ## A simple decorator {#sec-decorators-simple}
 
-Putting it all together, a `clock` decorator that times a call:
+Putting it all together, a `clock` decorator that times a call. The problem: you want to add timing to several functions without editing each body. The solution: a wrapper function that records the time around the original, and a decorator to install it.
 
 ```{python}
 import time, functools
@@ -209,7 +215,16 @@ def factorial(n):
 factorial(6)
 ```
 
-`@functools.wraps(func)` is the small detail that matters. Without it, `clocked` would *replace* `factorial` — its `__name__`, `__doc__`, and `__wrapped__` would all point to the wrapper, not the original. With it, the wrapper looks like the wrapped function to the outside world.
+Walking through the layers:
+
+- `clock(func)` is the decorator. It receives the function being decorated (`factorial`) and returns a *replacement* function (`clocked`).
+- `clocked(*args, **kwargs)` is the wrapper. The `*args, **kwargs` signature accepts whatever shape `func` takes — that's what makes `clock` reusable across functions.
+- Inside `clocked`, `func` is a *free variable* — it was captured from the enclosing `clock` frame. This is the closure pattern from the previous section, doing real work.
+- `time.perf_counter()` is the highest-resolution wall-clock timer Python exposes; calling it before and after `func(*args, **kwargs)` measures elapsed seconds.
+- `@functools.wraps(func)` is the small detail that matters. Without it, `clocked` would *replace* `factorial` — its `__name__`, `__doc__`, and `__wrapped__` would all point to the wrapper, not the original. With it, the wrapper looks like the wrapped function to the outside world.
+- `@clock` above `def factorial` is sugar for `factorial = clock(factorial)`. After the line runs, the global name `factorial` refers to `clocked`, with the original function captured inside.
+
+The general pattern: wrap, time (or log, or cache, or...), forward, return. Every "add behavior around a function" decorator follows this shape.
 
 ## Decorators in the standard library {#sec-decorators-stdlib}
 
@@ -231,7 +246,7 @@ The recursion that's `O(2^n)` without caching becomes `O(n)` with it.
 
 **`@functools.cached_property`** — a related tool: compute an expensive instance attribute once on first access, store it on the instance, return the stored value thereafter. Like `@cache` but per-instance and tied to attribute access.
 
-**`@singledispatch`** — write a "generic function" that dispatches on the first argument's type:
+**`@singledispatch`** — write a "generic function" that dispatches on the first argument's type. The naive way to render a value as HTML is a long `if isinstance(x, str): ... elif isinstance(x, list): ...` chain — which couples every type to one big function and forces you to edit it whenever you add a new case. `singledispatch` flips this: each type gets its own implementation, registered separately, looked up by type at call time:
 
 ```{python}
 import html
@@ -261,7 +276,14 @@ print(htmlize(42))
 print(htmlize([1, "two", 3]))
 ```
 
-`singledispatch` is the Pythonic alternative to a chain of `isinstance` branches.
+Walking through the dispatch mechanism:
+
+- `@singledispatch` decorates the *base* function `htmlize(obj)`. This becomes the fallback — used when no registered handler matches.
+- `@htmlize.register` (note: it's the decorated function's own attribute, set by `singledispatch`) adds a specialized implementation. The *type to dispatch on* comes from the parameter annotation — `text: str` registers this body for `str` arguments.
+- The body name `_` is the convention for "I don't need to refer to this by name" — the dispatch table is what matters; the binding `_` is just the by-product of `def`.
+- At call time, `htmlize(42)` looks up `42`'s type (`int`) in the dispatch table, finds the `int` handler, and calls it. `htmlize(some_unregistered_thing)` falls through to the original `htmlize(obj)`.
+
+The general pattern: `singledispatch` is the Pythonic alternative to a chain of `isinstance` branches, and crucially, *new types can be added in different files* — each just needs `@htmlize.register` on its handler.
 
 ## Parameterized decorators {#sec-decorators-parameterized}
 
@@ -288,7 +310,7 @@ def g2(): pass
 
 Read it from the inside out: `register_if(active=True)` *evaluates first*, returning the actual decorator `decorate`. `decorate` then receives `g2` and registers it.
 
-A parameterized version of `clock`:
+A parameterized version of `clock`, where the caller picks the output format:
 
 ```{python}
 DEFAULT_FMT = "[{elapsed:0.8f}s] {name}({args}) -> {result}"
@@ -318,6 +340,14 @@ def snooze(seconds):
 
 snooze(0.01)
 ```
+
+Walking through the three nested levels — read them outside-in:
+
+- `clock(fmt=DEFAULT_FMT)` is the *decorator factory*. It takes the user's configuration (`fmt`) and returns the actual decorator. `@clock("...")` means "call `clock("...")` first, then apply the result as a decorator."
+- `decorate(func)` is the actual decorator returned by the factory. It receives `snooze`, sees `fmt` from the enclosing scope (closure!), and produces `clocked`.
+- `clocked(*args, **kwargs)` is the wrapper. Same shape as the simple `clock`, but it formats output using `fmt` — also captured by closure.
+
+So `@clock("{name}: {elapsed:.4f}s")` desugars to `snooze = clock("{name}: {elapsed:.4f}s")(snooze)` — the factory call evaluates first, then its result decorates. The general rule: a decorator with arguments is *one extra level of nesting* — the outermost takes the arguments, returns a decorator that takes the function, that returns the wrapper.
 
 ::: {.callout-tip}
 ## Why this matters

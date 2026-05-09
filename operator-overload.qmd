@@ -32,7 +32,7 @@ This is what makes `2 * vector` work even when `int` knows nothing about `Vector
 
 ## Unary operators {#sec-operator-unary}
 
-The minus, plus, and absolute-value operators each call one method:
+The minus, plus, and absolute-value operators each call one method. We need a class to overload them on — a small `Vector` of numeric components is the running example for the rest of the chapter.
 
 ```{python}
 import math
@@ -66,9 +66,18 @@ v = Vector([3, 4, 5])
 -v, +v, abs(v)
 ```
 
-`__pos__` returns a *copy* — `+v` looks like a no-op, but it's the conventional place to materialize a lazy or contextual value.
+Walking through the unary dunders:
+
+- `__abs__(self)` is what `abs(v)` calls. `math.hypot(*self)` unpacks the components and returns the Euclidean norm — the geometric "length" of the vector.
+- `__neg__(self)` is what `-v` calls. We return a *new* `Vector` with each component negated; the original is untouched.
+- `__pos__(self)` is what `+v` calls. It returns a copy — `+v` looks like a no-op, but it's the conventional place to materialize a lazy or contextual value.
+- The three I/O dunders (`__iter__`, `__len__`, `__repr__`) are scaffolding so the rest of the chapter can iterate, measure, and print vectors.
+
+The general pattern: each unary operator maps to one dunder that takes only `self` and returns a new value — never mutates.
 
 ## Overloading `+` {#sec-operator-add}
+
+Adding two vectors should produce a third — `Vector([1, 2, 3]) + Vector([10, 20, 30])` should be `Vector([11, 22, 33])`. And we want `[1, 2, 3] + v1` to work too, even though `list` knows nothing about `Vector`. That's what `__add__` and its reflected partner `__radd__` cover.
 
 ```{python}
 import itertools
@@ -89,6 +98,12 @@ v2 = Vector([10, 20, 30])
 v1 + v2
 ```
 
+Walking through the two methods:
+
+- `__add__(self, other)` is what `v1 + v2` calls. `zip_longest(self, other, fillvalue=0.0)` pairs up components and pads the shorter iterable with `0.0` — so `Vector([1, 2, 3]) + Vector([1])` works without an index error.
+- The `try/except TypeError` catches the case where `other` is not iterable (or its elements aren't numeric). On failure we `return NotImplemented` — the special sentinel — instead of raising. That's what tells Python to try `other.__radd__(self)` next.
+- `__radd__(self, other)` is the **reflected** form, called when the *other* operand is on the left. We just delegate to `self + other`, since vector addition is commutative.
+
 `zip_longest` lets us add vectors of different length:
 
 ```{python}
@@ -100,6 +115,8 @@ The `__radd__` exists so that `[1, 2, 3] + v1` would also work — Python tries 
 The crucial detail is the `return NotImplemented` on failure. Don't `raise TypeError` — that prevents Python from trying the reflected method.
 
 ## Scalar multiplication {#sec-operator-mul}
+
+`v * 3` should scale every component by 3. `3 * v` should do the same — the user shouldn't have to remember which side the scalar goes on. Same pattern as `+`: define `__mul__` for the left-hand case, `__rmul__` for the right.
 
 ```{python}
 class Vector(Vector):
@@ -117,7 +134,15 @@ v = Vector([1, 2, 3])
 v * 3, 3 * v, v * True
 ```
 
+Walking through the methods:
+
+- `__mul__(self, scalar)` is `v * scalar`. We coerce `scalar` through `float()` first — that's what defines "scalar-like": any value `float()` accepts. Anything else (a list, a string) raises `TypeError` from the conversion, which we catch and turn into `NotImplemented`.
+- `Vector(n * factor for n in self)` builds a new `Vector` from a generator expression — lazy, no intermediate list.
+- `__rmul__` handles `3 * v`: when Python sees `int * Vector`, it asks `int.__mul__(Vector)` first, gets `NotImplemented`, then falls through to `Vector.__rmul__(3)`. We just delegate to `self * scalar` — multiplication by a scalar is commutative.
+
 `v * True` works because `True` is `1` numerically — `float(True)` is `1.0`. `v * "spam"` would return `NotImplemented` (the `float()` call fails), and Python would raise `TypeError`.
+
+The general pattern: implement `__op__` and `__rop__` together for any binary operator that should accept a non-`Vector` on either side.
 
 Python 3.5 also added `@` for matrix multiplication via `__matmul__` / `__rmatmul__`. Rarely overloaded outside NumPy and friends — mention only.
 
@@ -138,6 +163,12 @@ class Vector(Vector):
 Vector([1, 2, 3]) == Vector([1.0, 2.0, 3.0])
 ```
 
+Walking through the two methods:
+
+- `__eq__(self, other)` first checks `isinstance(other, Vector)` — comparing a `Vector` to a plain list or a string is a category error, so we `return NotImplemented` and let Python fall through to the other side. For two `Vector`s, we require equal length and element-wise equality.
+- `__hash__(self)` lets a `Vector` be used as a dict key or set member. The contract is: if `a == b` then `hash(a) == hash(b)`. Hashing `tuple(self)` satisfies that — same components, same hash. (Mutable types should set `__hash__ = None`; ours is conceptually immutable.)
+- `1 == 1.0` is `True` in Python, so a `Vector` of ints equals the same `Vector` of floats. That's `__eq__` deferring to each component's own `__eq__`.
+
 For ordering, define one of `__lt__`, `__le__`, `__gt__`, `__ge__` and use `@functools.total_ordering` to fill in the rest:
 
 ```{python}
@@ -156,7 +187,14 @@ a, b = Angle(30), Angle(45)
 a < b, a >= b, a != b, sorted([Angle(45), Angle(30), Angle(60)], key=lambda x: x.degrees)
 ```
 
-`total_ordering` derives the missing comparisons from the two you wrote.
+Walking through how this works:
+
+- `degrees % 360` normalizes the input — `Angle(370)` and `Angle(10)` are the same angle.
+- We define only `__eq__` and `__lt__` by hand. Those are the two anchors `@total_ordering` needs.
+- `@total_ordering` reads the class and synthesizes the missing methods (`__le__`, `__gt__`, `__ge__`, `__ne__`) from the two you wrote. So `a >= b` and `a != b` work even though we never wrote them.
+- `sorted(..., key=...)` doesn't need ordering on `Angle` itself — we hand it a key function — but with `@total_ordering` we could now write `sorted([Angle(45), Angle(30), Angle(60)])` directly.
+
+The general pattern: write the two most natural comparisons (`__eq__` and one of `__lt__`/`__le__`/`__gt__`/`__ge__`), let `@total_ordering` fill in the algebra.
 
 ## Augmented assignment {#sec-operator-augmented}
 

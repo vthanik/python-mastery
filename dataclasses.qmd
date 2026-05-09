@@ -105,6 +105,12 @@ class ClubMember:
 ClubMember("Anna")
 ```
 
+Walking through what each annotated line declares:
+
+- `name: str` — a required field. The decorator generates `__init__(self, name, ...)` that assigns `self.name = name`.
+- `guests: list[str] = field(default_factory=list)` — an optional field with a *fresh* empty list per instance. Writing `= []` directly would share one list across every `ClubMember`, which is the mutable-default trap; `default_factory=list` calls `list()` for each new instance.
+- `athlete: bool = field(default=False, repr=False)` — defaults to `False`. The `repr=False` flag tells the generated `__repr__` to *omit* this field, which is why the printed output shows only `name` and `guests`.
+
 `field()` is the customization hook. Each option is a small but useful escape hatch:
 
 | `field()` option | Purpose |
@@ -120,7 +126,7 @@ ClubMember("Anna")
 
 ## `__post_init__` {#sec-dataclasses-post-init}
 
-If you need logic after the auto-generated `__init__` runs, define `__post_init__`:
+The generated `__init__` only assigns the fields you declared. What if you need to *derive* one — say, default `handle` to the first word of `name`? You can't do it in a `field(default=...)` because the default doesn't see the other fields. The hook is `__post_init__`: a method the generated `__init__` calls right after the assignments are done.
 
 ```{python}
 @dataclass
@@ -137,7 +143,14 @@ HackerClubMember("Anna Ravenscroft", handle="AnnaRaven").handle, \
 HackerClubMember("Leo Rochael").handle
 ```
 
-`__post_init__` is the right place to validate, normalize, or compute a derived attribute.
+Walking through what runs at construction time:
+
+- The `@dataclass` decorator generates an `__init__` that assigns `self.name`, `self.guests`, and `self.handle` from the constructor arguments.
+- After those assignments, the generated `__init__` automatically calls `self.__post_init__()` if the method exists.
+- Inside `__post_init__`, every field is already set, so we can read `self.name` and `self.handle`. If the caller passed an empty `handle`, we replace it with the first word of `name`.
+- For `"Anna Ravenscroft"` the caller passed `handle="AnnaRaven"`, so the `if` is `False` — handle stays as given. For `"Leo Rochael"` the handle defaulted to `""`, so we derive `"Leo"`.
+
+The general rule: `__post_init__` is the right place to validate, normalize, or compute any value that depends on the other fields after the auto-generated `__init__` finishes its assignments.
 
 ## `ClassVar` for class-level attributes {#sec-dataclasses-classvar}
 
@@ -235,7 +248,13 @@ staging = replace(prod, host="staging.example.com")
 prod, staging
 ```
 
-The original `prod` is unchanged; `staging` is a new immutable instance.
+Walking through the call:
+
+- `replace(prod, host="staging.example.com")` reads every field of `prod`, overrides the ones you name, and constructs a new `Config` from the merged values.
+- Internally it's roughly `Config(host="staging.example.com", port=prod.port, tls=prod.tls)` — but you don't have to spell out the unchanged fields.
+- The original `prod` is unchanged; `staging` is a new immutable instance.
+
+The general rule: for any frozen dataclass, `replace(obj, field=new_value)` is the substitute for assignment.
 
 ## Pattern matching dataclass instances {#sec-dataclasses-match}
 
@@ -260,7 +279,14 @@ def describe(record):
 describe(City("Asia", "Tokyo", "JP")), describe(City("Africa", "Lagos", "NG"))
 ```
 
-The same pattern works on `typing.NamedTuple` instances too.
+Walking through the cases:
+
+- `case City(continent="Asia", name=city):` matches when the value is a `City` instance *and* `record.continent == "Asia"`. The `name=city` part captures `record.name` into the local name `city`.
+- `case City(continent="Europe", name=city):` is the same shape for Europe.
+- `case City(name=city):` is the catch-all for any `City` regardless of continent — it only constrains the type, not the field values, and still captures `name`.
+- Inside the `match`, `case` clauses are tried top-to-bottom; the first one that fits wins.
+
+The general rule: `case ClassName(field=pattern, ...)` matches an instance of that class whose named fields satisfy each sub-pattern. The same syntax works on `typing.NamedTuple` instances too.
 
 ::: {.callout-tip}
 ## Why this matters

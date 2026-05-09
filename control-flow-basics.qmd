@@ -14,6 +14,8 @@ In this chapter you will learn to:
 
 ## `if`, `elif`, `else` {#sec-cf-if}
 
+The most basic decision your program makes: "is this value negative, zero, or positive?" `if` / `elif` / `else` is the universal three-way (or n-way) branch.
+
 ```{python}
 def classify(n):
     if n < 0:
@@ -26,7 +28,12 @@ def classify(n):
 [classify(x) for x in (-3, 0, 5)]
 ```
 
-Conditions use `==`, `!=`, `<`, `>`, `<=`, `>=`. Combine with `and`, `or`, `not`. Python's *chained comparisons* are unique and read naturally:
+- `if n < 0:` checks the first condition. If true, run the indented body and skip the rest.
+- `elif n == 0:` ("else if") is checked only when the previous condition was false. You can chain as many `elif`s as you need.
+- `else:` runs when no preceding condition matched. It's optional.
+- The list comprehension `[classify(x) for x in (-3, 0, 5)]` calls the function on three test cases.
+
+The general rule: `if` opens a chain, `elif` adds branches, `else` is the catch-all — Python evaluates conditions top-down and runs *exactly one* body. Conditions use `==`, `!=`, `<`, `>`, `<=`, `>=`. Combine with `and`, `or`, `not`. Python's *chained comparisons* are unique and read naturally:
 
 ```{python}
 def in_range(n):
@@ -45,7 +52,7 @@ parity
 
 ## `for` over any iterable {#sec-cf-for}
 
-The Pythonic `for` does *not* iterate by index — it iterates over the items themselves.
+In C or Java you'd write `for (int i = 0; i < items.length; i++) { items[i] ... }`. Python's `for` is different — it does *not* iterate by index, it iterates over the items themselves. You almost never need an index at all.
 
 ```{python}
 fruits = ["apple", "banana", "cherry"]
@@ -53,18 +60,31 @@ for fruit in fruits:
     print(fruit)
 ```
 
-`range(start, stop, step)` produces integers — useful when you really need indices:
+- `for fruit in fruits:` binds `fruit` to each element of the list in turn.
+- The body runs once per element; on the next pass `fruit` is rebound to the next item.
+- No counter to maintain, no off-by-one to risk.
+
+`range(start, stop, step)` produces integers — useful when you really need actual numbers (not just to index a list):
 
 ```{python}
 list(range(5)), list(range(2, 8)), list(range(0, 10, 2)), list(range(10, 0, -1))
 ```
 
-Two helpers turn manual index-tracking into clean code:
+- `range(5)` produces `0, 1, 2, 3, 4` — `stop` is exclusive, `start` defaults to 0.
+- `range(2, 8)` produces `2, 3, 4, 5, 6, 7`.
+- `range(0, 10, 2)` adds a step of 2, producing the even numbers under 10.
+- `range(10, 0, -1)` counts down — negative step works too.
+
+Two helpers turn the cases where you *do* need extras (an index, or a parallel list) into clean code:
 
 ```{python}
 for i, fruit in enumerate(fruits, start=1):
     print(i, fruit)
 ```
+
+- `enumerate(fruits, start=1)` yields `(1, "apple"), (2, "banana"), (3, "cherry")` — pairs of index and item.
+- `i, fruit = pair` happens implicitly via tuple unpacking on the loop variable.
+- `start=1` shifts the count to begin at 1 instead of the default 0 — handy for human-readable output.
 
 ```{python}
 names = ["Alice", "Bob", "Carol"]
@@ -73,7 +93,10 @@ for name, score in zip(names, scores):
     print(f"{name}: {score}")
 ```
 
-`zip` stops at the shortest iterable. `enumerate` gives `(index, value)` pairs.
+- `zip(names, scores)` walks two iterables in lockstep, yielding `("Alice", 95)`, `("Bob", 87)`, `("Carol", 92)`.
+- The loop unpacks each pair into `name` and `score`.
+
+The general rule: `for x in xs` is the default. Reach for `enumerate` only when you need the index, `zip` only when you walk parallel sequences. `zip` stops at the shortest iterable. `enumerate` gives `(index, value)` pairs.
 
 Under the hood, `for x in iterable:` desugars into a small protocol: ask the object for an iterator, then keep calling `next()` on it until it signals exhaustion.
 
@@ -92,7 +115,7 @@ Anything implementing `__iter__` works in `for`. That single rule is why lists, 
 
 ## `while` {#sec-cf-while}
 
-Use `while` when you don't know the number of iterations in advance.
+`for` works when you have an iterable in hand. `while` is for the other case — looping until a condition becomes false, when you don't know in advance how many iterations that takes.
 
 ```{python}
 count = 0
@@ -103,11 +126,16 @@ while total < 50:
 count, total
 ```
 
-The condition is checked *before* each iteration. If the condition is initially false, the body never runs. The body must eventually make the condition false — otherwise, infinite loop.
+- `count` and `total` are initialised before the loop — the condition needs them to exist.
+- `while total < 50:` is checked *before* each pass. While true, the body runs.
+- Each pass increments `count` and adds it to `total` — the running sum 1+2+3+....
+- When `total` first reaches or exceeds 50, the condition fails and the loop exits.
+
+The general rule: `while condition:` keeps going as long as the condition is true; the body must eventually flip it to false or you have an infinite loop. If the condition is initially false, the body never runs.
 
 ## `break` and `continue` {#sec-cf-break-continue}
 
-`break` exits the innermost loop. `continue` skips the rest of the current iteration.
+Two keywords let you reshape a loop's flow without an extra flag variable: `break` to bail out entirely, `continue` to skip ahead to the next item. They're the difference between "find me the first match" and "process all the valid ones".
 
 ```{python}
 # First even number
@@ -118,6 +146,10 @@ for n in [1, 3, 5, 6, 7, 8]:
 first
 ```
 
+- The loop walks the list left to right.
+- On `n = 6` the `if` triggers: `first` is bound, then `break` immediately exits the loop — `7` and `8` are never inspected.
+- This is the canonical "find the first one that matches" idiom.
+
 ```{python}
 # Skip negatives, sum positives
 total = 0
@@ -127,6 +159,12 @@ for x in [3, -1, 4, -2, 5]:
     total += x
 total
 ```
+
+- For each item, the `if` checks for negatives.
+- `continue` jumps straight to the next iteration, skipping the `total += x` line for negative values.
+- Positive values fall through and accumulate.
+
+The general rule: `break` exits the innermost loop; `continue` skips the rest of the current iteration but stays in the loop. Both are clearer than wrapping the body in a flag-controlled `if`.
 
 ## Walrus assignment {#sec-cf-walrus}
 
@@ -174,7 +212,13 @@ def describe(point):
 [describe((0, 0)), describe((0, 5)), describe((3, 0)), describe((3, 4))]
 ```
 
-For everyday branching, prefer plain `if` / `elif` / `else` — it's clearer.
+- `match point:` introduces the value to be matched; each `case` pattern is tried in order, top to bottom.
+- `case (0, 0):` matches a 2-tuple containing exactly two zeros — literal match.
+- `case (0, y):` matches any 2-tuple whose first element is `0`, and *binds* the second to a fresh name `y` for use in the body.
+- `case (x, 0):` is the mirror — first slot binds, second must be `0`.
+- `case (x, y):` is the catch-all — any 2-tuple binds both slots.
+
+The general rule: `case` patterns destructure shape and bind names in one step. For everyday branching, prefer plain `if` / `elif` / `else` — it's clearer.
 
 ::: {.callout-tip}
 ## Why this matters

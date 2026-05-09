@@ -16,7 +16,7 @@ In this chapter you will learn to:
 
 ## Treating a function like an object {#sec-functions-as-objects}
 
-Python's function objects have attributes you can read and (sometimes) write:
+In Java or C, a function is a special syntactic thing — you can call it but not store it in a variable or read its docstring at runtime. In Python a function is an *object* of type `function`, with attributes you can inspect (and sometimes write):
 
 ```{python}
 def factorial(n):
@@ -25,6 +25,12 @@ def factorial(n):
 
 factorial.__doc__, factorial.__name__, type(factorial)
 ```
+
+Walking through what's on display:
+
+- `factorial.__doc__` is the docstring — the triple-quoted string at the top of the body. Python attaches it to the function object automatically.
+- `factorial.__name__` is the name the function was defined under. Because it's stored on the object (not on the variable), it survives reassignment to other names.
+- `type(factorial)` reports `<class 'function'>` — `factorial` is an instance of the `function` class, just as `42` is an instance of `int`. This is the whole point: functions are values.
 
 Assigning a function to another name does not copy it — it adds a label:
 
@@ -39,7 +45,7 @@ Passing it as an argument works the same way:
 list(map(factorial, range(6)))
 ```
 
-`map` *received* the `factorial` object and called it on each element of `range(6)`. Nothing magical — `map` calls its first argument like any other.
+`map` *received* the `factorial` object and called it on each element of `range(6)`. Nothing magical — `map` calls its first argument like any other. The general rule: anywhere you can pass an `int` or a `str`, you can pass a function.
 
 ## Higher-order functions {#sec-functions-higher-order}
 
@@ -155,7 +161,7 @@ The fourth row — instances callable via `__call__` — is the trick that makes
 
 ## User-defined callable types {#sec-functions-callable-class}
 
-Define `__call__` and an instance becomes callable:
+Sometimes you want a callable that *also* keeps state — a function-like thing that remembers what it has done. A plain `def` can't easily hold private data; a class can. Define `__call__` and an instance becomes callable while still being an object with attributes and methods:
 
 ```{python}
 import random
@@ -179,11 +185,18 @@ bingo = BingoCage(range(3))
 bingo(), bingo(), callable(bingo)
 ```
 
-`bingo()` calls `__call__`, which calls `pick`. The instance is *also* a regular object — you can store state, add methods, subclass it. A function can't do all of that.
+Walking through this:
+
+- `__init__` copies `items` into `self._items` (so the caller's list isn't mutated) and shuffles it in place. The leading underscore is the convention for "internal — don't poke at this from outside."
+- `pick` pops the last item; if the cage is empty, `list.pop` raises `IndexError`. We re-raise it as `LookupError` because that's the abstraction this class exports — callers shouldn't have to know it's backed by a list.
+- `__call__(self)` is the special method Python invokes when you write `bingo()`. The expression `bingo()` is sugar for `bingo.__call__()`. Without this method, `bingo` is just an object; with it, `bingo` *is* a callable.
+- `callable(bingo)` returns `True` precisely because `__call__` is defined on its class.
+
+The general pattern: when you need a callable with memory, a class with `__call__` gives you the function-call syntax of a `def` plus the state and methods of an object. Closures (next chapter) are the lighter alternative when the state is small.
 
 ## From positional to keyword-only {#sec-functions-params}
 
-Python's parameter system is rich. The `tag` example exercises most of it:
+Real-world functions often need a mix: one or two required arguments, an open-ended set of extras, and named options that must be passed by keyword to avoid confusion. Python's parameter syntax — the `/`, `*`, `**` markers — lets you state exactly which parameters are positional, which are keyword-only, and where the variable-length collectors sit. The `tag` example exercises most of it:
 
 ```{python}
 def tag(name, /, *content, class_=None, **attrs):
@@ -238,7 +251,7 @@ divmod_(a=7, b=3)     # TypeError — a, b are positional-only
 
 ## The `operator` module {#sec-functions-operator}
 
-`operator` exports the arithmetic, comparison, and access operators as named functions, so you don't have to write a one-line lambda for them:
+You'll often want to pass an operator (`*`, `<`, `[i]`, `.attr`) as a function — to `reduce`, `sorted(key=...)`, `map`. The natural reflex is `lambda a, b: a * b` or `lambda r: r[1]`, but those throwaway lambdas clutter the call site. `operator` exports the arithmetic, comparison, and access operators as named functions:
 
 ```{python}
 from operator import mul, itemgetter, attrgetter, methodcaller
@@ -246,6 +259,11 @@ from functools import reduce
 
 reduce(mul, range(1, 6))
 ```
+
+Walking through this small example:
+
+- `mul` is `operator.mul` — the function form of `*`. `mul(3, 4)` returns `12`.
+- `reduce(mul, range(1, 6))` walks `[1, 2, 3, 4, 5]` left-to-right, computing `((((1*2)*3)*4)*5)` — i.e., `5!`. Without `operator.mul` you'd write `reduce(lambda a, b: a * b, ...)`, which says the same thing more noisily.
 
 `itemgetter(i)` is equivalent to `lambda r: r[i]`:
 
@@ -281,11 +299,17 @@ name_lat = attrgetter("name", "coord.lat")
 name_lat(cities[0])
 ```
 
-`methodcaller("replace", " ", "-")` is the third sibling — it freezes a method name and arguments. You'll reach for `attrgetter` and `itemgetter` daily; `methodcaller` only occasionally.
+Walking through this:
+
+- `namedtuple("Coord", "lat lon")` builds a tiny class with two fields. We use it to give `cities` a nested structure (each city has a `coord` with its own `lat` and `lon`).
+- `attrgetter("name", "coord.lat")` returns a *callable* that, given any object, fetches `obj.name` and `obj.coord.lat`. The dotted path `"coord.lat"` does the nested lookup for you — no need for `lambda c: c.coord.lat`.
+- Calling `name_lat(cities[0])` returns a tuple `("Tokyo", 35.69)` — one entry per attribute path, in the order you listed them.
+
+`methodcaller("replace", " ", "-")` is the third sibling — it freezes a method name and arguments, returning a callable that invokes that method on whatever you pass it. You'll reach for `attrgetter` and `itemgetter` daily; `methodcaller` only occasionally. The general pattern: any time you'd write a one-line lambda that does index, attribute, or method access, there's an `operator` function that says it more clearly.
 
 ## Freezing arguments with `partial` {#sec-functions-partial}
 
-`functools.partial` returns a new callable with some arguments already supplied:
+A function that takes a function (`map`, `sorted(key=...)`) usually expects a callable of one specific arity — `map` wants `f(x)`, not `f(x, y)`. When the function you have is wider than the slot you need to fit it into, you'd write `lambda x: mul(3, x)` to fix one argument. `functools.partial` does the same job without the lambda:
 
 ```{python}
 from operator import mul
@@ -295,6 +319,12 @@ triple = partial(mul, 3)
 list(map(triple, range(1, 6)))
 ```
 
+Walking through this:
+
+- `partial(mul, 3)` returns a *new* callable that, when called, invokes `mul(3, ...)` — the `3` is *frozen* as the first argument.
+- Assigning it to `triple` gives the resulting one-argument function a name. `triple(7)` is `mul(3, 7)`, i.e., `21`.
+- `map(triple, range(1, 6))` then needs only a one-argument callable, which `triple` is.
+
 A useful real-world example — pre-binding the form of Unicode normalization:
 
 ```{python}
@@ -303,7 +333,7 @@ nfc = functools.partial(unicodedata.normalize, "NFC")
 nfc("café")
 ```
 
-Now `nfc(s)` is a one-argument function with `"NFC"` baked in. Cleaner at the call site than passing the form repeatedly.
+Now `nfc(s)` is a one-argument function with `"NFC"` baked in. Cleaner at the call site than passing the form repeatedly. The general pattern: when a callable has *too many* parameters for the role you need, `partial` is the surgical tool to specialize it.
 
 ::: {.callout-tip}
 ## Why this matters

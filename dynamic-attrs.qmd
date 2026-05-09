@@ -16,7 +16,7 @@ In this chapter you will learn to:
 
 ## Data wrangling with `__getattr__` {#sec-attrs-frozen-json}
 
-`__getattr__` is called only when normal attribute lookup *fails*. The classic use is to wrap a JSON-decoded dict so that `feed["a"]["b"][0]["c"]` becomes `feed.a.b[0].c`:
+You're reading a JSON feed and the structure is nested four or five levels deep. Writing `feed["schedule"]["speakers"][0]["name"]` everywhere is noisy — every `["..."]` is visual clutter. You want `feed.schedule.speakers[0].name` instead, but the data is a plain dict you don't control. `__getattr__` is the hook: it's called only when normal attribute lookup *fails*, which means you can intercept any unknown attribute and look it up in the underlying dict.
 
 ```{python}
 class FrozenJSON:
@@ -52,11 +52,14 @@ feed = FrozenJSON(raw)
 feed.schedule.speakers[0].name, feed.schedule.speakers[-1].name, feed.schedule.venue
 ```
 
-Three things to notice:
+Walking through this piece by piece:
 
-1. `__new__` runs *before* `__init__`. Returning a list when the input is a list is how recursive wrapping works.
-2. `__getattr__` first tries `getattr(self.__data, name)` — that's how `.keys()`, `.items()`, etc. keep working. Only if the dict has no such attribute does it fall through to wrapping a key value.
-3. The double-underscore `__data` triggers name mangling — outside the class it's `_FrozenJSON__data` — so subclasses can't accidentally clobber it.
+- `__new__(cls, arg)` runs *before* `__init__` and gets to choose what kind of object actually comes back. If the argument is a dict, we hand off to the normal flow with `super().__new__(cls)`. If it's a list, we recursively wrap each item — the caller gets a list of `FrozenJSON` instances, not a `FrozenJSON`. If it's anything else (string, int, `None`), we just return it unchanged. That's how a deeply nested structure gets wrapped uniformly.
+- `__init__(self, mapping)` stores the underlying dict as `self.__data`. The double underscore triggers **name mangling** — outside the class it's accessible as `_FrozenJSON__data`, so subclasses can't accidentally clobber it.
+- `__getattr__(self, name)` is the hook. Python only calls it when normal attribute lookup *fails*, so it doesn't intercept everything — `feed.__data` still works normally because that attribute exists.
+- Inside `__getattr__` we first try `getattr(self.__data, name)` — that's how dict methods like `.keys()` and `.items()` keep working on the wrapper. Only if the dict has no such method does it fall through to `self.__data[name]`, wrapping the result in a fresh `FrozenJSON` so the recursion continues one level deeper.
+
+The general pattern: `__getattr__` is the fallback Python consults *after* every normal lookup path has failed, so it's safe to use as a "computed attribute" hook without intercepting your real attributes.
 
 ## `@property` for validation {#sec-attrs-property}
 
@@ -103,7 +106,14 @@ raisins.subtotal()
 raisins.weight = 0
 ```
 
-`@property` is also where `@x.deleter` lives if you need to intercept `del obj.x` — rarely.
+Walking through the moving parts:
+
+- The first `weight` method (decorated `@property`) is the **getter** — it returns `self.__weight`, the name-mangled internal storage. Reading `raisins.weight` calls this.
+- `@weight.setter` registers the **setter** — called on every assignment to `raisins.weight`. It checks `value > 0`, and only then writes to `self.__weight`. Writing `self.weight = ...` here would recurse forever, since that goes through the setter again.
+- `__init__` does `self.weight = weight` — that goes through the setter too, so a bad initial value is rejected at construction, not later.
+- `price` repeats the same pattern. The duplication is real — the next section shows how to factor it out.
+
+The general pattern: a `@property` getter/setter pair lets you replace a plain attribute with method-backed behavior — validation, logging, computed values — without changing a single caller's syntax. `@x.deleter` is the third piece if you need to intercept `del obj.x`, but you'll rarely reach for it.
 
 ## A property factory {#sec-attrs-factory}
 
@@ -139,7 +149,15 @@ LineItemF("apples", 5, 2).subtotal()
 LineItemF("bad", -1, 2)
 ```
 
-The factory is the entry point to descriptor land — see @sec-descriptors. A property *is* a descriptor, and the factory is one way to write one without the protocol boilerplate.
+Walking through the factory:
+
+- `quantity(storage_name)` is a function that *returns* a `property` object. The `storage_name` argument is captured in a closure — each property knows which key in the instance dict to read and write.
+- `qty_getter(instance)` reads `instance.__dict__[storage_name]` directly. Note `instance` is what `@property` calls `self` — the actual object the access is happening on.
+- `qty_setter(instance, value)` does the same `> 0` check as before, raising with a message that includes the attribute name so the error tells you which one was bad.
+- `property(qty_getter, qty_setter)` builds the property, equivalent to writing `@property` and `@x.setter` by hand.
+- In the class body, `weight = quantity("weight")` and `price = quantity("price")` install the property as a class attribute — same effect as the decorator form, but expressed with one call per attribute.
+
+The general pattern: when the same property logic repeats across several attributes, lift it into a factory that returns the property — one line per attribute instead of two methods each. The factory is the entry point to descriptor land — see @sec-descriptors. A property *is* a descriptor, and the factory is one way to write one without the protocol boilerplate.
 
 ## `cached_property` {#sec-attrs-cached}
 
@@ -162,7 +180,14 @@ c = Circle(5)
 c.area, c.area
 ```
 
-The "computing" message printed only once. The second access read from the instance dict directly. `cached_property` requires the instance to *have* a writable `__dict__`, so it's incompatible with `__slots__`.
+Walking through what happened:
+
+- `@cached_property` decorates `area` like a regular `@property` — but on first access it stores the computed value in the instance's `__dict__` under the same name (`area`).
+- The first `c.area` ran the function — that's the `"computing"` line. It computed `math.pi * 25` and stashed it in `c.__dict__["area"]`.
+- The second `c.area` did *not* print. Because `cached_property` is a *non-overriding* descriptor (it has `__get__` but no `__set__`), the instance dict shadows it on subsequent reads — see @sec-desc-overriding.
+- The cache lives until you `del c.area` or assign `c.area = ...` to overwrite it; it's not invalidated when `self.radius` changes. Use it only when the inputs are effectively immutable.
+
+The general guidance: reach for `cached_property` when the value is expensive to compute and you'd otherwise memoize it by hand. It requires the instance to have a writable `__dict__`, so it's incompatible with `__slots__`.
 
 ## The four attribute hooks {#sec-attrs-hooks}
 
@@ -212,6 +237,14 @@ obj = Logging()
 obj.x = 42
 obj.x
 ```
+
+Walking through this:
+
+- `__setattr__(self, name, value)` is called on *every* assignment — `obj.x = 42` ends up here as `self.__setattr__("x", 42)`.
+- The `print` line logs the assignment. Then `super().__setattr__(name, value)` delegates to `object.__setattr__`, which performs the actual write to `self.__dict__`. Without that delegation the value would never be stored.
+- Reading `obj.x` doesn't go through `__setattr__` at all — assignment and access are separate hooks.
+
+The general pattern: when you override `__setattr__`, always end with `super().__setattr__(name, value)` (or write to `self.__dict__` directly). Self-assignment inside the method is the classic infinite-recursion bug.
 
 The free helpers are worth knowing:
 

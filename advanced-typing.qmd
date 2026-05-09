@@ -14,7 +14,7 @@ In this chapter you will learn to:
 
 ## Overloaded signatures {#sec-typing-overload}
 
-Some functions have inputs and outputs that depend on each other. `max` is the canonical example: with no `key`, the elements must be `LT`-comparable; with a `key=Callable[[T], LT]`, the elements only need whatever the key produces.
+Some functions have inputs and outputs that depend on each other. `max` is the canonical example: with no `key`, the elements must be `LT`-comparable and the return is one of them; with a `key=Callable[[T], LT]`, the elements only need whatever the key produces but the return is still a `T`. A single signature can't express that — you need *one annotation per calling shape*. `@overload` is how you declare them all and still ship a single implementation.
 
 ```{python}
 from typing import overload, TypeVar, Any
@@ -45,11 +45,18 @@ def my_max(first, *args, key=None):
 my_max([3, 1, 4, 1, 5]), my_max("hello", "world", key=len)
 ```
 
-The `@overload` declarations are *only* for the type checker — they have no runtime effect. The actual implementation comes last, undecorated. `mypy` reads the overloads and applies the right one to each call site.
+Walking through the four overloads:
+
+- Overloads 1 and 2 cover the *positional* form (`max(a, b, c, ...)`). Without `key` the elements share an `LT`-comparable type and the return is `LT`. With `key`, the elements share an arbitrary `T` and the key produces `LT` — but the return is still `T`, the original element type.
+- Overloads 3 and 4 are the *iterable* form (`max([1, 2, 3])`). Same split: no key forces `LT`-comparable elements; with a key, the elements are arbitrary `T` and the return is `T`.
+- The leading `__` on `__arg1` makes those parameters positional-only — preventing callers from writing `my_max(__arg1=3, __arg2=4)` and aligning the surface with the real `max`.
+- The four `@overload` stubs have empty bodies (`...`). They're invisible at runtime; only the final undecorated `def` actually exists. The overloads are pure documentation for `mypy`.
+
+The general pattern: write one stub per supported calling shape, then a single concrete implementation. The type checker uses the stubs to pick the right return type at each call site; the runtime ignores them.
 
 ## `TypedDict` for structured dicts {#sec-typing-typeddict}
 
-When you receive a JSON-like dict whose keys you know, `TypedDict` documents the shape:
+When you receive a JSON-like dict whose keys you know, the bare `dict[str, Any]` annotation throws away everything useful — every key is `Any`, every value is `Any`, and the type checker can't catch typos. `TypedDict` is the static fix: it documents the exact shape while keeping the runtime as a plain `dict`.
 
 ```{python}
 from typing import TypedDict
@@ -69,7 +76,12 @@ book: BookDict = {
 book["title"]
 ```
 
-`mypy` knows `book["title"]` is `str` and `book["pagecount"]` is `int`. At runtime, `book` is just a `dict` — `TypedDict` is a static-only annotation.
+Walking through what `TypedDict` does:
+
+- `class BookDict(TypedDict):` looks like a class declaration but generates almost nothing at runtime — it's a marker the type checker reads. The annotated names become *required keys* with the given types.
+- `book: BookDict = {...}` is just a plain dict literal. There's no `BookDict(...)` constructor — assignment with the annotation is the whole interface.
+- `mypy` checks at static-analysis time that the literal has all four keys with matching types. `book["title"]` is statically `str`; `book["pagecount"]` is statically `int`. A typo like `book["title"] = 5` flags as a type error before the program runs.
+- At runtime, `book` is a plain `dict` — `isinstance(book, dict)` is `True`; `isinstance(book, BookDict)` raises a `TypeError` because `TypedDict` isn't a runtime class.
 
 | | `TypedDict` | `@dataclass` |
 |---|---|---|
@@ -109,7 +121,12 @@ class ImmutableBag(Generic[T_co]):
         return iter(self._items)
 ```
 
-`ImmutableBag` only *produces* `T_co` — it never accepts one. So `ImmutableBag[Dog]` *is* an `ImmutableBag[Animal]`. That's *covariance*.
+Walking through the covariant declaration:
+
+- `T_co = TypeVar("T_co", covariant=True)` is the marker. The `_co` suffix is convention; what makes it covariant is the keyword argument.
+- `ImmutableBag(Generic[T_co])` ties the class to the type parameter. Once a `T_co` is fixed by construction (`ImmutableBag([Dog()])`), every subsequent appearance of `T_co` refers to that type.
+- The class only ever *produces* `T_co` — it appears in a return position (`Iterator[T_co]`) and an input position (`Iterable[T_co]`) that becomes part of its read-only state. There's no method that accepts a new `T_co` later, so a tighter type can never enter through the back door.
+- That's why `ImmutableBag[Dog]` can substitute for `ImmutableBag[Animal]`: any caller expecting to *receive* `Animal`s from the bag will be perfectly happy with `Dog`s.
 
 The opposite case — *contravariance* — is for things that only *consume* `T`:
 
@@ -120,7 +137,11 @@ class TrashCan(Generic[T_contra]):
     def drop(self, item: T_contra) -> None: ...
 ```
 
-A `TrashCan[Animal]` accepts any animal — including dogs. So a `TrashCan[Animal]` *is* a `TrashCan[Dog]`. The subtype direction reversed.
+Walking through the contravariant declaration:
+
+- `T_contra = TypeVar("T_contra", contravariant=True)` is the mirror marker.
+- `drop(self, item: T_contra)` is the only operation, and `T_contra` appears in an input position. The class never produces a `T_contra` — it only swallows them.
+- A `TrashCan[Animal]` accepts any animal, *including* dogs. So if a function expects a `TrashCan[Dog]`, you can hand it a `TrashCan[Animal]` and it'll work — the can will accept anything narrower than what it advertises. The subtype direction reversed.
 
 The rule of thumb:
 
@@ -138,7 +159,7 @@ Three PEPs reshape how you write generics and class hierarchies. They're strictl
 
 ### PEP 695 generic syntax (3.12)
 
-The classic `TypeVar` form:
+Before 3.12 you had to declare each type variable as a free-standing `TypeVar` and then mention it in the function signature — a two-step dance even for one-off generics:
 
 ```{python}
 from typing import TypeVar
@@ -147,6 +168,8 @@ T_old = TypeVar("T_old")
 def first_old(xs: list[T_old]) -> T_old:
     return xs[0]
 ```
+
+Walking through the old form: `TypeVar("T_old")` allocates a type variable bound to the *string* `"T_old"`; `T_old` is then a Python object that mypy recognizes as a generic placeholder. You declare it once and reuse it across all signatures that share the parameter.
 
 The 3.12 form drops the boilerplate — type parameters live on the `def` itself:
 
@@ -157,7 +180,11 @@ def first[T](xs: list[T]) -> T:
 first([1, 2, 3]), first(["a", "b"])
 ```
 
-The same syntax works for classes:
+Walking through the new form:
+
+- `def first[T]` declares `T` as a fresh type parameter scoped to this function. No separate `TypeVar` allocation, no name to keep in sync.
+- `first([1, 2, 3])` resolves `T = int`; the return type is `int`. `first(["a", "b"])` resolves `T = str`; same function, different inferred parameter.
+- The same syntax works for classes:
 
 ```{python}
 class Box[T]:
@@ -167,18 +194,22 @@ class Box[T]:
 Box(7).item
 ```
 
-Type aliases get a `type` statement:
+`Box[T]` makes `T` a class-scoped parameter — every method body can reference it. `Box(7)` infers `T = int`; `Box("hi")` would infer `T = str`. Each instance carries its own `T`.
+
+Type aliases get a dedicated `type` statement:
 
 ```{python}
 type Vector = list[float]
 type StrOrInt = str | int
 ```
 
+`type Vector = list[float]` registers `Vector` as a *type alias* — mypy substitutes `list[float]` wherever you write `Vector`. Unlike `Vector = list[float]` (a plain assignment), the `type` statement is recognized as an alias declaration even in tricky scopes and is the form you should reach for in new code.
+
 For *covariance* and *contravariance*, the explicit `TypeVar(..., covariant=True)` form is still needed (variance markers in PEP 695 are deferred). The variance section above stays as-is.
 
 ### `Self` (PEP 673, 3.11) for fluent builders
 
-Use `Self` to mean "instance of the class this method is defined on" — it *follows subclasses*, which `"QueryBuilder"` (the string forward-reference) does not.
+In a fluent-builder class, every method returns `self` so calls can chain. Annotating the return type as `"QueryBuilder"` (a string forward-reference) works for the base class — but on a subclass, mypy still types each chained call as `QueryBuilder`, losing the subclass type. `Self` is the fix: it means "instance of the class this method is defined on" and *follows subclasses* automatically.
 
 ```{python}
 from typing import Self
@@ -193,9 +224,17 @@ class QueryBuilder:
 QueryBuilder().where("a=1").where("b=2").parts
 ```
 
+Walking through the chain:
+
+- `where(self, clause: str) -> Self` declares the return type as "the same class `self` belongs to." On `QueryBuilder` that's `QueryBuilder`; on a subclass `MyQueryBuilder(QueryBuilder)`, it's `MyQueryBuilder` — automatically.
+- `QueryBuilder().where("a=1")` returns the same instance. The next `.where("b=2")` chains on the same builder, accumulating clauses.
+- `.parts` at the end reads the final list — `["a=1", "b=2"]`.
+
+The general pattern: use `Self` for any method that returns "another one of these" — fluent builders, alternative constructors that return `cls(...)` instances, copy methods. It's the right return type whenever the method's value tracks the receiver's class.
+
 ### `@override` (PEP 698, 3.12)
 
-Mark methods that *intend* to override a parent. The type checker errors if no parent has that method — useful when refactoring.
+A common refactoring bug: you rename a method on the parent class but forget to update the override on a subclass. Now the subclass has a *new* method with the old name, the parent's method runs unchanged, and nothing flags the mistake. `@override` is the static guard: mark every intentional override, and mypy errors out the moment the parent loses the matching method.
 
 ```{python}
 from typing import override
@@ -209,6 +248,14 @@ class Dog(Animal):
 
 Dog().speak()
 ```
+
+Walking through the marker:
+
+- `Animal` defines `speak` — a default implementation.
+- `Dog(Animal)` overrides `speak` to return `"woof"`. The `@override` decorator declares "I intend to be replacing a parent method."
+- The decorator has no runtime effect — it just sets a marker mypy reads. If we later renamed `Animal.speak` to `Animal.vocalize` and forgot to update `Dog`, mypy would flag `Dog.speak` as a non-override and the bug would surface at type-check time.
+
+The general guidance: annotate every intentional override with `@override`. The cost is one decorator per method; the benefit is rename-safety across the whole hierarchy.
 
 ### `Never` and `LiteralString` (one-line each)
 
@@ -225,7 +272,7 @@ def run_query(q: LiteralString) -> None: ...
 
 ## Reading hints at runtime {#sec-typing-runtime}
 
-`typing.get_type_hints` reads the `__annotations__` of a function or class and resolves any forward references:
+Sometimes you need annotations at *runtime* — to drive a serializer, build a CLI from a function signature, or generate documentation. The raw `__annotations__` dict is the underlying storage, but it's brittle: under `from __future__ import annotations` the values are unresolved strings, and forward references are never expanded. `typing.get_type_hints` is the safer accessor — it resolves strings to real types and follows forward references.
 
 ```{python}
 from typing import get_type_hints
@@ -243,7 +290,13 @@ get_type_hints(HintedClass)
 get_type_hints(HintedClass.method)
 ```
 
-`__annotations__` is the raw dict — strings if you used `from __future__ import annotations`, real types otherwise. `get_type_hints` is the safer accessor.
+Walking through the calls:
+
+- `get_type_hints(HintedClass)` returns a dict of *class-level* annotations: `{"attr": int, "other": str}`. The defaults aren't part of the annotations — only the type next to each colon.
+- `get_type_hints(HintedClass.method)` returns the *function's* annotations: `{"x": float, "return": bool}`. Note that `self` has no annotation by convention, so it's absent from the result.
+- Compared with `HintedClass.__annotations__`, `get_type_hints` does the extra work of resolving any string-form annotations (via the function's globals/locals) into real type objects.
+
+The general rule: use `get_type_hints` whenever you need to introspect annotations at runtime. The raw `__annotations__` dict is fine when you can guarantee the module doesn't use forward references or `from __future__ import annotations`, but `get_type_hints` is the form that always works.
 
 ::: {.callout-tip}
 ## Why this matters

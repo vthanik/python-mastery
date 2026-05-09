@@ -61,7 +61,14 @@ cart = [LineItem("banana", 4, Decimal("0.5")),
 Order(ann, cart, FidelityPromo()).due()
 ```
 
-This is the pattern as it appears in *Design Patterns* (Gamma et al., 1994) — the form you'd write in Java or C++.
+Walking through the parts of the textbook pattern:
+
+- `Promotion(ABC)` is the *strategy interface* — an abstract base class with one method (`discount`) that subclasses must implement. The `@abstractmethod` decorator stops anyone from instantiating `Promotion` directly.
+- `FidelityPromo` and `BulkItemPromo` are *concrete strategies* — one class per algorithm, each implementing `discount` its own way.
+- `Order` is the *context*. It holds a `promotion` and delegates the discount computation to it via `self.promotion.discount(self)`. `Order` doesn't care which strategy it has, only that whatever it has implements the interface.
+- The call `Order(ann, cart, FidelityPromo())` instantiates the strategy and hands it in.
+
+This is the pattern as it appears in *Design Patterns* (Gamma et al., 1994) — the form you'd write in Java or C++. Notice the boilerplate: each strategy is a class, and each class wraps a single function (`discount`).
 
 ```{mermaid}
 flowchart LR
@@ -114,7 +121,13 @@ class OrderF:
 OrderF(ann, cart, fidelity_promo).due()
 ```
 
-Same answer; one-third the code; no abstract classes; no instantiation overhead. The strategy is just a function, and `Order` calls it.
+Walking through what changed and what didn't:
+
+- Each strategy is now a plain `def`. `fidelity_promo(order)` does the same arithmetic the class-based `FidelityPromo.discount` did — but there's no class wrapping it.
+- `OrderF` differs from `Order` in one line: `self.promotion(self)` instead of `self.promotion.discount(self)`. We're calling the promotion directly, because functions are callable.
+- The call site `OrderF(ann, cart, fidelity_promo)` passes the function *itself* — no `()`, no instantiation. Compare to the OOP version that needed `FidelityPromo()`.
+
+Same answer; one-third the code; no abstract classes; no instantiation overhead. The general lesson: when a "class" exists only to hold one method, in Python that class can simply be the method.
 
 A "best-of" combinator is a one-liner:
 
@@ -171,7 +184,15 @@ def best_promo(order):
 [p.__name__ for p in promos]
 ```
 
-The decorator runs at import time (see @sec-decorators), so adding a new strategy is one `@promotion` line. The `best_promo` function picks it up automatically.
+Walking through the registry trick:
+
+- `Promotion = Callable[["OrderF"], Decimal]` is a type alias for "a function that takes an `OrderF` and returns a `Decimal`." It documents the protocol the strategies must satisfy. (The forward reference `"OrderF"` is in quotes because the class is defined in a different cell.)
+- `promos: list[Promotion] = []` is the registry — initially empty, populated as decorators run.
+- `promotion(promo)` is the decorator. It appends `promo` to `promos` for its side effect, then returns `promo` *unchanged*. That last detail matters: a decorator that returns the original function leaves the call site behavior alone — we get the registration *plus* the function callable as before.
+- `@promotion` above `def fidelity_promo` is sugar for `fidelity_promo = promotion(fidelity_promo)`. Since `promotion` returns its argument, the binding `fidelity_promo` still names the same function — but `promos` now contains it.
+- The decorator runs at *import time* (see @sec-decorators), so adding a new strategy is one `@promotion` line. The `best_promo` function picks it up automatically — no list to maintain.
+
+The general pattern: a registry decorator is a function that returns its argument and keeps a side-effect record of every function it sees. It's the universal recipe for plugin-style discovery.
 
 ## The Command pattern {#sec-patterns-command}
 
@@ -194,7 +215,14 @@ macro = MacroCommand([open_file, save_file, close_app])
 macro()
 ```
 
-Each "command" is a plain function. `MacroCommand` is callable thanks to `__call__` (see @sec-first-class-functions). The Java version of this pattern would have an `interface Command { void execute(); }` and one class per command. None of that is needed here.
+Walking through the collapse:
+
+- Each "command" is a plain function (`open_file`, `save_file`, `close_app`). In Java each would be a class implementing `Command.execute()`.
+- `MacroCommand.__init__` stores the list of commands. `list(commands)` copies — the macro owns its sequence even if the caller mutates theirs later.
+- `__call__(self)` makes the *instance* callable (see @sec-first-class-functions): `macro()` invokes `MacroCommand.__call__(macro)`, which loops and calls each command in turn.
+- Calling `command()` works uniformly because every "command" is just a callable — function, lambda, class with `__call__`, or another `MacroCommand`.
+
+The general pattern: where Java needs an interface (`Command { void execute(); }`) and one class per action, Python lets the *callable protocol* play that role. Replace command objects with callables; replace strategy objects with strategy functions. The pattern doesn't disappear — it becomes idiomatic Python.
 
 ::: {.callout-tip}
 ## Why this matters

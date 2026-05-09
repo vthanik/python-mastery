@@ -82,7 +82,15 @@ b1 = dict(api=1, author="Douglas Hofstadter",
 get_creators(b1)
 ```
 
-The crucial rule for mapping patterns: a pattern matches if the *given* keys are present. Extra keys in the value are ignored. That's the opposite of how `==` on dicts works — and it's exactly what you want for parsing semi-structured records.
+Walking through the cases:
+
+- `case {"type": "book", "api": 2, "authors": [*names]}:` matches when the dict has `type == "book"`, `api == 2`, and an `authors` key whose value is a sequence. The inner `[*names]` is itself a sequence pattern that captures every element of the list.
+- `case {"type": "book", "api": 1, "author": name}:` matches a v1 book — one `author` (singular). The bare name `name` captures the value.
+- `case {"type": "book"}:` is the *fallback for books*: any book that didn't match the two above is malformed. Order matters — this comes after the specific cases.
+- `case {"type": "movie", "director": name}:` handles movies with the same shape rule.
+- `case _:` is the catch-all wildcard for anything that isn't a book or movie.
+
+The crucial rule for mapping patterns: a pattern matches if the *given* keys are present and their values match. Extra keys in the input are ignored — `b1` has a `title` key that no pattern mentions, and that's fine. That's the opposite of how `==` on dicts works (which requires identical keys) — and it's exactly what you want for parsing semi-structured records.
 
 ## Handling missing keys {#sec-dicts-missing}
 
@@ -140,7 +148,16 @@ d = StrKeyDict([("2", "two"), ("4", "four")])
 d[2]
 ```
 
-The integer key `2` was not in the dict, but `__missing__` was called and converted it to `"2"`. Subtle thing to know: `__missing__` is *only* invoked by `d[key]`, not by `d.get(key)` — that's why we override `get` too.
+Walking through what each piece does:
+
+- `class StrKeyDict(dict):` makes `StrKeyDict` inherit everything from `dict`. We only override what we want to change.
+- `__missing__(self, key)` is the dunder Python's `dict.__getitem__` calls when a key isn't found. If we raise `KeyError`, the lookup fails normally; if we return a value, that becomes the result of `d[key]`.
+- The check `if isinstance(key, str): raise KeyError(key)` prevents infinite recursion. If we get here with a string and that string isn't in the dict, give up — otherwise `self[str(key)]` would just call `__missing__` again.
+- `return self[str(key)]` is the trick: take the non-string key, stringify it, and try the lookup again. So `d[2]` becomes `d["2"]`, which finds `"two"`.
+- `get` is overridden because the inherited `dict.get` does *not* go through `__missing__` — it has its own fast path. We re-implement it via `try/except` so it picks up the new behavior.
+- `__contains__` is the dunder for `key in d`. Same reason: the inherited version checks the literal key only; we want both the original and its string form to count.
+
+The general rule: `__missing__` is the right hook for "I want `d[key]` to do something custom on a miss" — but it only catches `d[key]`, not `d.get` or `key in d`, so override those if you need consistent behavior across all three.
 
 ## Variations of `dict` {#sec-dicts-variations}
 

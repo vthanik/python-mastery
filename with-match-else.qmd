@@ -24,7 +24,7 @@ with io.StringIO("hello\nworld\n") as fp:
 
 `with` calls `fp.__enter__()`, binds the result to `fp`, runs the block, then calls `fp.__exit__(...)` no matter what — exception or clean exit.
 
-A custom context manager:
+A custom context manager. We'll write one that monkey-patches `sys.stdout.write` to reverse each string it prints — it's a contrived effect, but it shows the full lifecycle: setup on entry, teardown on exit, and exception handling in between.
 
 ```{python}
 import sys
@@ -52,9 +52,15 @@ with LookingGlass() as label:
 print("normal again")
 ```
 
-`__enter__` returns `"JABBERWOCKY"` — that's what `as label` binds. Inside the block, `print` writes to a function that reverses each string. On exit, the original `write` is restored.
+Walking through the lifecycle:
 
-The three arguments to `__exit__` describe the exception — or `None` if there wasn't one. Returning `True` suppresses the exception; `False` propagates it.
+- `__enter__(self)` runs at the top of the `with` block. It saves the *real* `sys.stdout.write` so we can restore it later, swaps in our `reverse_write` replacement, and returns `"JABBERWOCKY"` — that return value is what `as label` binds.
+- `reverse_write(self, text)` is the replacement. Each `print(...)` call now routes through here; we slice the text with `[::-1]` and forward the reversed string to the original write.
+- `__exit__(self, exc_type, exc_val, exc_tb)` runs *no matter how the block exits* — clean fall-through, `return`, or exception. We restore the real write first, so cleanup happens before any further logic.
+- The three exception arguments are `None` on a clean exit. If an exception passed through, they describe it. We special-case `ZeroDivisionError`, print a message, and `return True` — that tells Python "I handled it; don't re-raise". Returning `False` (or nothing) propagates the exception.
+- Inside the `with` block, `print("Alice")` produces `ecilA`, and `print(label)` prints the reversed `JABBERWOCKY`. After the block, `print("normal again")` shows the real write is back.
+
+The general pattern: any class with `__enter__` and `__exit__` is a context manager. Use the class form when the manager carries non-trivial state; use the `@contextmanager` form (next) when a generator is enough.
 
 ## `@contextmanager` {#sec-cm-contextmanager}
 
@@ -81,7 +87,15 @@ with looking_glass() as label:
 print("normal again")
 ```
 
-The code *before* `yield` runs on `__enter__`; the value yielded is `as`-bound; the code after `yield` runs on `__exit__`. The `try/finally` is what guarantees cleanup runs even on exception.
+Walking through the generator-as-CM:
+
+- `@contextlib.contextmanager` wraps the generator function in a class that supplies `__enter__` and `__exit__` automatically.
+- The code *before* `yield` is the setup phase — it runs when `__enter__` is called.
+- `yield "JABBERWOCKY"` is the pivot. The yielded value becomes the `as label` binding, and the generator pauses there for the duration of the `with` block.
+- The code *after* `yield` is the teardown phase — it runs when `__exit__` is called.
+- The `try/finally` is the bit that *can't* be skipped: if the `with` block raises, `contextmanager` re-throws the exception *into* the generator at the `yield`, and `finally` runs cleanup before the exception propagates.
+
+The general pattern: write the cleanup that has to happen no matter what inside `finally`; the `yield` is the boundary between setup and teardown.
 
 The `contextlib` toolkit goes further:
 
@@ -120,7 +134,14 @@ with ExitStack() as stack:
 contents
 ```
 
-Every `enter_context` is closed on exit — even if any of them raises.
+Walking through the stack:
+
+- `with ExitStack() as stack:` opens a single outer context manager that will manage many inner ones.
+- `stack.enter_context(cm)` enters `cm` *now* (calls its `__enter__`) and registers its `__exit__` to run when the `ExitStack` block exits. The return value is what the inner context manager yielded.
+- We use a list comprehension to enter all three `StringIO` objects — but `sources` could be an unknown-length iterable read at runtime. Nested `with` would require a fixed shape; `ExitStack` doesn't.
+- On exit, the registered cleanups run in *reverse* order — last-in, first-out — even if the body raised.
+
+The general pattern: when the number of context managers is dynamic (an unknown count of files, locks, or transactions), reach for `ExitStack` instead of a tower of nested `with`s.
 
 Day to day, the `@contextmanager` form is what most Python code writes. The class form is reserved for libraries and the rare context manager that needs internal state.
 
@@ -142,7 +163,13 @@ else:
     print("not found")
 ```
 
-If you'd searched for `3`, the `break` would have fired and the `else` would have been skipped.
+Walking through the control flow:
+
+- The loop iterates over `items`. `target` is `5`, which isn't in the list, so `item == target` is never true and `break` never runs.
+- When a `for` loop falls through naturally (no `break`), Python runs the attached `else` block — so we get `not found`.
+- If `target` had been `3`, the `break` would have fired on the third iteration; `else` would have been skipped entirely.
+
+The general pattern: `for/else` is "I searched and didn't find it" without a flag variable. Read it as `for ... else / not-broken-out`.
 
 **`while/else`** — the same idea: `else` runs when the condition becomes false (no break):
 
@@ -169,7 +196,14 @@ finally:
     print("cleanup")
 ```
 
-If `json.loads` had raised, the `else` would have been skipped and the `except` would have run instead.
+Walking through the four-block dance:
+
+- `try` runs `json.loads(text)`. If it raises `ValueError`, control jumps to `except`; otherwise, it falls through.
+- `except ValueError:` only runs on a parse failure. If you put the `print("parsed:", data)` here it would execute on success too — that's a common mistake.
+- `else:` runs only when the `try` succeeded *and* no exception was caught. It's where the "use the result" logic belongs — keeping it out of `try` narrows what `except` catches by accident.
+- `finally:` always runs — success, exception, even early `return`. It's where unconditional cleanup goes.
+
+The general pattern: keep `try` minimal (just the call that might fail), put the success-path logic in `else`, put cleanup in `finally`. Each block has one job.
 
 ::: {.callout-tip}
 ## Why this matters

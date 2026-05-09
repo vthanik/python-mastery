@@ -14,6 +14,8 @@ In this chapter you will learn to:
 
 ## The five primitive types {#sec-values-types}
 
+Before we can do anything interesting in a program, we need a vocabulary of basic values: whole numbers, fractional numbers, true/false flags, text, and "nothing". Python gives you exactly those five and infers the type from the literal — no `int x = 42;` declaration step.
+
 ```{python}
 n = 42
 pi = 3.14159
@@ -24,7 +26,14 @@ nothing = None
 [type(x).__name__ for x in (n, pi, flag, name, nothing)]
 ```
 
-Notes worth keeping in mind:
+- `42` is an `int` literal — a whole number.
+- `3.14159` is a `float` literal — the decimal point is the cue.
+- `True` (and `False`) are `bool` literals — capitalized exactly.
+- `"Alice"` is a `str` literal — quoted text.
+- `None` is the singleton `NoneType` value — Python's "no value here" marker.
+- `type(x).__name__` asks each value for its class name, confirming the inference.
+
+The general rule: literals carry their own type; assignment never declares one. Notes worth keeping in mind:
 
 - **`int`** has no fixed size — `2 ** 200` is exact. Use underscores for readability: `1_000_000`.
 - **`float`** is a 64-bit IEEE-754 double. It is *not* exact: `0.1 + 0.2` is `0.30000000000000004`. For exact decimals, use `decimal.Decimal`.
@@ -61,7 +70,7 @@ Naming conventions Python programmers follow without exception (PEP 8):
 - `UpperCamelCase` for class names.
 - `UPPER_SNAKE_CASE` for module-level constants.
 
-Multiple assignment and unpacking are common:
+Multiple assignment and unpacking are common. In most languages, swapping two variables needs a temporary: `t = a; a = b; b = t`. Python lets you write the swap as a single statement.
 
 ```{python}
 a, b = 1, 2
@@ -69,15 +78,25 @@ a, b = b, a
 a, b
 ```
 
-`a, b = b, a` swaps without a temporary — the right-hand side is built into a tuple first, then unpacked.
+- `a, b = 1, 2` is **tuple unpacking**: Python builds the tuple `(1, 2)` on the right, then assigns the first element to `a` and the second to `b`.
+- `a, b = b, a` does the same — but the right-hand side `(b, a)` is fully evaluated *before* any assignment happens, so the original values land on the new names with no temporary needed.
+
+The general rule: the right-hand side is computed first, then unpacked into the names on the left.
 
 ## Arithmetic {#sec-values-arithmetic}
+
+Python has four numeric operators worth distinguishing up front. Two of them — `/` and `//` — both look like division in other languages, but they answer different questions.
 
 ```{python}
 [7 / 2, 7 // 2, 7 % 2, 2 ** 10]
 ```
 
-`/` always returns a `float` (even for `8 / 2`). `//` is *floor* division — toward negative infinity, not toward zero:
+- `7 / 2` is **true division** — always returns a `float`, even when the inputs are integers and the result is whole. `8 / 2` is `4.0`, not `4`.
+- `7 // 2` is **floor division** — discards the fractional part, returning an `int` for `int` inputs.
+- `7 % 2` is the **remainder** that pairs with `//` — it satisfies `(a // b) * b + (a % b) == a`.
+- `2 ** 10` is exponentiation — `2` to the power of `10`.
+
+The general rule: `/` for "give me the exact ratio as a float", `//` and `%` together when you want quotient-and-remainder integer arithmetic. Floor division rounds toward negative infinity, not toward zero:
 
 ```{python}
 -7 // 2
@@ -97,14 +116,20 @@ In-place updates have shorthand: `x += 1`, `x -= 1`, `x *= 2`. They modify the v
 
 ## Truthiness {#sec-values-truthiness}
 
-In an `if` or `while`, *any* value can be evaluated as a boolean. Python defines a small set of **falsy** values; everything else is **truthy**.
+Languages like C make `if` strict: only `0` is false. Python is more generous — and more useful. In an `if` or `while`, *any* value can be evaluated as a boolean. Python defines a small set of **falsy** values; everything else is **truthy**.
 
 ```{python}
 falsy = [False, None, 0, 0.0, "", [], {}, set(), ()]
 [bool(x) for x in falsy]
 ```
 
-Everything else — any non-zero number, any non-empty container — is truthy. This shapes Pythonic style:
+- `False` and `None` are explicit "no" values.
+- `0` and `0.0` — numeric zero, in `int` and `float` form.
+- `""` — the empty string.
+- `[]`, `{}`, `set()`, `()` — empty list, empty dict, empty set, empty tuple.
+- `bool(x)` calls Python's truthiness check on each, and they all answer `False`.
+
+The general rule: a value is falsy if it's "empty" or "zero" by its own type's reckoning; everything else is truthy. This shapes Pythonic style:
 
 ```{python}
 items = []
@@ -120,7 +145,7 @@ Idiomatic Python writes `if items:` rather than `if len(items) > 0:`.
 
 ## `==` vs `is` {#sec-values-eq-is}
 
-`==` asks **value equality**. `is` asks **identity** — same object.
+Two of Python's most-confused operators. `==` asks **value equality** (do they contain the same data?). `is` asks **identity** (are they the same object in memory?). They look similar but answer fundamentally different questions, and using the wrong one is a common source of subtle bugs.
 
 ```{python}
 a = [1, 2, 3]
@@ -129,7 +154,11 @@ c = a
 [a == b, a is b, a is c]
 ```
 
-The rule: use `==` for value comparison. Use `is` only for the *singletons* — `None`, `True`, `False`:
+- `a == b` — both lists contain the same items, so value equality says `True`.
+- `a is b` — each `[1, 2, 3]` literal builds a *fresh* list, so they're distinct objects in memory; identity says `False`.
+- `c = a` makes `c` a second label on the same list, no copy. So `a is c` is `True`.
+
+The general rule: use `==` for value comparison. Use `is` only for the *singletons* — `None`, `True`, `False`:
 
 ```{python}
 result = None

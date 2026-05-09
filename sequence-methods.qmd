@@ -15,7 +15,7 @@ In this chapter you will learn to:
 
 ## Protocols and duck typing {#sec-vector-protocol}
 
-Python's *sequence protocol* requires only two methods: `__len__` and `__getitem__`. Anything that has them behaves as a sequence — slicing, iteration, `in` — without inheriting from anything.
+Python's *sequence protocol* requires only two methods: `__len__` and `__getitem__`. Anything that has them behaves as a sequence — slicing, iteration, `in` — without inheriting from anything. To see the protocol in action, we'll generalize `Vector2d` to N dimensions and earn slicing, iteration, and `len()` from just those two dunders.
 
 ```{python}
 import operator
@@ -49,7 +49,17 @@ v = Vector(range(7))
 v[1], v[-1], len(v)
 ```
 
-The clever part is the `__getitem__` slice handling. Without it, `v[1:4]` would return an `array.array` — losing the `Vector` type. With it, slicing returns another `Vector`:
+Walking through the moving parts:
+
+- `array(self.typecode, components)` stores the components in a typed array — much more memory-efficient than a `list`. The `typecode = "d"` class attribute means every component is a 64-bit float; Python rejects anything that doesn't fit at construction time.
+- `__iter__` returns `iter(self._components)` — a cheap, lazy iterator over the array. Once `__iter__` exists, `for x in v`, `tuple(v)`, and unpacking all work.
+- `__repr__` slices off the bracketed part of the array's `repr` (`array('d', [0.0, 1.0, ...])` becomes `Vector([0.0, 1.0, ...])`). It's a small string surgery — there's no friendlier API for "show me an array's contents."
+- `__len__` makes `len(v)` work and lets the sequence protocol report a length.
+- `__getitem__` is the interesting one. It receives either an integer (`v[1]`) or a `slice` object (`v[1:4]`); we have to handle both.
+  - For a slice, we delegate to the underlying array's slicing — which returns another `array` — and rewrap it in `cls(...)`. Using `cls = type(self)` instead of hard-coding `Vector` means subclasses get their own type back.
+  - For an integer, `operator.index(key)` extracts an integer index, raising `TypeError` for floats and other non-integer numeric types — matching what built-in lists do.
+
+The general pattern: `__len__` + `__getitem__` is the *minimum* sequence interface. The clever part is the slice handling. Without it, `v[1:4]` would return an `array.array` — losing the `Vector` type. With it, slicing returns another `Vector`:
 
 ```{python}
 v[1:4]
@@ -59,7 +69,7 @@ v[1:4]
 
 ## Dynamic attribute access {#sec-vector-getattr}
 
-The first few components of a vector deserve familiar names: `x`, `y`, `z`, `t`. Rather than write four properties, use `__getattr__`:
+The first few components of a vector deserve familiar names: `x`, `y`, `z`, `t`. Writing four properties (one per name) is repetitive and doesn't scale to higher dimensions. `__getattr__` is the single hook: Python calls it whenever a normal attribute lookup *fails*, and it's free to return whatever it wants.
 
 ```{python}
 class VectorXYZT(Vector):
@@ -77,7 +87,14 @@ v = VectorXYZT(range(5))
 v.x, v.y, v.z, v.t
 ```
 
-`__getattr__` is called only when normal attribute lookup *fails*. So `v.x` first checks the instance dict, then the class — neither has `x` — and only then does `__getattr__` run.
+Walking through `__getattr__`:
+
+- The method only runs when the *normal* lookup fails. `v.x` first checks the instance dict, then the class chain — neither has `x` — so Python falls back to `__getattr__("x")`.
+- `cls.shortcut_names.find(name)` returns the position of the name in `"xyzt"` — `0` for `x`, `1` for `y`, etc., and `-1` for anything else.
+- The bounds check `0 <= pos < len(self._components)` guards against two failures: a name not in `shortcut_names` (`pos == -1`), and a name past the end of the vector (asking for `.t` on a 2-element vector).
+- If we don't have a match, we *must* raise `AttributeError` — anything else (returning `None`, raising a different exception) breaks the protocol that callers like `hasattr` rely on.
+
+The general pattern: `__getattr__` is the catch-all for "compute an attribute on demand." Use it when the attribute set is rule-based (like positional shortcuts) rather than fixed.
 
 There's a trap. If we don't override `__setattr__`, the user can do this:
 
@@ -86,7 +103,7 @@ v.x = 99
 v.x, v[0]
 ```
 
-`v.x = 99` *created* an instance attribute that shadows our `__getattr__`. Now `v.x` and `v[0]` disagree. The fix is to forbid those names:
+`v.x = 99` *created* an instance attribute that shadows our `__getattr__`. Now `v.x` and `v[0]` disagree. The fix is to override `__setattr__` and forbid those names:
 
 ```{python}
 class VectorXYZT2(VectorXYZT):
@@ -106,9 +123,17 @@ except AttributeError as e:
     print("blocked:", e)
 ```
 
+Walking through the fix:
+
+- `__setattr__` runs on *every* assignment to an attribute — not just the named ones. So we have to be careful to forward the rest with `super().__setattr__(name, value)`, otherwise the class becomes unusable.
+- The first check rejects the four shortcut names explicitly. The second blocks every other one-letter lowercase name as a precaution — it's better to refuse `v.q = 1` than to let users invent attributes that look component-like.
+- We use `super().__setattr__` (not `self.__dict__[name] = value`) so that further subclasses can hook into assignment too. Direct dict writes bypass the chain.
+
+The general pattern: when `__getattr__` synthesizes an attribute, pair it with `__setattr__` that *refuses* the same name. The two halves keep reads and writes consistent.
+
 ## Hashing a sequence {#sec-vector-hash}
 
-Hashing two components used `hash((self.x, self.y))` — building a tuple. For an N-component vector, the same trick works, but it's instructive to do it manually with a fold:
+Hashing two components used `hash((self.x, self.y))` — building a tuple. For an N-component vector, the same trick works, but it's instructive to do it manually with a fold — the pattern generalizes to any "combine the hashes of the parts" computation.
 
 ```{python}
 import functools
@@ -126,7 +151,14 @@ v2 = HashableVector([1.0, 2.0, 3.0])
 hash(v1) == hash(v2), v1 == v2, len({v1, v2})
 ```
 
-`reduce(operator.xor, hashes, 0)` is the hash-combining recipe: XOR is commutative and associative, so the order of components doesn't change the result, but the bit mixing keeps it spread.
+Walking through the implementation:
+
+- `__eq__` first checks that the lengths match — without this, `Vector([1, 2])` and `Vector([1, 2, 3])` would compare equal up to the second component. Then `zip(self, other)` pairs components; `all(a == b for ...)` short-circuits on the first mismatch.
+- `__hash__` builds a *generator expression* of per-component hashes — lazy, so we don't materialize an intermediate list.
+- `functools.reduce(operator.xor, hashes, 0)` folds the generator with XOR, starting from the seed `0`. Each step is `acc = acc ^ hash(component)`.
+- `hash(v1) == hash(v2)` because `1 == 1.0` and `hash(1) == hash(1.0)` — Python's numeric tower keeps these aligned. That's the rule "equal objects must have equal hashes" in action.
+
+The general pattern: `reduce(op, iterable, seed)` is the canonical fold. XOR is the right `op` for hash-combining because it's commutative and associative — order doesn't change the result — and bit-mixing keeps the output well-distributed. The trade-off is that XOR-folding produces the same hash for `[1, 2, 3]` and `[3, 2, 1]`; that's a feature when permutations should compare equal, a bug otherwise.
 
 ::: {.callout-warning}
 ## `__eq__` is slow on long sequences
@@ -136,13 +168,16 @@ The `all(a == b for ...)` form short-circuits on the first mismatch — good. Bu
 
 ## The awesome `zip` {#sec-vector-zip}
 
-`zip` pairs elements from multiple iterables. It stops at the shortest:
+`zip` is the standard parallel-iteration tool — it pairs elements from multiple iterables so you can walk them in lockstep. It has three variants worth knowing because each handles uneven lengths differently. The default *stops at the shortest*:
 
 ```{python}
 list(zip(range(3), "ABC")), list(zip(range(3), "ABCDE"))
 ```
 
-The `D` and `E` were silently dropped — that's the gotcha. `zip(strict=True)` (Python 3.10+) raises if lengths differ; `itertools.zip_longest` fills the gap with a sentinel:
+The `D` and `E` were silently dropped — that's the gotcha. Two safer variants:
+
+- `zip(strict=True)` (Python 3.10+) raises `ValueError` if the inputs have different lengths.
+- `itertools.zip_longest` fills the gap with a sentinel rather than truncating:
 
 ```{python}
 from itertools import zip_longest
@@ -156,7 +191,12 @@ matrix = [(1, 2), (3, 4), (5, 6)]
 list(zip(*matrix))
 ```
 
-`*matrix` unpacks `[(1,2), (3,4), (5,6)]` into three positional arguments — `zip((1,2), (3,4), (5,6))` — which then yields the columns.
+Walking through the transpose:
+
+- `*matrix` unpacks `[(1, 2), (3, 4), (5, 6)]` into three positional arguments — equivalent to writing `zip((1, 2), (3, 4), (5, 6))`.
+- `zip` then takes the first element of each — `(1, 3, 5)` — and the second — `(2, 4, 6)`. Those tuples *are* the columns of the original matrix.
+
+The general rule: pick `zip` for "pair these and stop at the shortest", `zip(strict=True)` when same-length is a precondition, and `zip_longest` when you want to pad. The `zip(*matrix)` pattern works for any operation that needs to flip a "list of rows" into a "list of columns."
 
 ::: {.callout-tip}
 ## Why this matters

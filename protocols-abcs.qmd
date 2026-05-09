@@ -37,7 +37,7 @@ flowchart TB
 
 ## Duck typing: Python digs sequences {#sec-protocols-duck}
 
-Duck typing is the original Python style: don't ask what something *is*; try to use it. The standard-library ABCs are written so that anything implementing the right methods passes `isinstance` *automatically*:
+Duck typing is the original Python style: don't ask what something *is*; try to use it. The interesting twist is that the standard-library ABCs are written so that anything implementing the right methods passes `isinstance` *automatically* — no inheritance, no registration:
 
 ```{python}
 from collections import abc
@@ -49,7 +49,13 @@ class Struggle:
 isinstance(Struggle(), abc.Sized)
 ```
 
-`Struggle` never inherited from `Sized`. It just has a `__len__`. The `Sized.__subclasshook__` recognizes that and lets `isinstance` succeed. This is duck typing made formal — the standard library calls it "structural subtyping by special method."
+Walking through what happened:
+
+- `Struggle` never inherited from `Sized`. There is no `class Struggle(Sized):` anywhere — the two classes have no relationship in the source.
+- `Sized` defines a class method called `__subclasshook__` that `isinstance` consults as a fallback. It checks whether the candidate has a `__len__` method and answers "yes" if it does.
+- So `isinstance(Struggle(), abc.Sized)` returns `True` purely on the basis of method shape.
+
+The general pattern: this is duck typing made formal — the standard library calls it "structural subtyping by special method." You get the runtime check without forcing the candidate class to know anything about `Sized`.
 
 ## Monkey patching to fit a protocol {#sec-protocols-monkey}
 
@@ -80,7 +86,13 @@ random.shuffle(deck)
 deck[0]
 ```
 
-Monkey patching is a *last resort*. It modifies the class globally, which is invisible to anyone reading the original source. Use it for one-off scripts or test fixtures, not for library code.
+Walking through the patch:
+
+- `setitem` is a plain function with the same signature as `__setitem__` would have on the class — `(self, position, card)`, except we name the first argument `deck` for clarity.
+- `FrenchDeck.__setitem__ = setitem` writes the function directly onto the class. From this assignment forward, every `FrenchDeck` instance *and* the class itself appear to have `__setitem__`. Python's attribute lookup on `deck[0] = card` walks `deck.__class__` and finds the patched method.
+- `random.shuffle(deck)` now succeeds because the protocol it requires (`__len__`, `__getitem__`, `__setitem__`) is fully present.
+
+The general rule: monkey patching is a *last resort*. It modifies the class globally, which is invisible to anyone reading the original source. Use it for one-off scripts or test fixtures, not for library code.
 
 ## Goose typing with ABCs {#sec-protocols-abc}
 
@@ -129,7 +141,14 @@ bingo = BingoCage(range(3))
 bingo.loaded(), sorted(bingo.inspect())
 ```
 
-`BingoCage` implemented `load` and `pick`. It inherited `loaded` and `inspect` for free. If we'd forgotten one of the abstract methods:
+Walking through the contract:
+
+- `class Tombola(abc.ABC):` declares an abstract base. Inheriting from `abc.ABC` is what makes `@abstractmethod` decorations actually enforced — without it the decorator is just metadata.
+- `@abc.abstractmethod` on `load` and `pick` marks them as required. Subclasses *must* override both, or instantiation fails.
+- `loaded` and `inspect` have *bodies*. They're concrete methods on the abstract class — what's sometimes called a "mixin" — and subclasses inherit them for free. `inspect` is interesting: it implements its own work in terms of the abstract `pick` and `load`, so any concrete `Tombola` automatically gets a working `inspect`.
+- `BingoCage(Tombola)` implements `load` and `pick`. Because both abstract methods are overridden, `Tombola`'s tracking marks the subclass concrete and instantiation succeeds.
+
+The general pattern: an ABC is a *contract*. Abstract methods declare what the subclass owes; concrete methods declare what the subclass gets in return. If we'd forgotten one of the abstract methods:
 
 ```{python}
 #| error: true
@@ -140,7 +159,7 @@ Half()
 
 Trying to instantiate raises `TypeError`. The ABC enforces the contract.
 
-ABCs also support *virtual subclasses* — registering an unrelated class as a subclass without inheritance. The standard library pre-registers `tuple` and `list` as `Sequence`. You can do the same for your own type with `@Sequence.register`:
+ABCs also support *virtual subclasses* — declaring an unrelated class as a subclass *without* inheritance. The standard library pre-registers `tuple` and `list` as `Sequence` this way. You can do the same for a class you can't (or don't want to) modify the bases of:
 
 ```{python}
 from collections.abc import Sequence
@@ -153,11 +172,17 @@ class FakeSeq:
 issubclass(FakeSeq, Sequence), issubclass(tuple, Sequence)
 ```
 
-`register` is rarely needed — duck typing or `Protocol` covers most cases. It exists for retrofitting a class you don't control.
+Walking through the registration:
+
+- `@Sequence.register` is equivalent to `Sequence.register(FakeSeq)` — the class becomes a "virtual subclass" of `Sequence`. There's no MRO change, no inheritance — only `isinstance` and `issubclass` start saying yes.
+- `FakeSeq` doesn't get any of `Sequence`'s mixin methods (`__contains__`, `index`, `count`). Those are inherited via real subclassing, not via registration. We're only buying the `isinstance` answer.
+- `issubclass(tuple, Sequence)` is `True` for the same reason — the standard library registered `tuple` as a virtual subclass at import time.
+
+The general guidance: `register` is rarely needed — duck typing (`__subclasshook__`) or `Protocol` covers most cases. Reach for it only when retrofitting a class you don't control to satisfy `isinstance(x, SomeABC)`.
 
 ## Static `Protocol` types {#sec-protocols-protocol}
 
-`typing.Protocol` is the static-checker version of duck typing. You define an interface; any class with matching methods satisfies it — *no inheritance required, no registration*.
+`typing.Protocol` is the static-checker version of duck typing. You define an interface; any class with matching methods satisfies it — *no inheritance required, no registration*. We'll define a `SupportsLessThan` protocol so we can write a function that accepts anything orderable, and have `mypy` verify the constraint without forcing callers to subclass anything.
 
 ```{python}
 from typing import Protocol, Any, runtime_checkable, TypeVar
@@ -170,6 +195,12 @@ class SupportsLessThan(Protocol):
 isinstance(1, SupportsLessThan), isinstance("hi", SupportsLessThan)
 ```
 
+Walking through the protocol:
+
+- `class SupportsLessThan(Protocol):` declares a *structural* type. The body lists the methods a value must have to qualify, with `...` as the body of each (it's a stub — the body is never run).
+- `@runtime_checkable` adds `isinstance(x, SupportsLessThan)` support. Without the decorator, `isinstance` would refuse to check it — protocols are static-only by default.
+- `isinstance(1, SupportsLessThan)` is `True` because `int.__lt__` exists; same for `str`. Neither type was modified — they just *shape-match* the protocol.
+
 Use it in annotations to constrain a generic:
 
 ```{python}
@@ -181,7 +212,13 @@ def top(series: Iterable[LT], length: int) -> list[LT]:
 top([3, 1, 4, 1, 5, 9, 2, 6], 3)
 ```
 
-`mypy` checks that every element of `series` has `__lt__`. The decorator `@runtime_checkable` makes `isinstance(x, SupportsLessThan)` work too — without it, the protocol is purely static.
+Walking through the generic:
+
+- `LT = TypeVar("LT", bound=SupportsLessThan)` defines a type variable that ranges over *any* type satisfying the protocol. `bound=...` is the constraint.
+- `Iterable[LT]` says "an iterable of some `LT`-comparable element type"; `list[LT]` ties the return type to the input — pass ints, get a list of ints.
+- `mypy` verifies at type-check time that every element of `series` has `__lt__`. At runtime there's no check — Python just calls `sorted`, which uses `<` internally.
+
+The general pattern: a `Protocol` is the static type system's name for "structural duck typing." Define the shape, accept anything that fits, let the type checker enforce it without forcing inheritance.
 
 ## ABC vs `Protocol`: when to use which {#sec-protocols-choosing}
 

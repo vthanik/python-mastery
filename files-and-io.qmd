@@ -24,6 +24,8 @@ work
 
 ## Reading and writing text files {#sec-io-text}
 
+The simplest "real" I/O task: write a string to a file, then read it back. Two rules turn this from fragile to robust — always use `with`, always pass `encoding="utf-8"` explicitly.
+
 ```{python}
 target = work / "hello.txt"
 with open(target, "w", encoding="utf-8") as f:
@@ -34,9 +36,14 @@ with open(target, encoding="utf-8") as f:
 content
 ```
 
-The `with` block guarantees `f.close()` runs — even if an exception interrupts the body. Always pass `encoding="utf-8"` explicitly; never rely on the platform default.
+- `open(target, "w", encoding="utf-8")` opens the file for writing. The `"w"` mode truncates if the file exists. `encoding="utf-8"` makes the bytes-on-disk interpretation portable across platforms.
+- `with ... as f:` binds the open file to `f` and guarantees it's closed when the block exits — even if `f.write` raises mid-write.
+- `f.write("Hello\nWorld\n")` writes a string with two embedded newlines. No trailing newline is added automatically.
+- The second block reopens the file (default mode is `"r"`, read) and reads the whole contents in one go with `f.read()`.
 
-For *line-by-line* reading on a large file, iterate the file object directly. It reads one line at a time:
+The general rule: every file operation goes through `with open(...) as f:` with an explicit `encoding=`. Never rely on the platform default — it varies across OSes and locales.
+
+For *line-by-line* reading on a large file, iterate the file object directly. It reads one line at a time, never loading the whole thing into memory:
 
 ```{python}
 with open(target, encoding="utf-8") as f:
@@ -44,11 +51,15 @@ with open(target, encoding="utf-8") as f:
         print(line.rstrip())
 ```
 
-Modes: `"r"` (read, default), `"w"` (write — overwrites), `"a"` (append), `"x"` (create — fails if file exists), `"rb"`/`"wb"` (binary).
+- `for line in f:` calls the file's iterator protocol — yields one line at a time, including its trailing `\n`.
+- `line.rstrip()` strips that trailing newline (and any other whitespace) so `print` doesn't double-space.
+- Memory stays constant regardless of file size — the file holds maybe one line at a time, not the whole text.
+
+The general rule: a file object iterates as lines. Modes: `"r"` (read, default), `"w"` (write — overwrites), `"a"` (append), `"x"` (create — fails if file exists), `"rb"`/`"wb"` (binary).
 
 ## `pathlib.Path` — the modern path API {#sec-io-pathlib}
 
-`pathlib.Path` is object-oriented, cross-platform, and has shortcuts that replace half of `os.path`.
+The traditional way to manipulate paths in Python is string concatenation plus the `os.path` module — `os.path.join`, `os.path.dirname`, `os.path.splitext`, etc. It works but it's verbose and error-prone (Windows separators, trailing slashes). `pathlib.Path` replaces half of `os.path` with one object-oriented, cross-platform API.
 
 ```{python}
 p = work / "subdir" / "data.txt"
@@ -58,26 +69,40 @@ p.write_text("first line\nsecond line\n", encoding="utf-8")
 [p.name, p.stem, p.suffix, p.parent.name]
 ```
 
-`p.read_text()` and `p.write_text()` are one-liners for whole-file I/O:
+- `work / "subdir" / "data.txt"` uses `Path`'s overloaded `/` operator — the cross-platform replacement for `os.path.join`. The result is a new `Path` with the right separator for the OS.
+- `p.parent` is the path with the last segment removed; `.mkdir(parents=True, exist_ok=True)` creates the directory, including any missing parents, and doesn't error if it already exists.
+- `p.write_text(...)` is a one-liner — opens, writes, closes, all in one call.
+- `p.name` is `"data.txt"` (filename); `p.stem` is `"data"` (filename without extension); `p.suffix` is `".txt"` (the extension including the dot); `p.parent.name` is `"subdir"`.
+
+`p.read_text()` and `p.write_text()` are one-liners for whole-file I/O — handy when you don't need streaming:
 
 ```{python}
 p.read_text(encoding="utf-8")
 ```
 
-Walking a directory:
+- One call: open in read mode with the given encoding, read the whole file, close it, return the contents as a string.
+
+Walking a directory's immediate children:
 
 ```{python}
 for child in sorted(work.iterdir()):
     print(child.name, "(dir)" if child.is_dir() else "(file)")
 ```
 
-Globbing:
+- `work.iterdir()` yields each child as a `Path` — files and directories alike, no recursion.
+- `sorted(...)` gives a stable, alphabetical order (since `iterdir` order is not guaranteed).
+- `child.is_dir()` tags each entry.
+
+For recursive search by pattern, **glob**:
 
 ```{python}
 list(work.glob("**/*.txt"))
 ```
 
-`**/*.txt` recursively matches every `.txt` file. `Path.exists()`, `.is_file()`, `.is_dir()`, `.unlink()`, `.rename()`, `.mkdir()` round out the common operations.
+- `**/*.txt` is a glob pattern: `**/` means "any depth of directories", `*.txt` is "any file ending in `.txt`".
+- `glob` returns a generator; wrapping in `list` materialises the matches.
+
+The general rule: build paths with `/`, ask for properties as attributes (`.name`, `.suffix`), and use `iterdir`/`glob`/`walk` for directory traversal. `Path.exists()`, `.is_file()`, `.is_dir()`, `.unlink()`, `.rename()`, `.mkdir()` round out the common operations.
 
 For a recursive walk that gives you each directory's children separately — like `os.walk` but with `Path` objects — use `Path.walk()` (Python 3.12+):
 
@@ -113,7 +138,7 @@ To read from disk, open the file in binary mode and call `tomllib.load(f)`. For 
 
 ## CSV {#sec-io-csv}
 
-CSV (comma-separated values) is the most common tabular format. Always use the `csv` module — never parse it by hand.
+CSV looks deceptively simple — fields separated by commas, rows separated by newlines — but real CSV has quoted fields, embedded commas, embedded newlines, and platform-specific line endings. Always use the `csv` module — never parse it by hand with `.split(",")`.
 
 ```{python}
 import csv
@@ -133,17 +158,26 @@ with open(target, "w", encoding="utf-8", newline="") as f:
 target.read_text(encoding="utf-8")
 ```
 
+- `csv.DictWriter(f, fieldnames=[...])` builds a writer that takes a list of dicts and writes them as rows. `fieldnames` defines the column order *and* the header.
+- `writer.writeheader()` writes the column-name row first.
+- `writer.writerows(people)` writes one row per dict, taking values in the order of `fieldnames`.
+- `newline=""` tells `open` *not* to translate line endings — `csv` handles them internally.
+
 ```{python}
 with open(target, encoding="utf-8", newline="") as f:
     rows = list(csv.DictReader(f))
 rows
 ```
 
-The `newline=""` argument is required on Windows to handle line endings correctly. Always pass it.
+- `csv.DictReader(f)` reads the first line as a header, then yields each subsequent row as a dict keyed by those column names.
+- `list(...)` materialises the iterator into a list of dicts — fine for small files.
+- All values are strings — `csv` doesn't infer types. If you want `int`, you have to convert.
+
+The general rule: use `DictReader`/`DictWriter` when you're working with named columns, plain `reader`/`writer` for raw rows. The `newline=""` argument is required on Windows to handle line endings correctly. Always pass it.
 
 ## JSON {#sec-io-json}
 
-JSON is the lingua franca of program-to-program data. The `json` module converts between JSON text and Python objects.
+When two programs need to exchange structured data — a Python script writing a config a Rust service reads, or an API returning a payload to a JavaScript front-end — JSON is the universal format. The `json` module converts between JSON text and Python objects.
 
 ```{python}
 import json
@@ -157,13 +191,20 @@ with open(target, "w", encoding="utf-8") as f:
 target.read_text(encoding="utf-8")
 ```
 
+- `json.dump(obj, f)` serialises a Python value to JSON and writes it to an open file. Note: `dump` writes to a file, `dumps` returns a string.
+- `indent=2` pretty-prints with 2-space indentation — readable for humans, slightly bigger than the compact form.
+- The Python dict, list, and string values map to the matching JSON types (object, array, string).
+
 ```{python}
 with open(target, encoding="utf-8") as f:
     loaded = json.load(f)
 loaded
 ```
 
-Type mapping: `None` ↔ `null`, `True`/`False` ↔ `true`/`false`, `int`/`float` ↔ `number`, `str` ↔ `string`, `list` ↔ `array`, `dict` ↔ `object`.
+- `json.load(f)` reads JSON from an open file and returns the equivalent Python value.
+- `loaded` is a fresh dict, structurally identical to `config`, but a separate object in memory.
+
+The general rule: `dump`/`load` operate on file objects, `dumps`/`loads` operate on strings — the trailing `s` is for "string". Type mapping: `None` ↔ `null`, `True`/`False` ↔ `true`/`false`, `int`/`float` ↔ `number`, `str` ↔ `string`, `list` ↔ `array`, `dict` ↔ `object`.
 
 `json.dumps(obj, indent=2)` and `json.loads(text)` are the string variants — useful for HTTP bodies and inline test data.
 
@@ -194,7 +235,7 @@ args = parser.parse_args()
 
 ## `logging` — when `print` isn't enough {#sec-io-logging}
 
-`print` is for users; `logging` is for developers and operators. Real programs should use `logging`.
+`print` debugging is fine for a 50-line script. Past that, you need *levels* (info vs. error), *destinations* (stderr, a file, a remote sink), and a way to silence noisy output without deleting calls. `print` is for users; `logging` is for developers and operators.
 
 ```{python}
 import logging
@@ -212,7 +253,12 @@ logger.warning("disk almost full")
 logger.error("could not connect to database")
 ```
 
-Levels in increasing severity: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. `logger.exception(msg)` is `logger.error(msg)` plus the current traceback — use it inside an `except` block.
+- `logging.getLogger("demo")` looks up (or creates) a named logger. Naming gives you per-component control later.
+- `logger.setLevel(logging.INFO)` says "discard `DEBUG` messages, keep `INFO` and up."
+- A `StreamHandler` writes to a stream (stderr by default); `setFormatter` defines the line format — `%(levelname)s` and `%(message)s` are the standard placeholders.
+- `logger.info(...)` / `.warning(...)` / `.error(...)` emit at increasing severity. Each line shows up because all three are at or above the `INFO` threshold we set.
+
+The general rule: get a named logger per module, set a level, attach a handler, then call `.info`/`.warning`/`.error`/`.exception` instead of `print`. Levels in increasing severity: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. `logger.exception(msg)` is `logger.error(msg)` plus the current traceback — use it inside an `except` block.
 
 ::: {.callout-tip}
 ## Why this matters

@@ -15,13 +15,19 @@ In this chapter you will learn to:
 
 ## Lists {#sec-coll-lists}
 
-Lists are ordered, mutable, and accept any types.
+A list is the default "ordered collection of things" in Python — when you have a sequence whose contents you'll modify (add to, remove from, reorder), reach for a list. Lists are ordered, mutable, and accept any types.
 
 ```{python}
 numbers = [1, 2, 3, 4, 5]
 mixed = [1, "two", 3.0, None]
 [numbers[0], numbers[-1], numbers[1:3], numbers[::-1]]
 ```
+
+- `[1, 2, 3, 4, 5]` is a **list literal** — square brackets, comma-separated.
+- A list can hold mixed types — Python doesn't insist on uniform element types.
+- `numbers[0]` is the first element; `numbers[-1]` is the last (negative indices count from the end).
+- `numbers[1:3]` is a **slice** — elements at positions 1 and 2 (stop is exclusive). Returns a new list.
+- `numbers[::-1]` reverses with a step of `-1`, returning a new list.
 
 The mutation methods modify *in place* and return `None`:
 
@@ -33,6 +39,12 @@ xs.extend([5, 6])
 xs
 ```
 
+- `xs.append(4)` adds `4` to the end. Mutates `xs`, returns `None`.
+- `xs.insert(0, 0)` inserts `0` at position 0 — pushes existing items right.
+- `xs.extend([5, 6])` adds *each element* of the argument to the end — different from `append`, which would add the whole list as a single element.
+
+The general rule: list mutation methods return `None`. Never write `xs = xs.append(4)` — you'll lose your list and bind `xs` to `None`.
+
 ```{python}
 xs.pop(), xs.pop(0)
 ```
@@ -42,7 +54,7 @@ xs.remove(3)
 xs
 ```
 
-Sorting comes in two flavors — in-place vs. returning a new list:
+Sorting comes in two flavors — in-place (modifies the original) vs. returning a new list (leaves the original alone). Pick based on whether you still need the unsorted version:
 
 ```{python}
 xs = [3, 1, 4, 1, 5, 9, 2, 6]
@@ -51,12 +63,20 @@ xs.sort(reverse=True)          # in-place; xs is now sorted
 sorted_new, xs
 ```
 
-Sort with a `key` function:
+- `sorted(xs)` is the built-in function — works on *any* iterable, returns a fresh sorted list, leaves `xs` untouched.
+- `xs.sort(reverse=True)` is the list method — mutates `xs` in place, returns `None`. `reverse=True` sorts descending.
+
+Sort with a `key` function — useful when the natural ordering isn't what you want:
 
 ```{python}
 words = ["banana", "Apple", "cherry"]
 sorted(words, key=str.lower)
 ```
+
+- The default sort would put `"Apple"` first because uppercase `'A'` has a lower code point than lowercase `'b'`.
+- `key=str.lower` tells `sorted` to call `str.lower(word)` on each element and sort by *that* — a case-insensitive sort. The original strings are still in the result; only the comparison key is lowered.
+
+The general rule: `sorted(...)` returns, `.sort()` mutates; pass `key=` to sort by a derived value.
 
 ::: {.callout-warning}
 **Lists are mutable — sharing is dangerous.** `b = a` does *not* copy. Both labels point to the same list. Use `a.copy()` or `list(a)` for a shallow copy, or `copy.deepcopy(a)` for a deep one. The full treatment is in @sec-references-mutability.
@@ -71,7 +91,7 @@ a
 
 ## Tuples {#sec-coll-tuples}
 
-Tuples are immutable lists. Use them for fixed records — RGB triples, (x, y) coordinates, dict keys.
+When the items you're grouping form a fixed record — an `(x, y)` coordinate, an RGB triple, a `(name, age)` pair — a list is the wrong choice: you don't want anyone modifying the slots, and you'd like the structure to be hashable so it can serve as a dict key. Tuples are immutable lists for exactly this case.
 
 ```{python}
 point = (3, 4)
@@ -80,7 +100,12 @@ empty = ()
 point[0], single, empty
 ```
 
-The most powerful feature of tuples is **unpacking**:
+- `(3, 4)` is a 2-tuple. Indexing works exactly like a list (`point[0]` is `3`).
+- `(42,)` — the trailing comma is required. Without it, `(42)` is just the integer `42` in parentheses.
+- `()` is the empty tuple.
+- Tuples have no `.append`, `.pop`, or `.sort` — they're frozen at construction.
+
+The most powerful feature of tuples is **unpacking** — taking a tuple apart into named variables in one statement:
 
 ```{python}
 x, y = point
@@ -88,7 +113,11 @@ first, *rest = (1, 2, 3, 4, 5)
 [x, y, first, rest]
 ```
 
-`*rest` collects the remaining values into a list. The full unpacking treatment is in @sec-sequences.
+- `x, y = point` matches the 2-tuple's two slots to two names. After this, `x` is `3`, `y` is `4`.
+- `first, *rest = (1, 2, 3, 4, 5)` uses the **starred target** — `first` binds to the first element, `*rest` collects everything else into a list `[2, 3, 4, 5]`.
+- The starred target can also appear in the middle: `head, *middle, tail = ...`.
+
+The general rule: any tuple (or list) can be unpacked into matching names; `*name` greedily collects the leftovers as a list. The full unpacking treatment is in @sec-sequences.
 
 Tuples can be dict keys (lists cannot, because they're mutable and unhashable):
 
@@ -99,14 +128,19 @@ locations[(40.7, -74.0)]
 
 ## Dictionaries {#sec-coll-dicts}
 
-A dict maps keys to values. Lookup, insertion, and deletion are O(1) on average.
+When you need to look something up *by name* — a user record by username, a count by word, a config value by key — a list is wrong (linear scan) and a class is overkill. A dict maps keys to values with O(1) lookup, insertion, and deletion on average.
 
 ```{python}
 person = {"name": "Alice", "age": 30}
 person["name"], person.get("missing"), person.get("missing", "N/A")
 ```
 
-`d[key]` raises `KeyError` if the key is absent; `d.get(key, default)` doesn't. Modify with assignment, `del`, or `.pop`:
+- `{"name": "Alice", "age": 30}` is a **dict literal** — curly braces, `key: value` pairs.
+- `person["name"]` looks up `"name"` and returns `"Alice"` — the bracket syntax raises `KeyError` if the key is absent.
+- `person.get("missing")` returns `None` instead of raising — useful when absence is expected.
+- `person.get("missing", "N/A")` returns `"N/A"` as the fallback — a default of your choosing.
+
+The general rule: `d[key]` is loud (raises on miss); `d.get(key, default)` is quiet (returns the default). Modify with assignment, `del`, or `.pop`:
 
 ```{python}
 person["city"] = "London"
@@ -127,7 +161,7 @@ for key, value in person.items():
     print(f"{key}: {value}")
 ```
 
-Two helpers worth memorizing:
+Two helpers worth memorizing — both spare you the "check if the key exists, create the value if it doesn't, then update it" boilerplate that comes up constantly:
 
 ```{python}
 from collections import defaultdict, Counter
@@ -138,12 +172,20 @@ for name, team in [("Alice", "eng"), ("Bob", "design"), ("Carol", "eng")]:
 dict(groups)
 ```
 
+- `defaultdict(list)` is a dict that, on a missing-key lookup, auto-creates the value by calling `list()` (i.e. `[]`).
+- The first time `groups["eng"]` is accessed, `defaultdict` creates an empty list and stores it; `.append("Alice")` then adds to that list.
+- Without `defaultdict` you'd write `if team not in groups: groups[team] = []; groups[team].append(name)` every iteration.
+- `dict(groups)` converts it back to a plain dict for display — purely cosmetic.
+
 ```{python}
 text = "the cat sat on the mat".split()
 Counter(text).most_common(2)
 ```
 
-`defaultdict(list)` auto-creates an empty list for missing keys; `Counter` counts occurrences. Both live in `collections`.
+- `Counter(text)` walks the iterable and counts how many times each element appears — `{"the": 2, "cat": 1, "sat": 1, "on": 1, "mat": 1}`.
+- `.most_common(2)` returns the top 2 most-frequent items as `(item, count)` tuples, sorted by count.
+
+The general rule: `defaultdict(factory)` for "missing keys auto-fill via `factory()`"; `Counter` for frequency tables. Both live in `collections`.
 
 Two dicts can be merged with the union operator `|` (Python 3.9+). Right-hand keys win on conflict — the idiom for "defaults plus overrides":
 
@@ -157,7 +199,7 @@ The deep dive — including hashing, dict ordering, and dict views — is in @se
 
 ## Sets {#sec-coll-sets}
 
-A set holds *unique* values. Order is not preserved. Membership testing is O(1).
+When you need to ask "have I seen this?" repeatedly, or take the intersection/union/difference of two collections, a list is the wrong tool — `x in big_list` is O(n). A set holds *unique* values with O(1) membership testing. Order is not preserved.
 
 ```{python}
 fruits = {"apple", "banana", "cherry"}
@@ -165,13 +207,24 @@ empty = set()              # NOT {} — that's a dict
 "apple" in fruits, "grape" in fruits
 ```
 
-The set-algebra operators are pleasant:
+- `{"apple", "banana", "cherry"}` is a **set literal** — curly braces, no key:value pairs.
+- `set()` (not `{}`) is the empty set — `{}` is the empty *dict*, which is the one common gotcha.
+- `"apple" in fruits` is the membership test — `True`, and constant-time regardless of set size.
+
+The set-algebra operators are pleasant — and exactly what you'd write on paper:
 
 ```{python}
 a = {1, 2, 3, 4}
 b = {3, 4, 5, 6}
 [a | b, a & b, a - b, a ^ b]   # union, intersection, difference, symmetric difference
 ```
+
+- `a | b` — **union**: everything in either set.
+- `a & b` — **intersection**: only the items in both.
+- `a - b` — **difference**: in `a` but not `b`.
+- `a ^ b` — **symmetric difference**: in exactly one of the two, not both.
+
+The general rule: reach for a set when you need fast membership, deduplication, or the algebra above.
 
 A common one-liner: deduplicate a list while preserving uniqueness (order is *not* preserved):
 
@@ -184,7 +237,7 @@ If you need *order-preserving* deduplication, use `dict.fromkeys(duplicates)` (s
 
 ## Comprehensions {#sec-coll-comprehensions}
 
-A comprehension is a compact, readable way to build a collection from another collection. There are four kinds: list, dict, set, and generator.
+The "build an empty collection, loop, append" pattern is so common that Python has a one-line syntax for it. A comprehension is a compact, readable way to build a collection from another collection. There are four kinds: list, dict, set, and generator.
 
 ```{python}
 squares = [x ** 2 for x in range(10)]
@@ -192,20 +245,35 @@ evens = [x for x in range(20) if x % 2 == 0]
 [squares, evens]
 ```
 
+- `[x ** 2 for x in range(10)]` reads "the list of `x ** 2` for each `x` in `range(10)`" — equivalent to a 4-line `for` loop with `.append(x ** 2)`.
+- The general shape is `[expression for variable in iterable]` — the expression in front, the source loop behind.
+- `[x for x in range(20) if x % 2 == 0]` adds an `if` filter — only items satisfying the condition reach the output.
+
+The same pattern with curly braces builds dicts and sets:
+
 ```{python}
 square_map = {x: x ** 2 for x in range(5)}
 unique_lengths = {len(w) for w in "the cat sat on the mat".split()}
 [square_map, unique_lengths]
 ```
 
-A **generator expression** is a comprehension in `(...)` instead of `[...]`. It does not build a list — it computes values on demand:
+- `{x: x ** 2 for x in range(5)}` is a **dict comprehension** — `key: value` instead of just an expression.
+- `{len(w) for w in ...}` is a **set comprehension** — single expression, but in braces with no colon. Duplicates collapse: `"the"` appears twice in the source but `3` appears once in the result.
+
+The general rule: `[...]` builds a list, `{k: v for ...}` a dict, `{...}` a set; add `if cond` for filtering, change the expression for mapping.
+
+A list comprehension materialises the whole list at once — fine for thousands of items, wasteful for millions. A **generator expression** is a comprehension in `(...)` instead of `[...]`. It does not build a list — it computes values on demand:
 
 ```{python}
 total = sum(x ** 2 for x in range(1_000_000))
 total
 ```
 
-That `sum` never builds the million-item list. Generator expressions are how you scale comprehensions to large or infinite data; the deep dive is in @sec-iterators.
+- The parentheses turn the comprehension into a **generator** — a lazy producer that yields one value at a time.
+- `sum(...)` walks the generator, adding each squared value to a running total.
+- At no point is a million-item list materialised in memory — peak memory stays tiny.
+
+The general rule: when the result is fed straight into a consumer like `sum`, `max`, `any`, or `"".join`, drop the brackets to a generator and save the intermediate list. Generator expressions are how you scale comprehensions to large or infinite data; the deep dive is in @sec-iterators.
 
 The walrus operator `:=` (Python 3.8+) lets a comprehension *capture* a per-item value once and reuse it — useful when a filter and a map both need the same expensive computation:
 

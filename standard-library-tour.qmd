@@ -21,7 +21,7 @@ This is a tour, not an encyclopedia — pointers to the modules you'll reach for
 from collections import Counter, defaultdict, deque, namedtuple
 ```
 
-**`Counter`** counts occurrences:
+**`Counter`** counts occurrences — the canonical "tally things" data structure, replacing a hand-written dict-with-default loop:
 
 ```{python}
 words = "the cat sat on the mat the".split()
@@ -29,7 +29,11 @@ c = Counter(words)
 [c["the"], c["missing"], c.most_common(2)]
 ```
 
-`Counter` arithmetic merges two counters: `c + c2` adds, `c - c2` subtracts (negative counts are dropped). Missing keys return `0`, never `KeyError`:
+- `Counter(words)` walks the iterable once, returning a dict subclass that maps each unique element to its count.
+- `c["the"]` is `3` (it appears three times). `c["missing"]` returns `0`, not `KeyError` — that's `Counter`'s key superpower over a plain dict.
+- `c.most_common(2)` returns the two highest-frequency `(item, count)` tuples, sorted by count.
+
+`Counter` arithmetic merges two counters — handy for combining tallies from different sources:
 
 ```{python}
 a = Counter("aabb")
@@ -37,7 +41,14 @@ b = Counter("abc")
 [a + b, a - b, a["zzz"]]
 ```
 
-**`defaultdict`** auto-creates a default value for missing keys:
+- A `Counter` built from a string counts each character: `a = {"a": 2, "b": 2}`, `b = {"a": 1, "b": 1, "c": 1}`.
+- `a + b` adds counts position-by-position: `{"a": 3, "b": 3, "c": 1}`.
+- `a - b` subtracts and *drops* zero or negative counts: `{"a": 1, "b": 1}`.
+- `a["zzz"]` is `0` — missing keys return `0`, never raise.
+
+The general rule: `Counter` for frequency tables, with `+`/`-` for merging and `most_common(n)` for ranked extraction.
+
+**`defaultdict`** auto-creates a default value for missing keys — eliminates the "if key not in d: d[key] = []" boilerplate that comes up constantly when grouping or accumulating:
 
 ```{python}
 groups = defaultdict(list)
@@ -46,9 +57,14 @@ for name, team in [("Alice", "eng"), ("Bob", "design"), ("Carol", "eng")]:
 dict(groups)
 ```
 
-`defaultdict(int)` for counters; `defaultdict(list)` for grouping; `defaultdict(set)` for collecting unique items per key.
+- `defaultdict(list)` is a dict subclass; the argument is the **factory** — a zero-argument callable that produces the default.
+- The first time `groups["eng"]` is accessed, the factory `list()` runs to produce `[]`, which is stored under `"eng"`.
+- `.append("Alice")` then mutates that list in place. The next `groups["eng"]` lookup finds the same list and appends to it.
+- `dict(groups)` is purely cosmetic — converts to a plain dict for the display.
 
-**`deque`** — fast append/pop from *both* ends:
+The general rule: `defaultdict(int)` for counters; `defaultdict(list)` for grouping; `defaultdict(set)` for collecting unique items per key. Pick the factory that matches the per-key value type.
+
+**`deque`** — fast append/pop from *both* ends. A list is fine for back-end operations but pays O(n) for any front-end work (`pop(0)` shifts every other element); a deque is O(1) at both ends.
 
 ```{python}
 from collections import deque
@@ -59,7 +75,13 @@ queue.append("d")
 list(queue)
 ```
 
-A list's `pop(0)` is O(n); `deque.popleft()` is O(1). Use `deque` for queues and sliding windows.
+- `deque(["a", "b", "c"])` builds a deque from any iterable.
+- `appendleft("z")` adds to the front: `["z", "a", "b", "c"]`.
+- `popleft()` removes and returns the front element `"z"`: leaves `["a", "b", "c"]`.
+- `append("d")` adds to the back: `["a", "b", "c", "d"]`.
+- `list(queue)` materialises the contents for display.
+
+The general rule: when you need fast front-end operations (queues, sliding windows, undo stacks), use `deque`, not `list`.
 
 `deque(maxlen=N)` is a **bounded** deque — appends past the limit silently drop from the other end. That's exactly the data structure for a fixed-size sliding window:
 
@@ -106,12 +128,19 @@ list(itertools.islice(range(100), 5))
 list(itertools.islice(itertools.cycle(["red", "green", "blue"]), 7))
 ```
 
-**`groupby`** — group *consecutive* equal items. The data must already be sorted by the same key:
+**`groupby`** — group *consecutive* equal items. Note the warning: it does not pre-sort, so the data must already be sorted by the same key, or you'll get one group per run rather than one per distinct value.
 
 ```{python}
 data = sorted(["alice", "bob", "adam", "carol", "charlie"], key=lambda x: x[0])
 [(letter, list(g)) for letter, g in itertools.groupby(data, key=lambda x: x[0])]
 ```
+
+- `sorted(..., key=lambda x: x[0])` sorts by first letter — required preprocessing.
+- `itertools.groupby(data, key=...)` walks the sorted list and yields `(key, group_iterator)` pairs whenever the key changes.
+- `list(g)` materialises each group iterator — necessary because `groupby` reuses internal state and the group iterator becomes invalid as soon as you advance.
+- The result is a list of `(first_letter, [names_with_that_letter])` pairs.
+
+The general rule: `groupby` is the SQL-style group-by, but you sort first and you consume each group before moving on.
 
 **`accumulate`** — running totals:
 
@@ -135,7 +164,7 @@ list(itertools.accumulate([1, 2, 3, 4, 5]))
 import functools
 ```
 
-**`lru_cache` / `cache`** — memoize a pure function's results:
+**`lru_cache` / `cache`** — memoize a pure function's results. The textbook recursive Fibonacci is exponentially slow because it recomputes the same `fib(n-2)` constantly; one decorator turns it linear.
 
 ```{python}
 @functools.lru_cache(maxsize=None)
@@ -147,7 +176,12 @@ def fib(n):
 [fib(50), fib.cache_info()]
 ```
 
-`@functools.cache` (Python 3.9+) is `@lru_cache(maxsize=None)` — unbounded.
+- `@functools.lru_cache(maxsize=None)` wraps `fib` in a memoizing layer: each unique call's result is stashed in a dict keyed by arguments.
+- `maxsize=None` makes the cache unbounded; a number would cap it at LRU (least-recently-used) eviction.
+- The first `fib(50)` populates the cache; further calls would be free.
+- `fib.cache_info()` reports `hits`, `misses`, `maxsize`, `currsize` — useful for verifying the cache is doing its job.
+
+The general rule: `@lru_cache` (or `@functools.cache` in 3.9+, which is the unbounded form) is a one-line speed-up for any **pure** function — same inputs always give the same output, no side effects.
 
 **`cached_property`** — compute once per instance, then read like an attribute:
 
@@ -170,7 +204,7 @@ ds = DataSet([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 ds.stats   # computed once
 ```
 
-**`partial`** — pre-fill some of a function's arguments:
+**`partial`** — pre-fill some of a function's arguments, returning a new callable that takes the rest. Useful when you have a general function and want a specialised version for repeated use.
 
 ```{python}
 def power(base, exp):
@@ -180,6 +214,12 @@ square = functools.partial(power, exp=2)
 cube = functools.partial(power, exp=3)
 [square(4), cube(3)]
 ```
+
+- `functools.partial(power, exp=2)` returns a new callable equivalent to `lambda base: power(base, exp=2)` — `power` with `exp` already bound to `2`.
+- `square(4)` calls the partial with `base=4`, getting `power(4, exp=2)` = `16`.
+- `cube(3)` is the same shape with `exp=3`, returning `27`.
+
+The general rule: `partial(fn, *args, **kwargs)` freezes those arguments and returns a function that takes the remaining ones. Cleaner than wrapping in a `lambda` for the same purpose.
 
 **`reduce`** — fold a sequence into a single value:
 
@@ -200,6 +240,8 @@ import statistics
 
 ## `datetime` {#sec-stdlib-datetime}
 
+Time is fiddly: time zones, daylight savings, leap years, the difference between "an instant" and "a date on a calendar". The `datetime` module gives you four core types — `datetime`, `date`, `timedelta`, `timezone` — that together cover almost every time-handling task.
+
 ```{python}
 from datetime import datetime, date, timedelta, timezone
 
@@ -208,13 +250,24 @@ today = date.today()
 [now.year, today.isoformat()]
 ```
 
-Arithmetic uses `timedelta`:
+- `datetime` is a full timestamp (date + time + optional timezone). `date` is a calendar date with no time component.
+- `datetime.now(tz=timezone.utc)` returns the current instant as a *timezone-aware* `datetime` in UTC. Always pass `tz=` — naive datetimes are a long-running source of bugs.
+- `date.today()` returns the current date.
+- `now.year` reads a component (`int`); `today.isoformat()` is the standard `"YYYY-MM-DD"` text form.
+
+Arithmetic uses `timedelta` — a `timedelta` is a *duration*, not a point in time:
 
 ```{python}
 yesterday = now - timedelta(days=1)
 next_week = now + timedelta(weeks=1)
 [yesterday.date(), next_week.date()]
 ```
+
+- `timedelta(days=1)` is "one day". Subtracting it from a `datetime` shifts the timestamp back 24 hours.
+- `timedelta(weeks=1)` is "seven days"; adding shifts forward.
+- `.date()` extracts just the date portion of a `datetime` for compact display.
+
+The general rule: `datetime + timedelta = datetime`; `datetime - datetime = timedelta`. Stick to timezone-aware datetimes and let `timedelta` do all the arithmetic.
 
 Formatting and parsing use `strftime` / `strptime`:
 
@@ -240,7 +293,7 @@ new_york = london.astimezone(ZoneInfo("America/New_York"))
 
 ## `re` — regular expressions {#sec-stdlib-re}
 
-Regex is powerful but easy to overuse. Reach for it when patterns are *truly* irregular; for fixed strings, `.startswith()` and `.split()` are simpler.
+Regex is powerful but easy to overuse. Reach for it when patterns are *truly* irregular — phone numbers, dates of varying formats, log-line shapes. For fixed strings, `.startswith()` and `.split()` are simpler and faster.
 
 ```{python}
 import re
@@ -249,7 +302,13 @@ m = re.search(r"(\d+)-(\d+)", "phone: 123-456")
 [m.group(), m.group(1), m.group(2)]
 ```
 
-Always use **raw strings** (`r"..."`) for patterns — `\d` and `\w` would otherwise need double backslashes.
+- `r"(\d+)-(\d+)"` is the pattern — `\d+` matches one or more digits, the parentheses create **capture groups**, and `-` matches a literal hyphen.
+- `re.search(pattern, text)` scans for the *first* place the pattern matches anywhere in `text`. Returns a match object (or `None`).
+- `m.group()` is the entire match: `"123-456"`.
+- `m.group(1)` is the first captured group (the first `\d+`): `"123"`.
+- `m.group(2)` is the second captured group: `"456"`.
+
+The general rule: parentheses *capture*, `\d`/`\w`/`\s` are character classes, `+`/`*`/`?` are repetition. Always use **raw strings** (`r"..."`) for patterns — `\d` and `\w` would otherwise need double backslashes.
 
 The core entry points:
 

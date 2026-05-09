@@ -15,6 +15,8 @@ In this chapter you will learn to:
 
 ## A first class {#sec-cls-first}
 
+Imagine tracking a bank account: an owner, a balance, and operations (deposit, withdraw) that have to keep the balance consistent. Separate variables and helper functions work for one account; for ten thousand, they break down. A class is the natural unit that bundles the data and the rules that govern it.
+
 ```{python}
 class BankAccount:
     """A simple bank account."""
@@ -47,15 +49,19 @@ alice.withdraw(200)
 [str(alice), repr(alice), alice.balance]
 ```
 
-Three things to notice:
+Walking through this piece by piece:
 
-- `__init__` is the **constructor** — Python calls it when you write `BankAccount("Alice", 1000.0)`.
-- The first parameter of every instance method is **`self`** — the specific object the method is operating on. Python passes it automatically.
-- `__repr__` is for *developers* (debug output, traceback strings); `__str__` is for *users* (`str(obj)`, `print(obj)`). Always implement `__repr__`.
+- `class BankAccount:` declares a new type. Everything indented under it is the **class body** — definitions there become attributes of the class itself.
+- `__init__(self, owner, balance=0.0)` is the **constructor**, run when you write `BankAccount("Alice", 1000.0)`. The `0.0` default makes `balance` optional. The first parameter `self` is the new instance Python is building; you never pass it explicitly.
+- `self.owner = owner` *attaches* a value to that specific instance. After `__init__` returns, the object remembers it.
+- `deposit` and `withdraw` are **instance methods**. Each takes `self` first — the object the call operates on. When you write `alice.deposit(500)`, Python looks up `deposit` on the class and passes `alice` in as `self` automatically.
+- `__repr__` is for *developers* (debug output, tracebacks); `__str__` is for *users* (`str(obj)`, `print(obj)`). Always implement `__repr__`.
+
+That's the universal shape of a Python class: data attached in `__init__`, behavior in methods that take `self` first. Every class you'll write follows it.
 
 ## Special methods make a class feel native {#sec-cls-special}
 
-Python looks for *special methods* (a.k.a. *dunder* methods — double-underscore) when you use built-in operators like `+`, `==`, `<`, `len()`, `in`, `for`. Implementing them makes your class participate in the language.
+Suppose `Money(10) + Money(2)` should return `Money(12)` and `Money(10) == Money(10)` should be `True`. With a plain class you'd write `m1.add(m2)` and `m1.equals(m2)` — fine, but un-Pythonic. Python lets you wire `+`, `==`, `<`, `len`, `in`, `for`, and the rest directly to your class by implementing **special methods** (a.k.a. *dunder* methods — double-underscore on each side).
 
 ```{python}
 class Money:
@@ -96,11 +102,19 @@ total = price + tax
 [str(total), total == Money(10.80), total > tax, str(total * 2), bool(total), bool(Money(0))]
 ```
 
-`+`, `==`, `<`, `>`, `*`, and `if money:` all work because we wrote `__add__`, `__eq__`, `__lt__`, `__mul__`, and `__bool__`. The deep treatment is in @sec-data-model and @sec-operator-overload.
+Walking through the special methods one at a time:
+
+- `__eq__(self, other)` is what `==` calls. We check `isinstance(other, Money)` first so `Money(10) == 10` is `False` instead of crashing on a missing `.currency`.
+- `__lt__(self, other)` is `<`. Comparing 10 GBP to 10 USD is a category error, not a numeric one — we refuse it with `ValueError`. Defining `__lt__` is enough for `<` and `>`; for the full set (`<=`, `>=`) use `@functools.total_ordering` (see @sec-operator-overload).
+- `__add__(self, other)` is `+`. It returns a *new* `Money` — never mutates either operand. That's the convention for arithmetic operators.
+- `__mul__(self, factor)` is `*`. Notice `factor` is a number, not a `Money` — multiplying two prices makes no sense.
+- `__bool__(self)` is what `if money:` and `bool(money)` call. By default any instance is truthy; here we make zero-amount money falsy.
+
+The general pattern: each operator and built-in has a corresponding dunder. Implementing the dunder lets your users write idiomatic Python (`a + b`, `if a:`, `len(a)`) instead of method calls. The complete map is in @sec-data-model and @sec-operator-overload.
 
 ## `@property` — smart attributes {#sec-cls-property}
 
-`@property` lets you add validation or computation to an attribute *without* changing the calling syntax. Callers still write `circle.area` — but a method runs.
+You shipped `Circle` with a plain `radius` attribute. Months later, you discover users have been creating circles with negative radii. You want to add validation — but `circle.radius = 5` is written all over the codebase. Changing it to `circle.set_radius(5)` would break every caller. `@property` is the escape hatch: it lets you replace a plain attribute with a method-backed one, *without changing the calling syntax*.
 
 ```{python}
 import math
@@ -132,9 +146,18 @@ c = Circle(5)
 c.radius = -1
 ```
 
-`area` has no setter, so it's read-only. `radius` validates on every assignment.
+Walking through the moving parts:
+
+- The first `radius` method (decorated `@property`) is the **getter** — it's called whenever someone *reads* `c.radius`. We return `self._radius`, the underscore-prefixed "internal" storage.
+- `@radius.setter` registers the **setter** — called on every *assignment* to `c.radius`. It validates first, then stores. Inside the setter we write to `self._radius` (not `self.radius`) — that would be infinite recursion, since `self.radius = x` itself goes through the setter.
+- `area` has no setter, so it's read-only. `c.area = 50` raises `AttributeError`.
+- `__init__` does `self.radius = radius` — that goes through the setter too, validating up front.
+
+The general pattern: start with a plain attribute. The day you need validation, computation, or logging, add `@property` — and not a single caller has to change. This is one of Python's quietest superpowers. The full machinery (it's all *descriptors*) is in @sec-descriptors.
 
 ## `@classmethod` and `@staticmethod` {#sec-cls-classmethod}
+
+What if you want to construct a `Person` from a date string like `"1985-03-15"`, not a year integer? You could write a second `__init__` — except Python only allows one. The standard answer is an **alternative constructor**: a `@classmethod` named like a factory (`from_birth_date`, `from_dict`, `from_csv`).
 
 | Method type | First arg | Use case |
 |---|---|---|
@@ -167,11 +190,17 @@ bob = Person.from_birth_date("Bob", "1985-03-15")
 [bob.name, bob.age, Person.is_adult(20)]
 ```
 
-`cls` lets the method work correctly on subclasses — `cls(name, year)` will create the right type even for a `Person` subclass.
+Walking through this:
+
+- `@classmethod` makes the first parameter `cls` (the class itself), not `self` (an instance). When you call `Person.from_birth_date("Bob", "1985-03-15")`, Python passes `Person` in as `cls`.
+- `return cls(name, year)` calls the constructor — using `cls` instead of hard-coding `Person` means subclasses get instances of *their own* type back automatically. Hard-coding `Person(name, year)` would be a subtle bug for inheritance.
+- `@staticmethod` declares a function that lives in the class's namespace but takes neither `self` nor `cls`. It's purely a packaging choice — `is_adult` could be a top-level function, but keeping it on `Person` groups it with the type it relates to.
+
+The cheap rule of thumb: need the instance? Regular method. Need the class (alternative constructor, factory)? `@classmethod`. Need neither? `@staticmethod` — or just a module-level function.
 
 ## Inheritance and `super()` {#sec-cls-inheritance}
 
-A child class inherits attributes and methods from a parent.
+When two classes share most of their behavior — say `Dog` and `Cat` both have a name, both can be printed, but each barks differently — you don't write the shared parts twice. The child class **inherits** from the parent, reusing what's the same and overriding what's different.
 
 ```{python}
 class Animal:
@@ -200,7 +229,14 @@ dogs = [Dog("Rex"), GuideDog("Lassie", "Alice")]
 [(repr(d), d.speak()) for d in dogs]
 ```
 
-`super()` is how you call back to the parent's implementation — for `__init__` and for any method you override. Always use it; never call `Animal.__init__(self, name)` directly. The deep treatment is @sec-inheritance.
+Walking through what each class adds:
+
+- `Animal` is the base. `__init__` stores `name`; `__repr__` prints `Dog('Rex')` (using `type(self).__name__` so subclasses report their own type, not `Animal`); `speak` raises — it's meant to be overridden.
+- `class Dog(Animal):` declares `Dog` as a child of `Animal`. Every `Dog` instance gets `__init__`, `__repr__`, and the `name` attribute *for free* — they come from `Animal`. `Dog` only **overrides** `speak`.
+- `class GuideDog(Dog):` extends one level further. Its `__init__` calls `super().__init__(name)` to delegate the `name` assignment to the parent — that's how we avoid rewriting `self.name = name`. Then it adds its own `self.owner = owner`.
+- `GuideDog.speak` calls `super().speak()` to get `"Woof!"` from `Dog` and tacks `" (guide dog)"` on the end.
+
+The general rule: `super()` is the right way to call up the chain. Never write `Animal.__init__(self, name)` directly — it works for single inheritance but silently breaks the moment multiple inheritance enters the picture. `super()` follows the **method resolution order** (MRO), the canonical lookup chain. The full story is @sec-inheritance.
 
 `isinstance` understands the hierarchy:
 
@@ -230,7 +266,7 @@ The class chain is the **MRO** (method resolution order) — `type(g).__mro__`. 
 
 ## A glimpse of `@dataclass` {#sec-cls-dataclass}
 
-For a class that's mostly *data*, the boilerplate `__init__` / `__repr__` / `__eq__` is tedious. `@dataclass` generates them for you.
+For a class that's mostly *data* — a 2-D point, a config struct, a row of a record — the `__init__` / `__repr__` / `__eq__` boilerplate is the same every time. `@dataclass` reads the type-annotated body and generates them for you.
 
 ```{python}
 from dataclasses import dataclass
@@ -244,7 +280,16 @@ p = Point(3.0, 4.0)
 [p, p == Point(3.0, 4.0), p == Point(3.0, 5.0)]
 ```
 
-The full treatment of `@dataclass`, `frozen=True`, `field(default_factory=...)`, and the four data-class builders is @sec-dataclasses.
+Walking through what `@dataclass` does:
+
+- It reads the annotated names in the class body (`x: float`, `y: float`) as **fields**.
+- It generates `__init__(self, x: float, y: float)` that assigns `self.x = x; self.y = y`.
+- It generates `__repr__` that prints `Point(x=3.0, y=4.0)`.
+- It generates `__eq__` that compares the two instances field-by-field.
+
+The generated code is real, not magic — you can see it via `inspect.getsource(Point.__init__)`. `@dataclass` just saves you from typing it. Reach for it whenever a class is mostly data; reach for a hand-written class when you need custom behavior.
+
+The full treatment of `frozen=True`, `field(default_factory=...)`, and the four data-class builders is @sec-dataclasses.
 
 Two modern flags are worth knowing exist now, even though we'll deconstruct them later. `slots=True` (3.10+) tells Python to allocate a fixed set of attribute slots — smaller per-instance memory and faster attribute access, at the cost of no dynamic attributes. `kw_only=True` (3.10+) makes every field keyword-only at the constructor — no positional confusion when fields are reordered:
 
@@ -264,11 +309,17 @@ u = User(name="Alice", age=30)
 [u, u.renamed("Bob"), User.__slots__]
 ```
 
-`Self` (3.11+) is the right return type for "an instance of the same class" — even on subclasses, where it tightens to the subclass. Pre-3.11 you had to use a `TypeVar` bound to the class. The full story on advanced typing is @sec-advanced-typing.
+Walking through the new flags:
+
+- `slots=True` adds `__slots__ = ('name', 'age')` to the class — Python pre-allocates exactly those attribute slots and no `__dict__`. Smaller per-instance memory and faster attribute access, but you can't add new attributes at runtime (`u.email = ...` raises `AttributeError`). Worth it for classes you create at scale.
+- `kw_only=True` makes every field keyword-only at the constructor — `User("Alice", 30)` raises `TypeError`, only `User(name="Alice", age=30)` is allowed. No more positional confusion when fields get reordered or added.
+- `Self` (3.11+) is the right return type for "an instance of the same class". On a `User` subclass, it tightens to the subclass automatically — no `TypeVar` boilerplate. `type(self)(...)` constructs an instance of *whatever* `self`'s actual class is, so subclasses get the right return type at runtime.
+
+The general guidance: reach for `slots=True` when memory matters, `kw_only=True` when the field list is non-trivial, and `Self` whenever a method returns "another one of these". The full story is @sec-dataclasses and @sec-advanced-typing.
 
 ## A glimpse of abstract base classes {#sec-cls-abc}
 
-An *abstract* class declares a contract — "any subclass must implement these methods" — without being instantiable itself.
+Sometimes you want to say "every shape has an area and a perimeter — but the formulas are shape-specific". You don't want anyone to instantiate `Shape` itself (it has no meaningful area), and you want Python to *enforce* that subclasses implement both methods. That's an **abstract base class** (ABC).
 
 ```{python}
 from abc import ABC, abstractmethod
@@ -297,7 +348,14 @@ r = Rectangle(3, 4)
 Shape()
 ```
 
-You can't instantiate `Shape` directly — Python raises `TypeError`. The deep treatment of ABCs and the broader question of *protocols vs. ABCs* is @sec-protocols-abcs.
+Walking through what ABC does:
+
+- `class Shape(ABC):` makes `Shape` an *abstract* class — Python tracks which methods are abstract and refuses to instantiate any subclass that hasn't overridden all of them.
+- `@abstractmethod` decorates each method that subclasses *must* implement. The body `...` is just a placeholder — Python never runs it, since concrete subclasses are required to override.
+- `Rectangle(Shape)` provides both `area` and `perimeter`, so it's *concrete* — instantiable, usable like any class.
+- `Shape()` raises `TypeError` because the abstract methods are still unimplemented. That's the enforcement: you cannot accidentally create a half-built shape.
+
+The general pattern: ABCs are how you write contracts in Python. They're useful when you have a base class that genuinely shouldn't be instantiated, and you want a missed override to fail at construction (loud) instead of at first call (quiet). The deep treatment, including the related but more flexible **`Protocol`** for structural typing, is @sec-protocols-abcs.
 
 ::: {.callout-tip}
 ## Why this matters

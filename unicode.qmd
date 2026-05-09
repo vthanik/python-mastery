@@ -43,7 +43,11 @@ cafe = bytes("café", encoding="utf-8")
 cafe[0], cafe[:1]
 ```
 
-`99` is the byte value of `c`. `b'c'` is a one-byte slice. This asymmetry trips up everyone the first time.
+Walking through the result:
+
+- `cafe[0]` is `99` — a *single* byte, returned as a Python `int` (the ASCII code for `c`).
+- `cafe[:1]` is `b'c'` — a one-element *slice*, returned as a `bytes` object of length 1.
+- Same byte; two different types. The cheap rule of thumb: indexing a `bytes` gives you a number; slicing gives you bytes. This asymmetry trips up everyone the first time.
 
 ## Encode and decode errors {#sec-unicode-errors}
 
@@ -115,6 +119,15 @@ with open(path, encoding="utf-8") as fp:
 os.unlink(path)
 ```
 
+Walking through the moving parts:
+
+- `tempfile.NamedTemporaryFile("w", encoding="utf-8", ...)` opens a temp file in **text mode** — Python encodes the `str` `"café"` to UTF-8 bytes on the way out. We never touch bytes ourselves.
+- `delete=False` keeps the file on disk after the `with` exits, so we can re-open it. We clean up by hand at the end.
+- `open(path, encoding="utf-8")` reads in text mode — Python decodes the UTF-8 bytes back into a `str`. The `print` displays the `str`.
+- `os.unlink(path)` deletes the temp file.
+
+The general rule: pass `encoding="utf-8"` *every* time you open a file. Inside your program, work in `str`. Bytes only exist at the entry and exit boundaries.
+
 ::: {.callout-warning}
 ## Always pass `encoding=` explicitly
 
@@ -131,12 +144,20 @@ s2 = "cafe\u0301"    # decomposed
 s1 == s2, len(s1), len(s2)
 ```
 
-Visually identical, byte-different, `==`-different. `unicodedata.normalize` collapses both to a canonical form:
+Walking through what each line shows:
+
+- `s1` uses the precomposed `é` — one code point — so `len(s1)` is `4`.
+- `s2` writes `e` followed by `\u0301`, the combining acute accent. Two code points, so `len(s2)` is `5`. The terminal renders them on top of each other, but the underlying code-point sequence is different.
+- `s1 == s2` is `False` because `==` on `str` compares code-point sequences, not visual appearance.
+
+`unicodedata.normalize` collapses both to a canonical form:
 
 ```{python}
 from unicodedata import normalize
 normalize("NFC", s1) == normalize("NFC", s2)
 ```
+
+The general rule: any time user-typed text is compared, hashed, or used as a key, run it through `normalize("NFC", ...)` first — otherwise visually identical strings will sometimes be unequal.
 
 | Form | Meaning | Use for |
 |---|---|---|

@@ -48,7 +48,16 @@ elapsed = time.perf_counter() - t0
 results, f"{elapsed:.2f}s"
 ```
 
+Walking through the moving parts:
+
+- `slow_double(x)` simulates a slow I/O call: sleep for 100 ms, then do the work. `time.sleep` releases the GIL, so threads really do overlap.
+- `ThreadPoolExecutor(max_workers=5)` builds a pool of five worker threads. The `with` block guarantees `executor.shutdown()` is called on exit — even if the body raises.
+- `executor.map(slow_double, range(10))` schedules 10 calls. The pool grabs five at a time; as each finishes, the next is picked up. Results stream back in submission order.
+- We wrap it in `list(...)` to drain the iterator — `executor.map` is lazy, like the built-in `map`. Without `list`, we'd leave the block before the results materialized.
+
 Ten 100-ms tasks finished in ~200 ms with five workers — five-way overlap. The `with` block ensures the pool is shut down cleanly when the block exits.
+
+The general pattern: when you have N independent calls and want results in submission order, `executor.map` is the one-liner. Reach for `submit`/`as_completed` (next) only when you need per-task control.
 
 Switching from threads to processes is one identifier:
 
@@ -87,9 +96,18 @@ with ThreadPoolExecutor(max_workers=4) as executor:
             print(name, "raised", exc)
 ```
 
-Three calls; one of them raises. With `as_completed` you decide per-future how to handle errors. With `executor.map`, the first exception aborts the iteration.
+Walking through the pattern:
+
+- `task(name, duration)` sleeps for `duration` and then either returns or raises. Task `B` always raises — that's the failure case we want to inspect.
+- `executor.submit(task, name, dur)` schedules one call and returns a `Future` *immediately*, before the work starts. We don't wait here.
+- The dict comprehension builds `{future: name}` so we can recover which task each future belonged to when it finishes. Futures are anonymous; we tag them via the dict.
+- `as_completed(futures)` yields futures *in the order they finish*, not the order they were submitted. `B` finishes first (0.1s), then `A` (0.2s), then `C` (0.3s).
+- `fut.result()` returns the value if the task succeeded; **re-raises** the exception if it failed. We wrap it in `try/except` so one bad task doesn't take down the loop.
+- With `executor.map`, the first exception aborts the iteration — you'd lose the results that came after it.
 
 `executor.submit(func, *args)` returns immediately with a `Future` object. The future gives you `.result()` (blocks until done; re-raises exceptions), `.done()`, `.cancel()`, and `.add_done_callback()`.
+
+The general pattern: `submit` + `as_completed` is the "process results as they arrive" shape — necessary when tasks have different durations, when you want per-task error handling, or when you need to report progress as items complete.
 
 ## A real-world pattern: download with retries {#sec-exec-real}
 

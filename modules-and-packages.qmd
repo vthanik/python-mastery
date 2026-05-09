@@ -17,6 +17,8 @@ This chapter has more *operational* detail than most — it's the boundary betwe
 
 ## What `import` actually does {#sec-mod-import}
 
+`import math` looks like one operation but is actually three: find the file, run it once, bind the result to a name. Knowing this is the difference between guessing why an import fails and reading the error.
+
 When Python executes `import module`:
 
 1. It searches a list of directories — `sys.path` — for `module.py` (or a `module/` package directory).
@@ -28,6 +30,9 @@ import sys
 sys.path[:3]   # first three search directories
 ```
 
+- `sys.path` is a regular list of strings — the search directories Python checks for imports, in order.
+- We slice the first three to keep the output short. The first entry is usually the directory of the entry-point script (or `""` for an interactive session).
+
 Subsequent `import module` calls find the already-loaded module in `sys.modules` and return it without re-running:
 
 ```{python}
@@ -36,29 +41,43 @@ import math
 "math" in sys.modules
 ```
 
-That "run once" property is why a top-level `print("loading")` in a module fires only the first time. It also means modules can hold *singleton* state (like a configured logger) safely.
+- `sys.modules` is a dict cache keyed by module name. Once a module is loaded, it lives here for the rest of the process.
+- The check shows `math` is already cached — earlier code (or Python startup) imported it. A second `import math` would consult the cache and return immediately, *not* re-execute `math.py`.
+
+The general rule: a module runs exactly once per process; subsequent imports just rebind a name to the cached object. That "run once" property is why a top-level `print("loading")` in a module fires only the first time. It also means modules can hold *singleton* state (like a configured logger) safely.
 
 ## Import styles {#sec-mod-styles}
+
+Python gives you four import forms because there are four reasonable ways to bring a name into scope: keep the namespace, alias the namespace, pull a specific name out, or alias that specific name. Each has a place — and a default to prefer.
 
 ```{python}
 import math                    # whole module as a namespace
 math.sqrt(16)
 ```
 
+- `import math` binds the *module* to the name `math`. You access its contents via the `math.` prefix — the source of every symbol stays visible at the call site.
+
 ```{python}
 import math as m               # with an alias
 m.pi
 ```
+
+- `import math as m` is the same, with a shorter local name. Used widely for libraries with long names — `numpy as np`, `pandas as pd`. Stick to the established convention so other readers recognise it.
 
 ```{python}
 from math import sqrt, pi      # specific names — no namespace prefix
 sqrt(16), pi
 ```
 
+- `from math import sqrt, pi` reaches into the module and binds `sqrt` and `pi` directly into the current namespace — no prefix needed.
+- Trade-off: cleaner call sites, but the source of `sqrt` is less obvious to a reader scanning the file.
+
 ```{python}
 from math import sqrt as sq    # specific name with alias
 sq(16)
 ```
+
+- Combines the two: pull out a specific name *and* rename it. Useful when the original name clashes with something in your file.
 
 The conventions:
 
@@ -186,7 +205,11 @@ config = tomllib.loads(pyproject)
 config["project"]["name"], config["project"]["version"], config["project"]["dependencies"]
 ```
 
-Use `tomllib.load(f)` with a binary-mode file (`open(path, "rb")`) for the on-disk version. `tomllib` is read-only by design; for *writing* TOML you reach for `tomli-w` or `tomlkit`.
+- `tomllib.loads(...)` parses a TOML *string* and returns a nested dict (the trailing `s` mirrors `json.loads`).
+- The `[project]` table becomes a sub-dict; `name`/`version`/`dependencies` become its keys.
+- The result is plain Python data — strings, numbers, lists, dicts — so you index it like any dict.
+
+The general rule: `tomllib.loads(text)` for strings, `tomllib.load(f)` for files (open in **binary mode**, `open(path, "rb")`). `tomllib` is read-only by design; for *writing* TOML you reach for `tomli-w` or `tomlkit`.
 
 ## Virtual environments {#sec-mod-venv}
 

@@ -42,7 +42,7 @@ flowchart TB
 
 Every `for` loop is this dance. Custom iterables only need to answer two questions: how do I produce an iterator (`__iter__`)? how does that iterator yield the next value (`__next__`)?
 
-A useful side form: `iter(callable, sentinel)` creates an iterator that calls `callable()` until the result equals the sentinel.
+A useful side form: `iter(callable, sentinel)` creates an iterator that calls `callable()` until the result equals the sentinel. It's the cleanest way to wrap a "call until done" function — file readers, queue pollers, network reads — into something a `for` loop can drive.
 
 ```{python}
 import io
@@ -51,7 +51,13 @@ for line in iter(fp.readline, "\n"):
     print(repr(line))
 ```
 
-The loop reads `fp.readline` until it returns `"\n"` (an empty-content line ending in newline), then stops.
+Walking through what happens:
+
+- `io.StringIO(...)` gives us a file-like object backed by a string — handy for testing without touching disk.
+- `iter(fp.readline, "\n")` builds an iterator. Each `next()` calls `fp.readline()`; when that call returns the sentinel `"\n"` (an empty-content line, just a newline), the iterator stops.
+- The `for` loop drives that iterator and prints each line. The blank line and everything after it are skipped — the sentinel matched.
+
+The general pattern: `iter(callable, sentinel)` turns any zero-argument call-until-done function into a one-line iterable.
 
 ## Iterables versus iterators {#sec-iter-iterable-vs-iterator}
 
@@ -87,11 +93,20 @@ s = Sentence("Hello beautiful world")
 list(s), list(s)
 ```
 
+Walking through the two classes:
+
+- `Sentence` is the **iterable**. Its `__iter__` returns a *fresh* `SentenceIterator` every time it's called — that's why two passes both work.
+- `SentenceIterator` is the **iterator**. It carries the cursor (`self._index`) — the per-iteration state.
+- `__next__` returns the current word and advances. When `self._index` walks off the end, indexing raises `IndexError`, which we translate to `StopIteration` — the protocol's "I'm done" signal.
+- `SentenceIterator.__iter__` returns `self`. Iterators are required to be iterable too, so that `iter(it)` is `it` and `for x in it:` works directly on an iterator.
+
 Two iterations gave two complete results — `Sentence.__iter__` produces a fresh `SentenceIterator` each time. Compare with a class whose `__iter__` returns `self`: the second loop would be empty.
+
+The general pattern: keep the iterable (the data) and the iterator (the cursor) as separate objects. The iterable is the public type; the iterator is the disposable per-loop helper.
 
 ## Generator functions {#sec-iter-generators}
 
-A *generator function* — any function with `yield` — produces an iterator without the boilerplate:
+A *generator function* — any function with `yield` — produces an iterator without the boilerplate. The two-class `Sentence`/`SentenceIterator` setup collapses to a few lines:
 
 ```{python}
 class SentenceGen:
@@ -104,7 +119,16 @@ class SentenceGen:
 list(SentenceGen("Hello beautiful world")), list(SentenceGen("Hello beautiful world"))
 ```
 
-The presence of `yield` turns `__iter__` into a generator factory. Calling it returns a generator *object* (an iterator). Each `next()` resumes execution at the last `yield`.
+Walking through what's happening:
+
+- `__iter__` contains `yield`, so Python treats it as a **generator function** — every call returns a fresh generator object instead of running the body.
+- That generator object is itself an iterator: it has `__next__` and `__iter__`, both supplied automatically.
+- Each `next()` runs the body up to the next `yield`, hands back the value, and pauses. The function's local state (`for word in ...` cursor included) is preserved between calls.
+- When the loop finishes, the generator function returns, which Python converts into a `StopIteration`.
+
+Two passes both work: each call to `__iter__` builds a *new* generator with its own `for word in ...` cursor.
+
+The general pattern: any time you'd write a separate iterator class with a manual cursor, write a generator function instead. Same protocol, a fraction of the code.
 
 A *generator expression* is the inline version:
 
@@ -197,7 +221,16 @@ while (chunk := buf.read(3)):
 chunks
 ```
 
+Walking through the loop:
+
+- `buf.read(3)` returns up to 3 bytes; at end-of-stream it returns `b""` (empty, falsy).
+- `chunk := buf.read(3)` is **assignment-as-expression**: it stores the result in `chunk` *and* evaluates to that result, so the `while` can test it.
+- The loop body uses `chunk` — the same name the condition just bound. No re-read, no off-by-one.
+- When `buf.read(3)` returns `b""`, the condition is falsy and the loop exits naturally.
+
 The condition reads "while the next chunk, bound to `chunk`, is truthy." Replaces the `while True / if not …: break` pattern.
+
+The general pattern: when a value needs to be *both* tested and used inside the loop, walrus binds it once at the condition.
 
 ## `yield from` {#sec-iter-yield-from}
 
@@ -210,6 +243,12 @@ def chain(*iterables):
 
 list(chain("ABC", range(3), [10, 20]))
 ```
+
+Walking through `chain`:
+
+- `*iterables` collects all positional arguments into a tuple — `chain("ABC", range(3), [10, 20])` gives `iterables = ("ABC", range(3), [10, 20])`.
+- For each one, `yield from it` re-yields every value the sub-iterable produces. The outer caller sees one flat stream — `'A', 'B', 'C', 0, 1, 2, 10, 20`.
+- The same loop *without* `yield from` would be `for x in it: yield x`. Equivalent for value flow, but `yield from` also forwards `send` and `throw` — the machinery `asyncio` relies on.
 
 ```{python}
 class Tree:
@@ -228,7 +267,14 @@ t = Tree("root",
 list(depth_first(t))
 ```
 
-`yield from depth_first(child)` is the natural way to flatten a recursive iterator.
+Walking through the tree walk:
+
+- `Tree(value, *children)` stores the node value and a list of child trees — a tiny n-ary tree.
+- `depth_first` yields the current node's value, then recurses into each child. Each recursive call is itself a generator.
+- `yield from depth_first(child)` plugs that child generator into the outer one — every value the child yields flows through to the caller without manual relay.
+- The output `['root', 'A', 'A1', 'A2', 'B', 'B1']` is a depth-first preorder traversal.
+
+The general pattern: when a generator wants to delegate to another generator (or any iterable), `yield from` is the one-line way. It's also the only way to forward exceptions and `send()` correctly, which is why it underpins coroutine composition.
 
 ## A note on classic coroutines {#sec-iter-coroutines}
 

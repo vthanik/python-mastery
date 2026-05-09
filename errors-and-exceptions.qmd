@@ -29,6 +29,8 @@ divide(10, 0)
 
 ## `try` / `except` {#sec-err-try-except}
 
+The default behavior — let the exception propagate up and crash the program — is right surprisingly often. But sometimes you have a sensible recovery: substitute a default, log and continue, return `None`. `try` / `except` lets you intercept a specific exception and run a handler instead.
+
 ```{python}
 def safe_divide(a, b):
     try:
@@ -39,7 +41,12 @@ def safe_divide(a, b):
 [safe_divide(10, 2), safe_divide(10, 0)]
 ```
 
-Bind the exception to a name with `as` to inspect it:
+- The `try:` block is the protected code. If `a / b` raises `ZeroDivisionError`, control jumps to the matching `except` clause — the rest of the `try` is abandoned.
+- `except ZeroDivisionError:` matches only that specific class (and its subclasses). Other exceptions still propagate.
+- The handler returns `float("inf")` as a graceful fallback for division by zero.
+- The first call (`10 / 2`) never triggers the handler; the second call (`10 / 0`) does.
+
+The general rule: catch the *narrowest* exception class that fits the recovery you actually have. Bind the exception to a name with `as` to inspect it:
 
 ```{python}
 try:
@@ -49,7 +56,11 @@ except ValueError as e:
 message
 ```
 
-You can catch several types:
+- `int("not a number")` raises `ValueError("invalid literal for int() with base 10: 'not a number'")`.
+- `as e` binds the exception object to `e` so the handler can read its message, args, or chained cause.
+- `f"can't parse: {e}"` calls `str(e)` to format the exception's message.
+
+The general rule: `except SomeError as name:` gives you the exception object for inspection or re-raising. You can catch several types:
 
 ```{python}
 def parse_int(s):
@@ -61,13 +72,19 @@ def parse_int(s):
 [parse_int("42"), parse_int("nope"), parse_int(None)]
 ```
 
+- The tuple `(ValueError, TypeError)` matches *either* class.
+- `int("nope")` raises `ValueError`; `int(None)` raises `TypeError` — both go to the same handler.
+- Pass each case through and you get a successful parse, then two formatted error messages.
+
+The general rule: `except (A, B):` is the way to match multiple unrelated classes in one handler.
+
 ::: {.callout-warning}
 **Never use a bare `except:`.** It catches *everything*, including `KeyboardInterrupt` (Ctrl+C) and `SystemExit`. If you really need a catch-all, write `except Exception:` — that omits the system-exit family.
 :::
 
 ## `else` and `finally` {#sec-err-else-finally}
 
-`else` runs only if no exception was raised in the `try` block. `finally` runs whether an exception happened or not — it's for cleanup.
+A `try` block has two related extensions. `else` is the "no exception was raised" branch — useful when you want to keep the `try` block as small as possible. `finally` is the "always run, exception or not" branch — useful for cleanup that must happen regardless of outcome.
 
 ```{python}
 def parse_log_line(line):
@@ -83,6 +100,13 @@ def parse_log_line(line):
 
 [parse_log_line("21"), parse_log_line("oops")]
 ```
+
+- `try:` runs the parse. Only the line that might raise is in the `try`.
+- `except ValueError:` returns `None` for non-numeric input.
+- `else:` runs *only* when the `try` succeeded — it has access to `n`. Doubling lives here, not in the `try`, so we never accidentally catch an exception from the doubling.
+- `finally:` runs no matter what — after `else`, after `except`, even if `return` already fired in either branch.
+
+The general rule: `try` for the protected operation, `except` for recovery, `else` for "happy path follow-up", `finally` for unconditional cleanup.
 
 ## Raising exceptions {#sec-err-raising}
 
@@ -139,7 +163,7 @@ The rule: **catch the most specific exception** that fits. Catching `Exception` 
 
 ## Custom exceptions {#sec-err-custom}
 
-Define your own hierarchy for an application. It lets callers handle specific errors without string-matching.
+Catching `Exception` is too broad; catching `ValueError` everywhere a domain error happens is sloppy. The right move is to define your own hierarchy: a base class for "any error from this app" plus a subclass per logical category. Callers handle specific errors by class, never by string-matching.
 
 ```{python}
 class AppError(Exception):
@@ -161,9 +185,16 @@ except AppError as e:
     str(e)
 ```
 
+- `class AppError(Exception):` declares an empty subclass of `Exception`. The docstring is the entire body — that's enough for a marker class.
+- `DataError` and `AuthError` extend `AppError`, so any `except AppError:` clause catches both.
+- `AuthError.__init__` stores extra fields (`user`, `reason`) for programmatic access *and* calls `super().__init__(...)` to set the formatted message that `str(exc)` returns.
+- The `try` raises `AuthError`; the `except AppError as e` clause matches because `AuthError` *is-a* `AppError`.
+
+The general rule: subclass `Exception` for an app-specific base, then add a subclass per error category. Callers can catch the base for "any of our errors" or a specific subclass for surgical handling.
+
 ## `with` and context managers {#sec-err-with}
 
-The `with` statement guarantees cleanup even when exceptions occur — by calling the object's `__enter__` and `__exit__` methods. The most common use is opening a file:
+When you open a file, you eventually need to close it — even if an exception interrupts the work in between. Hand-rolled `try` / `finally` works but clutters every call site. The `with` statement bundles "set up the resource, do the work, tear it down no matter what" into one block, by calling the object's `__enter__` and `__exit__` methods. The most common use is opening a file:
 
 ```{python}
 import tempfile
@@ -177,9 +208,13 @@ with open(target, encoding="utf-8") as f:
 content
 ```
 
-The file closes the moment the `with` block exits — even if `f.read()` raises.
+- `tempfile.mkdtemp()` makes a fresh temp directory; the `Path / "hello.txt"` builds the file path.
+- `target.write_text(...)` is a one-line write — sets up the input file for the demo.
+- `with open(target, encoding="utf-8") as f:` opens the file, binds it to `f`, and registers a guarantee: when the block exits — normally or via exception — `f.close()` is called.
+- `content = f.read()` reads while the file is open.
+- The moment the indented block ends, the file is closed. There's no way to forget.
 
-You can write your own context manager with `contextlib.contextmanager`:
+The general rule: any time a resource needs cleanup, look for or write a context manager and use it with `with`. You can write your own context manager with `contextlib.contextmanager`:
 
 ```{python}
 import time
@@ -198,6 +233,13 @@ with timer("compute"):
 
 total
 ```
+
+- `@contextmanager` turns a generator function into a context manager. The single `yield` splits the function into "before the block" (setup) and "after the block" (teardown).
+- Code before `yield` runs on `__enter__` — here, capturing the start time.
+- Code after `yield`, inside `finally`, runs on `__exit__` — guaranteed to print the elapsed time even if the body raises.
+- `with timer("compute"):` enters, runs the body, exits — and the timing line prints.
+
+The general rule: write the setup, `yield`, then the teardown wrapped in `try`/`finally` — `@contextmanager` handles the protocol wiring for you.
 
 For the common case "swallow this specific exception silently," `contextlib.suppress` is more concise than a `try` / `except` that does nothing:
 

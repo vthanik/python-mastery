@@ -16,14 +16,20 @@ Most Python tutorials skip the mental models and dive into syntax. We don't, bec
 
 ## An object has value, type, and identity {#sec-how-python-thinks-objects}
 
-Every object Python creates carries three pieces of information: its **value** (what it contains), its **type** (what kind of thing it is), and its **identity** (its address in memory).
+Every object Python creates carries three pieces of information: its **value** (what it contains), its **type** (what kind of thing it is), and its **identity** (its address in memory). These three together explain almost every "why does this work that way?" question in the language.
 
 ```{python}
 x = 42
 x, type(x), id(x)
 ```
 
-`type(x)` reports the kind of thing `x` points to; `id(x)` reports its identity. Two objects with the same value can have *different* identities.
+Walking through what we just asked Python to tell us:
+
+- `x` is the **value** — `42` itself.
+- `type(x)` is the **type** — `int`, the class the object belongs to.
+- `id(x)` is the **identity** — a number unique to this object during its lifetime, in CPython the memory address.
+
+Now the same three questions on two lists that *look* the same:
 
 ```{python}
 a = [1, 2, 3]
@@ -31,11 +37,14 @@ b = [1, 2, 3]
 a == b, a is b
 ```
 
-`a == b` asks about value. `a is b` asks about identity. They are not the same question. The deep treatment is in @sec-references-mutability.
+- `a == b` asks **value equality** — do they contain the same items? Yes.
+- `a is b` asks **identity** — are they the same object in memory? No: each `[1, 2, 3]` literal builds a fresh list.
+
+The general rule: `==` is for value, `is` is for identity. They are not the same question. The deep treatment is in @sec-references-mutability.
 
 ## Variables are labels {#sec-how-python-thinks-labels}
 
-Assignment does not copy a value into a box. It creates an object and ties a name tag to it.
+Most languages teach variables as boxes: `x = 42` puts `42` into a box named `x`. Python doesn't work that way, and the distinction matters. Assignment does not copy a value into a box — it creates an object and ties a name tag to it.
 
 ```{python}
 x = 42
@@ -43,7 +52,11 @@ y = x
 x, y, x is y
 ```
 
-`x` and `y` are two labels on the *same* `42`. No copy happened. This single idea explains most of Python's surprises: why a list modified through one variable shows the change through another, why functions can mutate the objects you pass them, and why mutable defaults are a trap.
+- `x = 42` builds the integer `42` and binds the name `x` to it.
+- `y = x` does *not* copy `42`. It binds `y` to the *same* object `x` already points at.
+- `x is y` asks the identity question: yes, both names refer to the same object.
+
+This single idea explains most of Python's surprises: why a list modified through one variable shows the change through another, why functions can mutate the objects you pass them, and why mutable defaults are a trap.
 
 ```{python}
 xs = [1, 2, 3]
@@ -52,7 +65,11 @@ ys.append(4)
 xs
 ```
 
-`ys.append(4)` modified the one list both names point to. We revisit this in detail in @sec-references-mutability.
+- `ys = xs` makes `ys` a second label on the one list, no copy.
+- `ys.append(4)` mutates that single list in place.
+- Reading `xs` shows the same change, because there's only one list to read.
+
+The general rule: assignment binds names to objects; mutation through any name is visible through every other name pointing at the same object. We revisit this in detail in @sec-references-mutability.
 
 The picture to keep in mind is two name tags tied to one heap object:
 
@@ -82,11 +99,15 @@ def first_two(thing):
 first_two([10, 20, 30]), first_two("hello"), first_two({"a": 1, "b": 2, "c": 3})
 ```
 
-One function works on a list, a string, and a dictionary because all three answer "yes, I can be iterated." This is **duck typing**: *if it walks like a duck and quacks like a duck, it's a duck*. The deep dive into the protocols themselves is the entire spine of Part I — starting with @sec-data-model.
+- `first_two` never checks `thing`'s type. It asks `for x in thing:` — that's the protocol question.
+- A `list` answers yes and yields its items. A `str` answers yes and yields its characters. A `dict` answers yes and yields its keys.
+- Same function, three different types, three sensible results.
+
+The general rule — **duck typing**: *if it walks like a duck and quacks like a duck, it's a duck*. Code that asks a question about behavior (can you be iterated?) works on every type that answers correctly, even types that didn't exist when the function was written. The deep dive into the protocols themselves is the entire spine of Part I — starting with @sec-data-model.
 
 ## Indentation is syntax {#sec-how-python-thinks-indentation}
 
-Python uses indentation — usually four spaces — to mark blocks of code. There are no curly braces, no `begin`/`end` keywords. The indentation isn't a *style* convention — it's the syntax itself.
+Most languages mark blocks with `{` and `}` (or `begin`/`end`) and treat indentation as cosmetic. Python flips that: indentation *is* the syntax. There are no braces; the parser reads the indent level to know where a block begins and ends.
 
 ```{python}
 def classify(n):
@@ -99,7 +120,11 @@ def classify(n):
 classify(7), classify(-3), classify(0)
 ```
 
-The body of `if`, `elif`, and `def` is whatever is indented one level beneath. Mixing tabs and spaces is a runtime error. This forces readable code — a feature, not a limitation.
+- `def classify(n):` opens a function. Everything indented one level beneath is the function body.
+- `if n > 0:` opens a conditional. Its body is the line indented one further.
+- `return "zero"` is dedented back to the function level — it runs only when the `if`/`elif` chain falls through.
+
+The general rule: the body of any block (`if`, `for`, `def`, `class`, `with`, `try`) is whatever sits at the next indent level. Mixing tabs and spaces inside one block is a syntax error — pick four spaces and stay there.
 
 ::: {.callout-tip}
 ## Why this matters

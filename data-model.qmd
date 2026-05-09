@@ -40,6 +40,14 @@ class FrenchDeck:
         return self._cards[position]
 ```
 
+Walking through this piece by piece:
+
+- `Card = collections.namedtuple(...)` builds a tiny class with two fields, `rank` and `suit`. A `namedtuple` is the lightest way to make a record-like type — no methods, just attribute access by name.
+- `ranks` and `suits` are *class attributes* — defined in the class body, shared by every `FrenchDeck` instance. They're constants describing what a deck *is*.
+- `__init__` builds `self._cards` as the full 52-card list using a nested comprehension. The leading underscore on `_cards` is a convention: "internal — don't touch from outside."
+- `__len__(self)` is the dunder Python calls when you write `len(deck)`. We delegate to the underlying list's length.
+- `__getitem__(self, position)` is what `deck[i]` calls. We forward `position` straight to `self._cards`, so whatever the list supports — integers, negatives, slices — we support too.
+
 Two dunder methods: `__len__` and `__getitem__`. That's the entire interface. Now look at what the class can already do.
 
 ```{python}
@@ -116,7 +124,15 @@ class Vector:
         return Vector(self.x * scalar, self.y * scalar)
 ```
 
-Each dunder turns a piece of Python syntax into something `Vector` understands.
+Each dunder maps one piece of Python syntax onto `Vector`:
+
+- `__repr__(self)` is what `repr(v)` and the REPL call. Using `!r` inside the f-string applies `repr` to each component, so a `Vector(1, 2)` prints unambiguously.
+- `__abs__(self)` is `abs(v)`. We define it as the Euclidean length via `math.hypot`, which is the right meaning for a 2-D vector.
+- `__bool__(self)` is `bool(v)` and `if v:`. We make zero-length vectors falsy by reusing `abs(self)`.
+- `__add__(self, other)` is `v1 + v2`. Notice it returns a *new* `Vector` — never mutates either operand. That's the convention for arithmetic.
+- `__mul__(self, scalar)` is `v * n`. Here `scalar` is a number, not a `Vector` — multiplying two vectors would need a different operation (dot product, cross product), and we don't define one.
+
+The general shape: each operator and built-in has a corresponding dunder, and implementing the dunder lights up the syntax.
 
 ```{python}
 v1 = Vector(2, 4)
