@@ -343,7 +343,9 @@ The general pattern: instance methods for instance state; `@classmethod` for alt
 
 ## Inheritance and `super()` {#sec-cls-inheritance}
 
-When two classes share most of their behavior — say `Dog` and `Cat` both have a name, both can be printed, but each barks differently — you don't write the shared parts twice. The child class **inherits** from the parent, reusing what's the same and overriding what's different.
+When two classes share most of their behavior — say `Dog` and `Cat` both have a name, both can be printed, but each makes a different sound — you don't write the shared parts twice. The child class **inherits** from the parent, reusing what's the same and overriding what's different. Build it in three small steps.
+
+**Step 1: a base class and two subclasses that override one method.** Define `Animal` with the parts every animal shares; let each subclass override only what differs:
 
 ```{python}
 class Animal:
@@ -360,52 +362,68 @@ class Dog(Animal):
     def speak(self):
         return "Woof!"
 
+class Cat(Animal):
+    def speak(self):
+        return "Meow!"
+
+rex, whiskers = Dog("Rex"), Cat("Whiskers")
+[repr(rex), repr(whiskers), rex.speak(), whiskers.speak()]
+```
+
+- `Animal` is the **base class**. `__init__` stores `name`; `__repr__` prints `Dog('Rex')` (using `type(self).__name__` so subclasses report their own type, not `Animal`); `speak` raises — it's a placeholder meant to be overridden.
+- `class Dog(Animal):` declares `Dog` as a *child* of `Animal`. Every `Dog` instance gets `__init__`, `__repr__`, and the `name` attribute *for free* from `Animal`. `Dog` only **overrides** `speak`.
+- `Cat` does the same with a different `speak`. Both subclasses share `Animal`'s `__init__` and `__repr__` — that's the shared-behavior payoff.
+
+**Step 2: `super()` to extend a parent's method.** A subclass that needs *more* state or *more* behavior calls `super()` to delegate to the parent first, then adds its own bit:
+
+```{python}
 class GuideDog(Dog):
     def __init__(self, name, owner):
-        super().__init__(name)              # call Animal.__init__
+        super().__init__(name)               # delegates to Animal.__init__
         self.owner = owner
 
     def speak(self):
         return super().speak() + " (guide dog)"
 
-dogs = [Dog("Rex"), GuideDog("Lassie", "Alice")]
-[(repr(d), d.speak()) for d in dogs]
+g = GuideDog("Lassie", "Alice")
+[repr(g), g.owner, g.speak()]
 ```
 
-Walking through what each class adds:
+- `super().__init__(name)` calls the parent chain's `__init__` — here, `Animal.__init__(name)`, which does `self.name = name`. Without this we'd have to repeat that line in every subclass.
+- After delegating, the subclass adds its own field: `self.owner = owner`.
+- `super().speak()` calls `Dog.speak()` to get `"Woof!"`, and the subclass tacks `" (guide dog)"` on the end. That's the *extend* pattern — let the parent do its work, then build on top.
+- Always use `super()` — never `Animal.__init__(self, name)` directly. The direct form works for single inheritance but breaks silently the moment a class has multiple parents. `super()` follows the **MRO** (method resolution order), the canonical lookup chain.
 
-- `Animal` is the base. `__init__` stores `name`; `__repr__` prints `Dog('Rex')` (using `type(self).__name__` so subclasses report their own type, not `Animal`); `speak` raises — it's meant to be overridden.
-- `class Dog(Animal):` declares `Dog` as a child of `Animal`. Every `Dog` instance gets `__init__`, `__repr__`, and the `name` attribute *for free* — they come from `Animal`. `Dog` only **overrides** `speak`.
-- `class GuideDog(Dog):` extends one level further. Its `__init__` calls `super().__init__(name)` to delegate the `name` assignment to the parent — that's how we avoid rewriting `self.name = name`. Then it adds its own `self.owner = owner`.
-- `GuideDog.speak` calls `super().speak()` to get `"Woof!"` from `Dog` and tacks `" (guide dog)"` on the end.
+**Step 3: how Python finds a method.** When you call `g.speak()`, Python does *not* magically pick the right method. It walks a fixed chain of classes — the instance's class first, then each parent in order — and stops at the first one that defines `speak`:
 
-The general rule: `super()` is the right way to call up the chain. Never write `Animal.__init__(self, name)` directly — it works for single inheritance but silently breaks the moment multiple inheritance enters the picture. `super()` follows the **method resolution order** (MRO), the canonical lookup chain. The full story is @sec-inheritance.
+```{mermaid}
+flowchart LR
+    G[GuideDog] --> D[Dog] --> A[Animal] --> O[object]
+```
 
-`isinstance` understands the hierarchy:
+For `g.speak()`:
+
+- Look on `GuideDog` — `speak` is defined here → stop, call it.
+
+For `g.__repr__()`, the walk goes further:
+
+- `GuideDog` — no `__repr__`.
+- `Dog` — no `__repr__`.
+- `Animal` — found → stop, call it.
+
+That chain is the **MRO** (method resolution order). You can inspect it directly:
 
 ```{python}
-g = GuideDog("Lassie", "Alice")
+[c.__name__ for c in GuideDog.__mro__]
+```
+
+`isinstance` uses the same chain — an object "is-a" any class in its MRO:
+
+```{python}
 [isinstance(g, GuideDog), isinstance(g, Dog), isinstance(g, Animal)]
 ```
 
-When you write `g.speak`, Python doesn't pick a method by magic — it walks a fixed lookup chain:
-
-```{mermaid}
-flowchart TD
-    A["g.speak"] --> B{"in g.__dict__?"}
-    B -- yes --> Z[return that]
-    B -- no --> C{"in GuideDog.__dict__?"}
-    C -- yes --> Z
-    C -- no --> D{"in Dog.__dict__?"}
-    D -- yes --> Z
-    D -- no --> E{"in Animal.__dict__?"}
-    E -- yes --> Z
-    E -- no --> F{"in object.__dict__?"}
-    F -- yes --> Z
-    F -- no --> X[AttributeError]
-```
-
-The class chain is the **MRO** (method resolution order) — `type(g).__mro__`. Instance attributes shadow class attributes; subclasses shadow parents. The full descriptor and MRO story is in @sec-data-model and @sec-inheritance.
+The full descriptor and MRO story is in @sec-data-model and @sec-inheritance.
 
 ## A glimpse of `@dataclass` {#sec-cls-dataclass}
 
