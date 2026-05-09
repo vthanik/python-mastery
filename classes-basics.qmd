@@ -295,18 +295,19 @@ Read this from first principles, one step at a time:
 
 1. `@classmethod` tells Python "when this method is called, pass the class itself as the first argument." So writing `Person.from_birth_date("Bob", "1985-03-15")` is really `Person.from_birth_date(Person, "Bob", "1985-03-15")` — Python inserts `Person` as the first argument silently. Inside the body, `cls` is bound to `Person`. `cls` is just a parameter name, the way `self` is — the convention is `cls` because it points to the *class*, not an instance.
 2. `cls(name, year)` is therefore literally `Person(name, year)` — the normal constructor call, going through `__init__` like any other. `from_birth_date` parses the ISO string into a year, then constructs via `cls`.
-3. Why write `cls(...)` instead of `Person(...)` directly? So that subclasses get instances of *themselves*, not of the parent. Watch what happens with a subclass:
+3. Why write `cls(...)` instead of `Person(...)` directly? So that subclasses get instances of *themselves*, not of the parent. To see this, imagine someone extends `Person` — `Employee` is a natural subclass, since every employee is also a person:
 
 ```{python}
-class Employee(Person):
+class Employee(Person):           # Employee IS-A Person, with nothing extra here
     pass
 
 e = Employee.from_birth_date("Alice", "1990-07-04")
 [type(e).__name__, e.name, e.birth_year]
 ```
 
-- `Employee` inherits `from_birth_date` unchanged — we didn't redefine it.
-- But when you call `Employee.from_birth_date(...)`, Python now passes `Employee` as `cls`. So inside the method, `cls(name, year)` is `Employee(name, year)` and the result is an `Employee`.
+- `class Employee(Person):` declares `Employee` as a *child class* of `Person` — same name, same birth_year, same `from_birth_date`, all inherited. The body is just `pass` because we only need to demonstrate the inheritance mechanics; in real code `Employee` would add fields like `salary` or `department`, but those aren't relevant here.
+- We did **not** redefine `from_birth_date` on `Employee`. The inherited method runs unchanged.
+- But when you call `Employee.from_birth_date(...)`, Python now passes `Employee` as `cls`. So inside the method, `cls(name, year)` is `Employee(name, year)` — and the result is an `Employee`, as `type(e).__name__` confirms.
 - If we'd hard-coded `Person(name, year)` in `from_birth_date`, `Employee.from_birth_date(...)` would silently return a `Person`, ignoring the subclass entirely. That's the inheritance bug to avoid.
 
 The naming convention is `from_xxx` — `from_birth_date`, `from_dict`, `from_csv`. The standard library uses it everywhere: `dict.fromkeys`, `datetime.fromisoformat`, `Path.cwd`. Read the call site `Person.from_birth_date(...)` aloud — it tells you exactly what's happening.
