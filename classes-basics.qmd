@@ -94,6 +94,8 @@ That's the universal shape of a Python class: data attached in `__init__`, dunde
 
 Suppose `Money(10) + Money(2)` should return `Money(12)` and `Money(10) == Money(10)` should be `True`. With a plain class you'd write `m1.add(m2)` and `m1.equals(m2)` — fine, but un-Pythonic. Python lets you wire `+`, `==`, `<`, `len`, `in`, `for`, and the rest directly to your class by implementing **special methods** (a.k.a. *dunder* methods — double-underscore on each side).
 
+One convention to know before reading the code: every *binary*-operator dunder takes two parameters, `self` and `other`. When Python sees `a == b`, it calls `a.__eq__(b)` — so inside the method, `self` is the left operand (`a`) and `other` is the right operand (`b`). The same shape applies to `+` (`__add__`), `<` (`__lt__`), `*` (`__mul__`), and the rest. The name `other` is just the conventional placeholder; you could call it anything, but every Python codebase uses `other`.
+
 ```{python}
 class Money:
     def __init__(self, amount, currency="GBP"):
