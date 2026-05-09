@@ -94,7 +94,7 @@ That's the universal shape of a Python class: data attached in `__init__`, dunde
 
 Suppose `Money(10) + Money(2)` should return `Money(12)` and `Money(10) == Money(10)` should be `True`. With a plain class you'd write `m1.add(m2)` and `m1.equals(m2)` — fine, but un-Pythonic. Python lets you wire `+`, `==`, `<`, `len`, `in`, `for`, and the rest directly to your class by implementing **special methods** (a.k.a. *dunder* methods — double-underscore on each side).
 
-One convention to know before reading the code: every *binary*-operator dunder takes two parameters, `self` and `other`. When Python sees `a == b`, it calls `a.__eq__(b)` — so inside the method, `self` is the left operand (`a`) and `other` is the right operand (`b`). The same shape applies to `+` (`__add__`), `<` (`__lt__`), `*` (`__mul__`), and the rest. The name `other` is just the conventional placeholder; you could call it anything, but every Python codebase uses `other`.
+One convention to know before reading the code: every *binary*-operator dunder takes two parameters — `self` and a second one for the right operand. When Python sees `a == b`, it calls `a.__eq__(b)` — so inside the method, `self` is the left operand (`a`) and the second parameter is the right operand (`b`). The same shape applies to `+` (`__add__`), `<` (`__lt__`), `*` (`__mul__`), and the rest. The conventional name for the right operand is `other`; you'll see it everywhere. When the right operand has a clearly different role, codebases rename it to something more descriptive — below, `__mul__` calls it `factor` because `price * 2` multiplies by a number, not by another `Money`.
 
 ```{python}
 class Money:
@@ -140,7 +140,7 @@ Walking through the special methods one at a time:
 - `__eq__(self, other)` is what `==` calls. We check `isinstance(other, Money)` first so `Money(10) == 10` is `False` instead of crashing on a missing `.currency`.
 - `__lt__(self, other)` is `<`. Comparing 10 GBP to 10 USD is a category error, not a numeric one — we refuse it with `ValueError`. Defining `__lt__` is enough for `<` and `>`; for the full set (`<=`, `>=`) use `@functools.total_ordering` (see @sec-operator-overload).
 - `__add__(self, other)` is `+`. It returns a *new* `Money` — never mutates either operand. That's the convention for arithmetic operators.
-- `__mul__(self, factor)` is `*`. Notice `factor` is a number, not a `Money` — multiplying two prices makes no sense.
+- `__mul__(self, factor)` is `*`. Writing `price * 2` calls `price.__mul__(2)`, so `factor` is `2` — a number, not a `Money` (multiplying two prices makes no sense). The parameter is named `factor` instead of `other` to make that role explicit.
 - `__bool__(self)` is what `if money:` and `bool(money)` call. By default any instance is truthy; here we make zero-amount money falsy.
 
 The general pattern: each operator and built-in has a corresponding dunder. Implementing the dunder lets your users write idiomatic Python (`a + b`, `if a:`, `len(a)`) instead of method calls. The complete map is in @sec-data-model and @sec-operator-overload.
