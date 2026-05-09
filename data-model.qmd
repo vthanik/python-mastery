@@ -194,24 +194,6 @@ The full taxonomy of special methods is large. The table below is the working su
 | Rich comparison | `__lt__`, `__le__`, `__eq__`, `__ne__`, `__gt__`, `__ge__` |
 | Hashing | `__hash__` |
 
-The shape of the contract — operators and built-ins on the left, the dunder Python actually calls on the right:
-
-```{mermaid}
-flowchart LR
-  A1["len(x)"] --> B1["__len__"]
-  A2["x[i]"] --> B2["__getitem__"]
-  A3["x[i] = v"] --> B3["__setitem__"]
-  A4["x + y"] --> B4["__add__"]
-  A5["x * n"] --> B5["__mul__"]
-  A6["abs(x)"] --> B6["__abs__"]
-  A7["bool(x)"] --> B7["__bool__"]
-  A8["repr(x)"] --> B8["__repr__"]
-  A9["x == y"] --> B9["__eq__"]
-  A10["x in y"] --> B10["__contains__"]
-  A11["for v in x"] --> B11["__iter__"]
-  A12["with x"] --> B12["__enter__ / __exit__"]
-```
-
 You don't memorize this table. You recognize the pattern — every operator and built-in delegates to a dunder — and look up the specific name when you need it.
 
 ## Why `len` is not a method {#sec-data-model-len}
