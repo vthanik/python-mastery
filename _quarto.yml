@@ -5,7 +5,7 @@ project:
 engine: jupyter
 
 book:
-  title: "fluent-python-book"
+  title: "Python Mastery"
   reader-mode: true
 
   page-footer:

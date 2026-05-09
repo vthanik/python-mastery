@@ -61,7 +61,7 @@ The source material is code and explanation; the exercises in each chapter are a
 - **Code that runs:** every `python` block in this book is executed during the build. If you copy it into a fresh interpreter, it runs.
 - **Special methods** are written `__like_this__` (with double underscores). Some sources call these *dunder* methods; the book uses both names.
 - **Citations** to *Fluent Python* and *Python Distilled* are by chapter and section, e.g., (Ramalho 2022, ch. 1) or "Beazley §7.10".
-- **Source code** for the book is in the `fluent-python-book/` repository. Each chapter is a single `.qmd` file.
+- **Source code** for the book is in the `python-mastery/` repository. Each chapter is a single `.qmd` file.
 
 ## Acknowledgements {.unnumbered}
 
