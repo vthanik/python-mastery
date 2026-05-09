@@ -13,8 +13,8 @@ book:
       Distilled from David M. Beazley's *Python Distilled* (Addison-Wesley 2022) and Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022).
     right: |
       This book was built with <a href="https://quarto.org/">Quarto</a>.
-  site-url: https://example.invalid/
-  repo-url: https://example.invalid/
+  site-url: https://vthanik.github.io/python-mastery/
+  repo-url: https://github.com/vthanik/python-mastery
   repo-branch: main
   repo-actions: [edit, issue]
 

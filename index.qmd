@@ -23,3 +23,11 @@ If you want a single chapter on a topic, the table of contents lets you jump in 
 :::
 
 The single thread running through every chapter is the **data model**: the protocols and special methods that built-in syntax delegates to. Once you've seen this thread, the rest of the language stops feeling like a collection of features and starts feeling like one consistent system.
+
+## About this book {.unnumbered}
+
+- **Read online:** <https://vthanik.github.io/python-mastery/>
+- **Source on GitHub:** <https://github.com/vthanik/python-mastery>
+- **License:** the prose and exercises are original work; quotations from *Fluent Python* and *Python Distilled* are attributed by chapter and section.
+
+Found a typo, a confusing passage, or a code block that won't run? Open an issue or a pull request — every chapter has an "Edit this page" link in the right sidebar that takes you straight to its source.
