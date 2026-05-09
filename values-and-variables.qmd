@@ -1,0 +1,156 @@
+# Values and Variables {#sec-values-and-variables}
+
+::: {.callout-note}
+## Core idea
+Python has a small set of fundamental types: `int`, `float`, `bool`, `str`, `None`. A variable is created by assignment — its type is determined by what it points to, not by any declaration.
+:::
+
+In this chapter you will learn to:
+
+1. Recognize the five primitive types and their literals.
+2. Use Python's arithmetic and the `//`, `%`, `**` operators.
+3. Distinguish equality (`==`) from identity (`is`) — and know when to use each.
+4. Reason about *truthiness*: which values count as `True` in a condition.
+
+## The five primitive types {#sec-values-types}
+
+```{python}
+n = 42
+pi = 3.14159
+flag = True
+name = "Alice"
+nothing = None
+
+[type(x).__name__ for x in (n, pi, flag, name, nothing)]
+```
+
+Notes worth keeping in mind:
+
+- **`int`** has no fixed size — `2 ** 200` is exact. Use underscores for readability: `1_000_000`.
+- **`float`** is a 64-bit IEEE-754 double. It is *not* exact: `0.1 + 0.2` is `0.30000000000000004`. For exact decimals, use `decimal.Decimal`.
+- **`bool`** is a subclass of `int`: `True == 1`, `False == 0`. So `sum([True, False, True])` is `2`.
+- **`str`** is full Unicode. The deep treatment is in @sec-unicode.
+- **`None`** is the absence of a value — it's its own type, `NoneType`, and there is *one* `None` singleton.
+
+```{python}
+0.1 + 0.2, 0.1 + 0.2 == 0.3
+```
+
+```{python}
+import math
+math.isclose(0.1 + 0.2, 0.3)
+```
+
+For numbers from sources you don't control, `math.isclose` is the right comparison — never `==`.
+
+## Variables and naming {#sec-values-naming}
+
+A variable comes into existence on first assignment. There is no declaration step.
+
+```{python}
+name = "Alice"
+age = 30
+height = 1.75
+result = None
+[type(x).__name__ for x in (name, age, height, result)]
+```
+
+Naming conventions Python programmers follow without exception (PEP 8):
+
+- `snake_case` for variables and functions.
+- `UpperCamelCase` for class names.
+- `UPPER_SNAKE_CASE` for module-level constants.
+
+Multiple assignment and unpacking are common:
+
+```{python}
+a, b = 1, 2
+a, b = b, a
+a, b
+```
+
+`a, b = b, a` swaps without a temporary — the right-hand side is built into a tuple first, then unpacked.
+
+## Arithmetic {#sec-values-arithmetic}
+
+```{python}
+[7 / 2, 7 // 2, 7 % 2, 2 ** 10]
+```
+
+`/` always returns a `float` (even for `8 / 2`). `//` is *floor* division — toward negative infinity, not toward zero:
+
+```{python}
+-7 // 2
+```
+
+The remainder `%` is consistent with `//`: `(-7 // 2) * 2 + (-7 % 2) == -7`.
+
+In-place updates have shorthand: `x += 1`, `x -= 1`, `x *= 2`. They modify the variable and are equivalent to `x = x + 1`, etc.
+
+## Truthiness {#sec-values-truthiness}
+
+In an `if` or `while`, *any* value can be evaluated as a boolean. Python defines a small set of **falsy** values; everything else is **truthy**.
+
+```{python}
+falsy = [False, None, 0, 0.0, "", [], {}, set(), ()]
+[bool(x) for x in falsy]
+```
+
+Everything else — any non-zero number, any non-empty container — is truthy. This shapes Pythonic style:
+
+```{python}
+items = []
+"empty" if not items else "has items"
+```
+
+```{python}
+items = [1, 2, 3]
+"empty" if not items else "has items"
+```
+
+Idiomatic Python writes `if items:` rather than `if len(items) > 0:`.
+
+## `==` vs `is` {#sec-values-eq-is}
+
+`==` asks **value equality**. `is` asks **identity** — same object.
+
+```{python}
+a = [1, 2, 3]
+b = [1, 2, 3]
+c = a
+[a == b, a is b, a is c]
+```
+
+The rule: use `==` for value comparison. Use `is` only for the *singletons* — `None`, `True`, `False`:
+
+```{python}
+result = None
+result is None
+```
+
+`is None` is correct, `== None` is poor style. The deep dive on identity, value, and aliasing is in @sec-references-mutability.
+
+::: {.callout-tip}
+## Why this matters
+Python's primitives are few and consistent — but the trap is that `==` and `is` are different questions, and floats are not exact. Knowing which question you're asking, and which comparison to use, prevents the most common kinds of bug.
+:::
+
+## Going deeper
+
+This chapter introduces the primitives. The full data-model treatment of how `==` and `is` plug into special methods (`__eq__`, `__hash__`) is @sec-data-model. The aliasing semantics — why `a = b` doesn't copy — is @sec-references-mutability.
+
+## Exercises {#sec-values-exercises}
+
+1. **Float fragility.** Predict `0.1 + 0.2 == 0.3`. Confirm it's `False`. Then use `math.isclose` to write the right comparison.
+
+2. **Floor division on negatives.** Compute `-7 // 2` and `-7 % 2`. Verify the identity `(a // b) * b + (a % b) == a`.
+
+3. **Truthy table.** Write a one-line list comprehension that prints `bool(x)` for every value in `[0, 0.0, "", [], (), {}, "0", 0.0001]`.
+
+4. **`is` vs `==`.** Set `a = 257; b = 257; print(a is b)`. Now do the same with `a = 5; b = 5`. Why are some small integers cached?
+
+5. **Banker's rounding.** Predict the output of `round(0.5)`, `round(1.5)`, `round(2.5)`. Look up "banker's rounding" — why does Python round `2.5` to `2`?
+
+## Summary {#sec-values-summary}
+
+Five primitive types — `int`, `float`, `bool`, `str`, `None` — plus arithmetic, assignment, truthiness, and the `==`/`is` distinction. That is the surface of the language. The next chapter, @sec-strings-and-text, takes one of those primitives — `str` — and develops the methods, slicing, and f-string formatting that make text manipulation in Python pleasant.

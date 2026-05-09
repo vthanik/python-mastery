@@ -1,0 +1,256 @@
+# Functions {#sec-functions-basics}
+
+::: callout-note
+## Core idea
+
+A function is a named, reusable block of code. In Python, functions are *objects* — you can store them in variables, pass them as arguments, and return them from other functions. That single property is the foundation of decorators, callbacks, and most of Python's higher-order patterns.
+:::
+
+In this chapter you will learn to:
+
+1.  Define functions with `def` and document them with docstrings.
+2.  Use positional, default, keyword, `*args`, and `**kwargs` parameters.
+3.  Reason about scope (LEGB) and avoid the mutable-default trap.
+4.  Recognize closures, lambda expressions, and what a *first-class* function means.
+5.  Read your first decorator and your first generator.
+
+## Defining a function {#sec-fn-defining}
+
+```{python}
+def greet(name):
+    """Return a greeting string."""
+    return f"Hello, {name}!"
+
+greet("Alice")
+```
+
+The first string after `def`, the **docstring**, is the function's documentation. It shows up in `help()` and IDEs. Write docstrings.
+
+Without `return`, a function returns `None`:
+
+```{python}
+def shout(message):
+    print(message.upper())
+
+result = shout("hi")   # prints HI
+result is None
+```
+
+## Parameters {#sec-fn-parameters}
+
+Positional, default, keyword, `*args`, `**kwargs` — all in one example:
+
+```{python}
+def connect(host, port=5432, *, timeout=30, **options):
+    return {
+        "host": host,
+        "port": port,
+        "timeout": timeout,
+        "options": options,
+    }
+
+connect("localhost")
+```
+
+```{python}
+connect("localhost", 6543, timeout=60, ssl=True, retries=3)
+```
+
+The `*` in the parameter list says "everything after me must be passed by keyword." So `connect("localhost", 5432, 60)` would fail — `timeout` must be named.
+
+`*args` and `**kwargs` accept any number of extra arguments:
+
+```{python}
+def total(*numbers):
+    return sum(numbers)
+
+def record(**fields):
+    return dict(fields)
+
+[total(1, 2, 3, 4, 5), record(name="Alice", age=30)]
+```
+
+When *calling*, the same syntax **unpacks** an iterable or dict into a function:
+
+```{python}
+args = [6543]
+kwargs = {"timeout": 60, "ssl": True}
+connect("localhost", *args, **kwargs)
+```
+
+::: callout-warning
+**The mutable-default trap.** Default arguments are evaluated *once*, at definition time. So a default like `target=[]` creates a single list shared across every call.
+
+```{python}
+def add_item_buggy(item, target=[]):
+    target.append(item)
+    return target
+
+add_item_buggy("a"), add_item_buggy("b")
+```
+
+The fix is the `None` sentinel:
+
+```{python}
+def add_item(item, target=None):
+    if target is None:
+        target = []
+    target.append(item)
+    return target
+
+add_item("a"), add_item("b")
+```
+:::
+
+## Returning multiple values {#sec-fn-return}
+
+Python packs multiple return values as a tuple. The caller can unpack:
+
+```{python}
+def min_max(data):
+    return min(data), max(data)
+
+lo, hi = min_max([3, 1, 4, 1, 5, 9, 2, 6])
+lo, hi
+```
+
+## Scope: LEGB {#sec-fn-scope}
+
+Python looks up names in this order:
+
+- **L**ocal — inside the current function
+- **E**nclosing — inside any wrapping function
+- **G**lobal — at the module/file level
+- **B**uilt-in — `len`, `range`, `print`, …
+
+```{python}
+x = 10                # global
+
+def outer():
+    x = 20            # enclosing (visible to inner)
+    def inner():
+        x = 30        # local
+        return x
+    return inner(), x
+
+outer(), x
+```
+
+Each scope's `x` is independent. The local `x` in `inner` does not affect the enclosing one; the enclosing `x` does not affect the global one.
+
+To **modify** an outer variable from inside a function, you need an explicit declaration: `global` or `nonlocal`.
+
+```{python}
+def make_counter():
+    count = 0
+    def increment():
+        nonlocal count
+        count += 1
+        return count
+    return increment
+
+c = make_counter()
+[c(), c(), c()]
+```
+
+`nonlocal` says "I want to *modify* the enclosing `count`, not create a new local." The function `increment` is a **closure** — it carries `count` with it after `make_counter` returns.
+
+## Functions are objects {#sec-fn-first-class}
+
+You can assign, store, and pass functions like any other value:
+
+```{python}
+def double(x): return x * 2
+def square(x): return x ** 2
+
+ops = [double, square, abs]
+[op(5) for op in ops]
+```
+
+```{python}
+sorted(["banana", "Apple", "cherry"], key=str.lower)
+```
+
+`str.lower` is a function passed as the `key` argument. `lambda` is a one-line, anonymous function form:
+
+```{python}
+sorted([("apple", 3), ("banana", 1), ("cherry", 2)], key=lambda pair: pair[1])
+```
+
+Use `lambda` only for trivial expressions. If it needs a comment to explain it, use `def` and give it a name. The full treatment of first-class functions, callables, and higher-order patterns is in @sec-first-class-functions.
+
+## A first decorator {#sec-fn-decorator}
+
+A decorator is a function that takes a function and returns a (usually wrapped) function. The `@` syntax applies it.
+
+```{python}
+import functools, time
+
+def timer(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - start
+        print(f"{func.__name__}: {elapsed:.4f}s")
+        return result
+    return wrapper
+
+@timer
+def slow_sum(n):
+    return sum(range(n))
+
+slow_sum(1_000_000)
+```
+
+`@timer` is exactly equivalent to `slow_sum = timer(slow_sum)`. The `@functools.wraps(func)` line preserves the original function's name and docstring. The deep treatment of decorators — including parameterized decorators and a tour of the standard library's decorators — is @sec-decorators.
+
+## A first generator {#sec-fn-generator}
+
+A function that uses `yield` instead of `return` is a **generator**. It produces values one at a time, on demand.
+
+```{python}
+def countdown(n):
+    while n > 0:
+        yield n
+        n -= 1
+
+list(countdown(5))
+```
+
+```{python}
+gen = countdown(3)
+[next(gen), next(gen), next(gen)]
+```
+
+Generators are how Python expresses *lazy* sequences — including infinite ones. The deep treatment, including `yield from`, generator pipelines, and the iterator protocol underneath, is @sec-iterators.
+
+::: callout-tip
+## Why this matters
+
+Functions are first-class objects. That single property unlocks decorators, higher-order patterns, callbacks, and most of the standard library's API. The mutable-default trap and the `nonlocal` rule are the two surprises that beginners hit first — knowing them now is half the battle.
+:::
+
+## Going deeper
+
+This chapter scratches the surface of every concept it touches. The deep dives:
+
+- **First-class functions, callables, and higher-order patterns** — @sec-first-class-functions.
+- **Decorators in depth, including parameterized decorators** — @sec-decorators.
+- **Generators, the iterator protocol, and lazy pipelines** — @sec-iterators.
+
+## Exercises {#sec-fn-exercises}
+
+1.  **The `None` sentinel.** Write a function `with_log(message, log=None)` that defaults `log` to a fresh empty list. Verify two calls don't share state.
+
+2.  **Closure counter.** Re-implement `make_counter` so it accepts an `initial` argument: `make_counter(10)` should return a function whose first call returns `11`.
+
+3.  **`*args` average.** Write `average(*nums)` that returns the arithmetic mean. Handle `average()` with no arguments — what should it raise?
+
+4.  **Sort by length.** Sort `["banana", "Apple", "cherry"]` by length using `sorted(..., key=...)`. Now sort case-insensitively by string value.
+
+5.  **Trace a decorator.** Write a decorator `@trace` that prints the function name, args, kwargs, and return value before/after the call. Apply it to a small function. Read the output.
+
+## Summary {#sec-fn-summary}
+
+A function is a named block of reusable behavior — and, because it's an object, it can be stored, passed, and returned. Decorators and generators are immediate practical consequences of that fact. The next chapter, @sec-errors-and-exceptions, turns to *what happens when things go wrong*: `try`, `except`, and Python's exception hierarchy.

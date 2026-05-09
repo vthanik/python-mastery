@@ -173,6 +173,11 @@ Each `is_prime` call runs in its own process; they truly run in parallel on mult
 
 5. **One word change.** Take a working `ThreadPoolExecutor` script. Change one identifier to use `ProcessPoolExecutor`. What broke? (Hint: think about pickling and shared state.)
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §9.14 covers the lower-level threading and process primitives that `concurrent.futures` is built on top of — useful when you need to step outside the executor abstraction.
+:::
+
 ## Summary {#sec-exec-summary}
 
 `concurrent.futures` is the right level of abstraction for most "do these N things in parallel" tasks. Threads for I/O, processes for CPU; `map` for ordered, `submit + as_completed` for control. The same code shape works for both.

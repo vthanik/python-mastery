@@ -1,0 +1,160 @@
+# Control Flow {#sec-control-flow-basics}
+
+::: {.callout-note}
+## Core idea
+Python's control flow is built from three constructs — `if`, `for`, and `while` — plus two loop-control keywords (`break`, `continue`) and a small set of helpers (`enumerate`, `zip`, `range`) that make loops Pythonic.
+:::
+
+In this chapter you will learn to:
+
+1. Branch with `if` / `elif` / `else` and the chained-comparison form.
+2. Iterate with `for` over any iterable, and use `range`, `enumerate`, and `zip`.
+3. Loop with `while` and exit early with `break` / skip with `continue`.
+4. Use the ternary expression `x if cond else y` for one-line conditionals.
+
+## `if`, `elif`, `else` {#sec-cf-if}
+
+```{python}
+def classify(n):
+    if n < 0:
+        return "negative"
+    elif n == 0:
+        return "zero"
+    else:
+        return "positive"
+
+[classify(x) for x in (-3, 0, 5)]
+```
+
+Conditions use `==`, `!=`, `<`, `>`, `<=`, `>=`. Combine with `and`, `or`, `not`. Python's *chained comparisons* are unique and read naturally:
+
+```{python}
+def in_range(n):
+    return 0 < n < 100   # not n > 0 and n < 100
+
+[in_range(50), in_range(0), in_range(100), in_range(-5)]
+```
+
+The **ternary expression** is the one-line form:
+
+```{python}
+n = 7
+parity = "even" if n % 2 == 0 else "odd"
+parity
+```
+
+## `for` over any iterable {#sec-cf-for}
+
+The Pythonic `for` does *not* iterate by index — it iterates over the items themselves.
+
+```{python}
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(fruit)
+```
+
+`range(start, stop, step)` produces integers — useful when you really need indices:
+
+```{python}
+list(range(5)), list(range(2, 8)), list(range(0, 10, 2)), list(range(10, 0, -1))
+```
+
+Two helpers turn manual index-tracking into clean code:
+
+```{python}
+for i, fruit in enumerate(fruits, start=1):
+    print(i, fruit)
+```
+
+```{python}
+names = ["Alice", "Bob", "Carol"]
+scores = [95, 87, 92]
+for name, score in zip(names, scores):
+    print(f"{name}: {score}")
+```
+
+`zip` stops at the shortest iterable. `enumerate` gives `(index, value)` pairs.
+
+## `while` {#sec-cf-while}
+
+Use `while` when you don't know the number of iterations in advance.
+
+```{python}
+count = 0
+total = 0
+while total < 50:
+    count += 1
+    total += count
+count, total
+```
+
+The condition is checked *before* each iteration. If the condition is initially false, the body never runs. The body must eventually make the condition false — otherwise, infinite loop.
+
+## `break` and `continue` {#sec-cf-break-continue}
+
+`break` exits the innermost loop. `continue` skips the rest of the current iteration.
+
+```{python}
+# First even number
+for n in [1, 3, 5, 6, 7, 8]:
+    if n % 2 == 0:
+        first = n
+        break
+first
+```
+
+```{python}
+# Skip negatives, sum positives
+total = 0
+for x in [3, -1, 4, -2, 5]:
+    if x < 0:
+        continue
+    total += x
+total
+```
+
+## A note on the `match` statement {#sec-cf-match}
+
+Python 3.10 added a more powerful pattern-matching statement, `match` / `case`. It's the right tool for multi-way dispatch on the *shape* of data, not just on a value. The deep treatment is in @sec-with-match-else; here is a one-liner so you've seen it:
+
+```{python}
+def describe(point):
+    match point:
+        case (0, 0):
+            return "origin"
+        case (0, y):
+            return f"on Y axis at {y}"
+        case (x, 0):
+            return f"on X axis at {x}"
+        case (x, y):
+            return f"at ({x}, {y})"
+
+[describe((0, 0)), describe((0, 5)), describe((3, 0)), describe((3, 4))]
+```
+
+For everyday branching, prefer plain `if` / `elif` / `else` — it's clearer.
+
+::: {.callout-tip}
+## Why this matters
+The Pythonic loop iterates *items*, not *indices*. `enumerate` and `zip` cover the cases where you do need the index or two parallel sequences. Once you stop reaching for `range(len(x))`, your code reads more like the prose description of the algorithm — and bugs from off-by-one indexing simply stop happening.
+:::
+
+## Going deeper
+
+The mechanism that lets `for` work on any iterable — the **iterator protocol** — is one of the central topics of the book. The deep treatment, including `iter()`, `next()`, `__iter__`, and `__next__`, is @sec-iterators. Pattern matching is in @sec-with-match-else.
+
+## Exercises {#sec-cf-exercises}
+
+1. **FizzBuzz.** For numbers 1–20: print "Fizz" if divisible by 3, "Buzz" if divisible by 5, "FizzBuzz" if both, otherwise the number. Write it twice — once with nested `if`, once with chained `elif`.
+
+2. **`enumerate` start.** Use `enumerate(items, start=1)` to print 1-indexed labels. Why is the default `0`, and when would you prefer `1`?
+
+3. **`zip` with `*`.** Given `pairs = [(1, "a"), (2, "b"), (3, "c")]`, use `zip(*pairs)` to "transpose" it. Predict the output.
+
+4. **Replace `range(len(...))`.** Find a piece of your existing code that does `for i in range(len(x))`. Rewrite it with `enumerate` (if you need the index) or just `for item in x`.
+
+5. **Early break.** Write `find_first(predicate, iterable)` that returns the first item satisfying `predicate`, or `None` if none does. Use `for` and `break`.
+
+## Summary {#sec-cf-summary}
+
+`if`, `for`, `while`, plus `break`, `continue`, `enumerate`, `zip`, and `range`. With these you can express almost every algorithm. The next chapter, @sec-collections-basics, fills in the data structures these loops typically iterate over: lists, tuples, dictionaries, and sets.

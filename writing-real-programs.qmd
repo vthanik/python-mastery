@@ -1,0 +1,281 @@
+# Writing Real Programs {#sec-writing-real-programs}
+
+::: {.callout-note}
+## Core idea
+Real programs have a clear structure: separate the I/O from the logic, handle errors specifically, log instead of `print`, parse arguments with `argparse`, write tests with `pytest`, and follow a small handful of Pythonic idioms. None of this is optional past about 200 lines of code.
+:::
+
+In this chapter you will learn to:
+
+1. Lay out a working script around `main()` and `if __name__ == "__main__":`.
+2. Add type hints that help readers and tools without slowing the program.
+3. Write tests with `pytest` — including parametrized tests and fixtures.
+4. Recognize and apply the 15 idioms that make Python code feel native.
+
+## The script template {#sec-real-template}
+
+The shape every robust Python script settles into:
+
+```python
+#!/usr/bin/env python3
+"""
+What this script does, what inputs it expects, what it outputs.
+"""
+import argparse
+import json
+import logging
+import sys
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+log = logging.getLogger(__name__)
+
+
+def load_data(path: Path) -> list[dict]:
+    log.info(f"loading {path}")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def process(data: list[dict]) -> list[dict]:
+    return [
+        {**record, "score": record["score"] * 1.1}
+        for record in data
+        if record.get("active", False)
+    ]
+
+
+def save_results(results: list[dict], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2)
+    log.info(f"saved {len(results)} records to {path}")
+
+
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("input", type=Path, help="input JSON file")
+    p.add_argument("-o", "--output", type=Path,
+                   default=Path("output/results.json"))
+    p.add_argument("-v", "--verbose", action="store_true")
+    return p.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    try:
+        data = load_data(args.input)
+        results = process(data)
+        save_results(results, args.output)
+        return 0
+    except FileNotFoundError as e:
+        log.error(f"input file not found: {e}")
+        return 1
+    except Exception:
+        log.exception("unexpected error")
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+Three things this template gets right:
+
+1. **I/O at the edges.** `load_data` and `save_results` do file operations. `process` is pure — given the same input it gives the same output, with no file-system calls. That makes it trivially testable.
+2. **Errors are specific.** `FileNotFoundError` is handled by name; the catch-all is logged with a traceback (`log.exception`) and returns a distinct exit code.
+3. **`main()` returns an exit code.** `sys.exit(main())` makes the script play well with shell pipelines and CI.
+
+## Type hints {#sec-real-types}
+
+Type hints don't change runtime behavior. They:
+
+- Document what a function expects and returns.
+- Let tools (mypy, pyright, IDEs) catch errors before runtime.
+- Make code easier to read.
+
+```{python}
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+def get_items(count: int, price: float) -> list[dict]:
+    return [{"id": i, "price": price} for i in range(count)]
+
+[greet("Alice"), get_items(2, 9.99)]
+```
+
+Common forms:
+
+```python
+list[int]                    # list of ints
+dict[str, int]               # dict mapping str to int
+tuple[int, str, float]       # specific tuple types
+tuple[int, ...]              # variable-length homogeneous tuple
+set[str]                     # set of strings
+
+int | None                   # Python 3.10+
+Optional[int]                # equivalent (typing module)
+int | str                    # union (Python 3.10+)
+Union[int, str]              # equivalent
+
+from collections.abc import Iterable, Sequence, Callable, Mapping
+
+def upper_all(items: Iterable[str]) -> list[str]:
+    return [s.upper() for s in items]
+
+def apply(func: Callable[[int], str], xs: list[int]) -> list[str]:
+    return [func(x) for x in xs]
+```
+
+The deep treatment of type hints — `Protocol`, generics, variance, `TypeVar` — is in @sec-type-hints and @sec-advanced-typing.
+
+## Testing with pytest {#sec-real-testing}
+
+The fastest way to be confident your code works is to run it on known inputs. `pytest` makes that ergonomic.
+
+```python
+# test_calculator.py
+import pytest
+from calculator import add, divide, Calculator
+
+
+def test_add_positive():
+    assert add(2, 3) == 5
+
+def test_add_floats():
+    import math
+    assert math.isclose(add(0.1, 0.2), 0.3)
+
+def test_divide_by_zero():
+    with pytest.raises(ValueError, match="cannot divide"):
+        divide(10, 0)
+
+# Many cases with one function:
+@pytest.mark.parametrize("a, b, expected", [
+    (2, 3, 5),
+    (-1, 1, 0),
+    (0, 0, 0),
+])
+def test_add_cases(a, b, expected):
+    assert add(a, b) == expected
+
+# Fixture: shared setup
+@pytest.fixture
+def calc():
+    return Calculator(initial=100)
+
+def test_calc_add(calc):
+    calc.add(50)
+    assert calc.total == 150
+```
+
+Run it: `pytest`. Useful flags: `-v` (verbose), `-x` (stop at first failure), `-k expr` (run tests matching `expr`), `--lf` (rerun last failures).
+
+The pattern: **one assertion concept per test**. The test name is the documentation.
+
+## Fifteen idioms that separate beginner Python from expert {#sec-real-idioms}
+
+Internalize these. They turn 100 lines of busy code into 50 lines that read like prose.
+
+1. **Iterate items, not indices.**
+   ```python
+   for item in items: ...           # not: for i in range(len(items))
+   ```
+
+2. **Unpack tuples.**
+   ```python
+   name, value = get_pair()         # not: r = get_pair(); name, value = r[0], r[1]
+   ```
+
+3. **Use `enumerate` when you need the index.**
+   ```python
+   for i, item in enumerate(items): ...
+   ```
+
+4. **Comprehensions, not append-loops.**
+   ```python
+   result = [x * 2 for x in data]   # not: result = []; for x in data: result.append(x*2)
+   ```
+
+5. **Generator expressions for large data.**
+   ```python
+   total = sum(x ** 2 for x in big_iter)
+   ```
+
+6. **`with` for resources.**
+   ```python
+   with open("data.txt") as f: data = f.read()
+   ```
+
+7. **`dict.get` for safe access.**
+   ```python
+   value = d.get(key, default)
+   ```
+
+8. **Truthiness, not `== True/False/None`.**
+   ```python
+   if items: ...                    # not: if len(items) > 0
+   if result is None: ...           # not: if result == None
+   ```
+
+9. **f-strings, always.**
+   ```python
+   msg = f"Hello, {name}!"          # not: "Hello, " + name + "!"
+   ```
+
+10. **Exceptions, not return codes.**
+    ```python
+    if b == 0:
+        raise ValueError("cannot divide by zero")
+    ```
+
+11. **Early return, not deep nesting.**
+    ```python
+    def process(data):
+        if not data:
+            return None
+        if not data["valid"]:
+            return None
+        return transform(data)
+    ```
+
+12. **`.join` for string building.**
+    ```python
+    " ".join(words)                  # not: result = ""; for w in words: result += w + " "
+    ```
+
+13. **Named functions over complex lambdas.** If the lambda needs a comment to explain it, use `def`.
+
+14. **One responsibility per function.** If you can't describe what a function does in one sentence without "and", split it.
+
+15. **Name things clearly.** `def calculate_monthly_payment(principal, rate, months):` reads better than `def f(a, b, c):`. Code is read more often than it's written.
+
+::: {.callout-tip}
+## Why this matters
+The script template, type hints, tests, and the fifteen idioms together form the dividing line between *Python that works* and *Python that's pleasant to read, change, and extend*. None of them are difficult — but applying them consistently is what makes a codebase scale beyond one author.
+:::
+
+## Going deeper
+
+Type hints in depth — `Protocol`, generics, `TypeVar`, runtime checking — are in @sec-type-hints and @sec-advanced-typing. The Pythonic-objects philosophy and the design choices behind these idioms are spread across @sec-pythonic-objects, @sec-protocols-abcs, and the data-model treatment that opens Part I.
+
+## Exercises {#sec-real-exercises}
+
+1. **Refactor a script.** Take a script you have lying around. Apply the template: pull I/O to the edges, replace `print` debugging with `logging`, replace `sys.argv` with `argparse`, add `if __name__ == "__main__":`. Compare line count.
+
+2. **Add type hints.** Add hints to every function in that script. Run `mypy script.py`. Fix what it finds.
+
+3. **Write three tests.** For one function in that script, write a *positive* test, a *boundary* test, and an *error* test using `pytest.raises`.
+
+4. **Find idiom violations.** Scan the same script for violations of the 15 idioms. Pick three; fix them.
+
+5. **`logger.exception`.** Replace one `print(f"error: {e}")` inside an `except` block with `logger.exception("error context")`. Compare the output — what extra information do you get?
+
+## Summary {#sec-real-summary}
+
+A real program separates I/O from logic, handles errors with intent, logs rather than prints, takes its inputs from `argparse`, and is checked by tests. With these foundations in place, you're ready for Part I — where we deconstruct *what makes Python feel like Python*: the data model and the special methods that built-in syntax delegates to. We start in @sec-data-model.

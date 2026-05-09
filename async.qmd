@@ -183,6 +183,11 @@ await main()
 
 5. **Why no async file I/O.** The standard library has no `asyncio.open(...)` for files. Why? (Hint: think about how the OS handles disk vs. network reads.)
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §5.23 ("Asynchronous Functions and `await`") and §9.14.4 (the asyncio operational reference) together give a more low-level, manual-style treatment of the event loop, blocking-call escapes, and async I/O patterns — a useful counterpoint to Ramalho's higher-level narrative.
+:::
+
 ## Summary {#sec-async-summary}
 
 `asyncio` is the model for I/O at scale. The vocabulary — `async def`, `await`, `gather`, `as_completed`, `Semaphore`, `run_in_executor` — is small and the surface area is consistent. For thousands of concurrent network calls, this is the right tool.

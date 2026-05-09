@@ -173,6 +173,11 @@ The `with` statement is Python's universal resource management tool. `@contextma
 
 5. **`try/else` for clarity.** Find a `try/except` block in your code that has follow-up logic in the `try`. Move that logic to `else`. Did readability improve?
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §3 ("Program Structure and Control Flow") collects the operational `try` / `finally` / `with` idioms that show up in production Python — context managers for locks, transactions, and resource pools.
+:::
+
 ## Summary {#sec-with-summary}
 
 `with` is Python's universal teardown — class-form or `@contextmanager`-form. `match` (covered in @sec-sequences and @sec-dicts-sets) destructures by shape. `else` on loops and `try` blocks gives a clean "success path" without a flag variable. Three small features that quietly add up.

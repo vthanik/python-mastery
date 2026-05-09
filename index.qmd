@@ -1,21 +1,25 @@
 # Welcome {.unnumbered}
 
-This is a distillation — chapter by chapter — of Luciano Ramalho's *Fluent Python* (2nd edition, O'Reilly Media 2022). It exists because the book is the deepest treatment of the language available, and the ideas inside deserve a form that's quick to scan, runnable in the browser, and structured for reference.
+This book takes you from zero programming experience to advanced Python. It distills three sources into one continuous read:
 
-The original book is the canonical source. This is the working programmer's pocket version: the same five parts (Data Structures, Functions as Objects, Classes and Protocols, Control Flow & Concurrency, Metaprogramming), the same twenty-four chapters, but compressed to the load-bearing ideas — the data model, the special methods, the protocols, the descriptors, the metaclasses — with code that you can run in place.
+- **Part 0 — Foundations.** Drawn from a from-scratch beginner's guide. Mental models, primitives, control flow, collections, functions, errors, files, classes, modules, the standard library, and the practices that make a script a real program. If you have never written Python before, start here.
 
-::: {.callout-warning}
-## This is not a beginner book
+- **Parts I–V.** Drawn from Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022) — the deepest treatment of the language available. The data model, sequences, dicts and sets, unicode, dataclasses, first-class functions, decorators, descriptors, metaclasses, async I/O. If you already know Python and want to understand *why* it feels the way it does, you can start here.
 
-These chapters assume you can already read and write basic Python: variables, control flow, function and class definitions, imports, exceptions. *Fluent Python* itself targets working programmers, and these notes preserve that assumption. If you're brand new to Python, work through the official tutorial first; then come back here to learn what makes Python *Pythonic*.
+- **Throughout.** David Beazley's *Python Distilled* (Addison-Wesley 2022) is cited as a secondary reference — operational details, deployment, and the broader standard library — wherever its treatment complements the deep-dive chapters.
+
+The goal is a single reading order in which each chapter builds on the last. The Foundations chapters give a *first pass* at decorators, generators, dataclasses, and async. The advanced parts then *deconstruct* them — showing how the data model, protocols, and special methods make those features work.
+
+Every code block in this book is executed during the build. The output you read is the output the code produced.
+
+::: {.callout-tip}
+## How to read this book
+
+If you're new to Python, read the parts in order: **Foundations** → **Data Structures** → **Functions** → **Classes** → **Control Flow** → **Metaprogramming**.
+
+If you already write Python comfortably, you can skip Foundations and start with @sec-data-model. The chapters in Parts I–V are largely self-contained and cross-reference each other where they overlap.
+
+If you want a single chapter on a topic, the table of contents lets you jump in directly. Each chapter ends with cross-references to the chapters that take its topic further.
 :::
 
-The book is organized so each chapter answers a single question:
-
-- *What is the data model, and why does it make Python feel uniform?*
-- *What does it mean to treat functions as first-class objects?*
-- *Why is structural typing — protocols — so much more powerful than nominal inheritance?*
-- *What's actually happening when you write `async def`?*
-- *Where do descriptors and metaclasses fit, and when should you avoid them?*
-
-When the source notes leave a step unclear, the original book is consulted as a secondary reference; passages are paraphrased and attributed, never reproduced.
+The single thread running through every chapter is the **data model**: the protocols and special methods that built-in syntax delegates to. Once you've seen this thread, the rest of the language stops feeling like a collection of features and starts feeling like one consistent system.

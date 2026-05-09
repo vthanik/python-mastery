@@ -1,0 +1,237 @@
+# Collections {#sec-collections-basics}
+
+::: {.callout-note}
+## Core idea
+Python has four built-in collection types. Each solves a different problem: **list** for ordered mutable sequences, **tuple** for fixed records, **dict** for key→value lookup, **set** for unique unordered values. Knowing which to reach for is the mark of a Python programmer.
+:::
+
+In this chapter you will learn to:
+
+1. Construct, index, slice, and modify lists.
+2. Use tuples for fixed records and unpacking.
+3. Look up, insert, and iterate dictionaries.
+4. Use sets for membership tests, deduplication, and set algebra.
+5. Write list, dict, set, and generator comprehensions.
+
+## Lists {#sec-coll-lists}
+
+Lists are ordered, mutable, and accept any types.
+
+```{python}
+numbers = [1, 2, 3, 4, 5]
+mixed = [1, "two", 3.0, None]
+[numbers[0], numbers[-1], numbers[1:3], numbers[::-1]]
+```
+
+The mutation methods modify *in place* and return `None`:
+
+```{python}
+xs = [1, 2, 3]
+xs.append(4)
+xs.insert(0, 0)
+xs.extend([5, 6])
+xs
+```
+
+```{python}
+xs.pop(), xs.pop(0)
+```
+
+```{python}
+xs.remove(3)
+xs
+```
+
+Sorting comes in two flavors — in-place vs. returning a new list:
+
+```{python}
+xs = [3, 1, 4, 1, 5, 9, 2, 6]
+sorted_new = sorted(xs)        # new list; xs unchanged
+xs.sort(reverse=True)          # in-place; xs is now sorted
+sorted_new, xs
+```
+
+Sort with a `key` function:
+
+```{python}
+words = ["banana", "Apple", "cherry"]
+sorted(words, key=str.lower)
+```
+
+::: {.callout-warning}
+**Lists are mutable — sharing is dangerous.** `b = a` does *not* copy. Both labels point to the same list. Use `a.copy()` or `list(a)` for a shallow copy, or `copy.deepcopy(a)` for a deep one. The full treatment is in @sec-references-mutability.
+:::
+
+```{python}
+a = [1, 2, 3]
+b = a
+b.append(4)
+a
+```
+
+## Tuples {#sec-coll-tuples}
+
+Tuples are immutable lists. Use them for fixed records — RGB triples, (x, y) coordinates, dict keys.
+
+```{python}
+point = (3, 4)
+single = (42,)         # trailing comma! (42) is just 42
+empty = ()
+point[0], single, empty
+```
+
+The most powerful feature of tuples is **unpacking**:
+
+```{python}
+x, y = point
+first, *rest = (1, 2, 3, 4, 5)
+[x, y, first, rest]
+```
+
+`*rest` collects the remaining values into a list. The full unpacking treatment is in @sec-sequences.
+
+Tuples can be dict keys (lists cannot, because they're mutable and unhashable):
+
+```{python}
+locations = {(40.7, -74.0): "New York", (51.5, -0.1): "London"}
+locations[(40.7, -74.0)]
+```
+
+## Dictionaries {#sec-coll-dicts}
+
+A dict maps keys to values. Lookup, insertion, and deletion are O(1) on average.
+
+```{python}
+person = {"name": "Alice", "age": 30}
+person["name"], person.get("missing"), person.get("missing", "N/A")
+```
+
+`d[key]` raises `KeyError` if the key is absent; `d.get(key, default)` doesn't. Modify with assignment, `del`, or `.pop`:
+
+```{python}
+person["city"] = "London"
+del person["age"]
+person.pop("city")
+person
+```
+
+Iterate keys, values, or pairs:
+
+```{python}
+person = {"name": "Alice", "age": 30, "city": "London"}
+list(person.keys()), list(person.values()), list(person.items())
+```
+
+```{python}
+for key, value in person.items():
+    print(f"{key}: {value}")
+```
+
+Two helpers worth memorizing:
+
+```{python}
+from collections import defaultdict, Counter
+
+groups = defaultdict(list)
+for name, team in [("Alice", "eng"), ("Bob", "design"), ("Carol", "eng")]:
+    groups[team].append(name)
+dict(groups)
+```
+
+```{python}
+text = "the cat sat on the mat".split()
+Counter(text).most_common(2)
+```
+
+`defaultdict(list)` auto-creates an empty list for missing keys; `Counter` counts occurrences. Both live in `collections`.
+
+The deep dive — including hashing, dict ordering, and dict views — is in @sec-dicts-sets.
+
+## Sets {#sec-coll-sets}
+
+A set holds *unique* values. Order is not preserved. Membership testing is O(1).
+
+```{python}
+fruits = {"apple", "banana", "cherry"}
+empty = set()              # NOT {} — that's a dict
+"apple" in fruits, "grape" in fruits
+```
+
+The set-algebra operators are pleasant:
+
+```{python}
+a = {1, 2, 3, 4}
+b = {3, 4, 5, 6}
+[a | b, a & b, a - b, a ^ b]   # union, intersection, difference, symmetric difference
+```
+
+A common one-liner: deduplicate a list while preserving uniqueness (order is *not* preserved):
+
+```{python}
+duplicates = [1, 2, 2, 3, 3, 3, 4]
+list(set(duplicates))
+```
+
+If you need *order-preserving* deduplication, use `dict.fromkeys(duplicates)` (since Python 3.7, dict iteration order matches insertion order).
+
+## Comprehensions {#sec-coll-comprehensions}
+
+A comprehension is a compact, readable way to build a collection from another collection. There are four kinds: list, dict, set, and generator.
+
+```{python}
+squares = [x ** 2 for x in range(10)]
+evens = [x for x in range(20) if x % 2 == 0]
+[squares, evens]
+```
+
+```{python}
+square_map = {x: x ** 2 for x in range(5)}
+unique_lengths = {len(w) for w in "the cat sat on the mat".split()}
+[square_map, unique_lengths]
+```
+
+A **generator expression** is a comprehension in `(...)` instead of `[...]`. It does not build a list — it computes values on demand:
+
+```{python}
+total = sum(x ** 2 for x in range(1_000_000))
+total
+```
+
+That `sum` never builds the million-item list. Generator expressions are how you scale comprehensions to large or infinite data; the deep dive is in @sec-iterators.
+
+## Choosing the right collection {#sec-coll-choosing}
+
+| Need | Use |
+|---|---|
+| Ordered, modifiable items | `list` |
+| Ordered, fixed record | `tuple` |
+| Lookup by key | `dict` |
+| Fast `in` test, dedupe, set algebra | `set` |
+| Counting occurrences | `collections.Counter` |
+| Auto-create missing keys | `collections.defaultdict` |
+| Fast append/pop both ends | `collections.deque` |
+
+::: {.callout-tip}
+## Why this matters
+The choice of collection drives the *complexity* of your code. `x in some_list` is O(n); `x in some_set` is O(1). Looking up by key in a dict is O(1); searching a list of pairs is O(n). The right collection often turns "make this faster" into "rewrite the data structure" — and the rewrite is one line.
+:::
+
+## Going deeper
+
+The full treatment of sequences (lists, tuples, slicing, comprehensions, the sequence protocol) is @sec-sequences. The full treatment of dicts and sets — hashing, ordering, performance — is @sec-dicts-sets. Generator expressions and the iterator protocol they ride on are in @sec-iterators.
+
+## Exercises {#sec-coll-exercises}
+
+1. **Dedupe preserving order.** Write a one-liner that removes duplicates from a list while preserving the original order. (Hint: `dict.fromkeys`.)
+
+2. **Word frequency.** Given a string of text, return the three most common words using `Counter`.
+
+3. **Group by first letter.** Given a list of names, return a `defaultdict(list)` mapping each first letter to the names starting with it.
+
+4. **Comprehension trade-offs.** Time `sum(x*x for x in range(1_000_000))` against `sum([x*x for x in range(1_000_000)])`. Which is faster? Which uses less memory?
+
+5. **The `{}` trap.** Predict `type({})` and `type(set())`. Verify with `type()`.
+
+## Summary {#sec-coll-summary}
+
+Lists, tuples, dicts, sets — and the comprehensions that build them — cover almost every collection task. The next chapter, @sec-functions-basics, makes these collections *flow* through code by introducing functions: parameters, return values, scope, and a first taste of decorators and generators.

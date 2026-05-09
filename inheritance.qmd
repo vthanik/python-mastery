@@ -166,6 +166,11 @@ Multiple inheritance with mixins works when each mixin adds one focused behavior
 
 5. **Composition rewrite.** Take the `CaseInsensitiveDict` example and rewrite it using composition (a wrapper class that holds a `dict`). Compare line counts and readability.
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §7.8–7.9 makes the strongest pragmatic case for *avoiding* inheritance — composition, function-based dispatch, and the practical pitfalls of deep hierarchies. It's the right companion read once you've worked through this chapter's MRO and `super()` mechanics.
+:::
+
 ## Summary {#sec-inheritance-summary}
 
 Inheritance is a sharp tool. Use it with `super()`, prefer the `User*` wrappers when subclassing built-ins, and reserve multiple inheritance for stateless, well-named mixins. When in doubt, choose composition: it limits the blast radius and makes the dependency graph readable.

@@ -2,27 +2,31 @@
 
 ## Who this book is for {.unnumbered}
 
-You should read this book if you've written some Python — perhaps a few hundred lines, perhaps a few thousand — and you want to understand *why* the language behaves the way it does. You should already be comfortable with:
+This book is written for two audiences at once.
 
-- Variables, basic types (`int`, `float`, `str`, `bool`, `list`, `dict`)
-- Control flow: `if`/`elif`/`else`, `for`, `while`, `break`/`continue`
-- Defining functions and classes
-- `import` statements and modules
-- Exception handling with `try`/`except`
+If you have **never written code before**, you can read it from the first page. Part 0 (Foundations) starts at "what is a variable?" and ends with "how do I structure a real program?" — and every concept after that builds on what came before.
 
-If any of those feels unfamiliar, the [official Python tutorial](https://docs.python.org/3/tutorial/) is a kinder starting point. Come back when you've finished it.
+If you **already write Python** comfortably, skip Foundations and start with @sec-data-model. From there, the book is a deep tour through the language's design: the data model, protocols, descriptors, async, metaclasses.
+
+The pedagogical model is Hadley Wickham's *R for Data Science* (the introduction) plus *Advanced R* (the deep dive) — except merged into one continuous read with explicit forward-references at the end of every Foundations chapter so you know where to look when a topic is later deconstructed.
 
 ## What you'll learn {.unnumbered}
 
-The five parts mirror the structure of *Fluent Python* itself:
+The book is in six parts:
+
+- **Foundations** — mental models, primitives, control flow, collections, functions, errors, files, classes, modules, the standard library, and the idioms that make code Pythonic. Twelve chapters; the running start.
 
 - **Data Structures** — the data model and special methods, sequences, dicts and sets, unicode, dataclasses, and the mutability/aliasing model.
+
 - **Functions as Objects** — first-class functions, type hints, decorators and closures, design patterns rewritten as higher-order functions.
-- **Classes and Protocols** — Pythonic objects, sequence protocols, `ABCs` and structural typing, inheritance and the MRO, advanced typing.
-- **Control Flow & Concurrency** — operator overloading, iterators and generators, `with`/`match`/`else` blocks, threads, processes, and `asyncio`.
+
+- **Classes and Protocols** — Pythonic objects, sequence protocols, ABCs and structural typing, inheritance and the MRO, advanced typing.
+
+- **Control Flow & Concurrency** — operator overloading, iterators and generators, `with` / `match` / `else` blocks, threads, processes, and `asyncio`.
+
 - **Metaprogramming** — dynamic attributes, descriptors, metaclasses, and `__init_subclass__`.
 
-The arc is single-track. By the time you reach descriptors in @sec-descriptors, the data model from @sec-data-model will have been used a dozen times.
+By the time you reach descriptors in @sec-descriptors, the data model from @sec-data-model will have been used a dozen times.
 
 ## How to read this book {.unnumbered}
 
@@ -30,24 +34,35 @@ Every chapter follows the same shape:
 
 1. A **Core idea** callout — the one sentence that organizes the chapter.
 2. Numbered learning goals — what you'll be able to do after reading.
-3. Sections that mix prose, runnable Python, and explanation. Code cells execute against a live Python kernel during the build, so the output you see is the output the code produced.
-4. **Why this matters** callouts — the deeper insight the chapter is teaching.
-5. **Exercises** — three to five short prompts.
-6. A summary that points to the next chapter.
+3. Sections that mix prose, runnable Python, and explanation. Every code cell is executed during the build, so the output you see is the output the code produced.
+4. A **Why this matters** callout — the deeper insight.
+5. A **Going deeper** pointer (in Foundations chapters) to the chapter that takes the topic further.
+6. **Exercises** — three to five short prompts.
+7. A summary that points to the next chapter.
 
-The book is meant to be read in order, but every chapter is also self-contained enough to revisit.
+Read in order, or jump in by topic. Each chapter is self-contained enough to revisit.
+
+## Sources {.unnumbered}
+
+Three sources, three roles:
+
+- **Foundations** is built from a beginner's distillation written specifically for this book — concise, opinionated, and aimed at giving you a working Python intuition fast.
+- **Parts I–V** are distilled from Luciano Ramalho's *Fluent Python* (2nd edition, O'Reilly Media 2022). It is the canonical advanced text on the language, and the structure of the deep-dive parts mirrors the book.
+- **David Beazley's *Python Distilled* (2022)** is cited throughout as a secondary reference, particularly for the operational details — modules, packages, deployment, and the broader standard library — that complement Ramalho's treatment.
+
+Where the source material is terse, the original books are consulted as references; passages are paraphrased and attributed, never reproduced.
 
 ## On exercises {.unnumbered}
 
-The original *Fluent Python* notes that this book is built from contain code and explanations but **no exercises**. The exercises in each chapter are an authored addition, derived from the examples already on the page (e.g., "extend the `Vector` class to handle three dimensions"). Use them; skip them; treat them as suggestions.
-
-## Acknowledgements {.unnumbered}
-
-This book exists because Luciano Ramalho wrote *Fluent Python* and let his vision of the language come through on every page. None of the structure, the examples, or the underlying ideas are mine. What you're reading is a compression — and any errors introduced by that compression are mine alone.
+The source material is code and explanation; the exercises in each chapter are an authored addition, derived from the examples already on the page. Use them, skip them, treat them as suggestions.
 
 ## Conventions {.unnumbered}
 
 - **Code that runs:** every `python` block in this book is executed during the build. If you copy it into a fresh interpreter, it runs.
-- **Special methods** are written `__like_this__` (with double underscores). Ramalho calls these *dunder* methods; the book uses both names.
-- **Citations** to *Fluent Python* are by chapter and page number where helpful, e.g., (Ramalho 2022, ch. 1).
+- **Special methods** are written `__like_this__` (with double underscores). Some sources call these *dunder* methods; the book uses both names.
+- **Citations** to *Fluent Python* and *Python Distilled* are by chapter and section, e.g., (Ramalho 2022, ch. 1) or "Beazley §7.10".
 - **Source code** for the book is in the `fluent-python-book/` repository. Each chapter is a single `.qmd` file.
+
+## Acknowledgements {.unnumbered}
+
+This book exists because three authors did the original work. Luciano Ramalho's *Fluent Python* shaped the structure and the philosophy of the deep-dive parts; David Beazley's *Python Distilled* shaped the operational reference threaded throughout; and the from-scratch beginner notes that drive Foundations were written to mirror their voice while assuming no prior knowledge. Any errors introduced by compression are mine alone.

@@ -5,12 +5,12 @@ project:
 engine: jupyter
 
 book:
-  title: "Fluent Python — A Distillation"
+  title: "Python — From Foundations to Mastery"
   reader-mode: true
 
   page-footer:
     left: |
-      Distilled from Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022).
+      Distilled from David M. Beazley's *Python Distilled* (Addison-Wesley 2022) and Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022).
     right: |
       This book was built with <a href="https://quarto.org/">Quarto</a>.
   cover-image: cover.jpg
@@ -23,6 +23,21 @@ book:
   chapters:
     - index.qmd
     - preface.qmd
+
+    - part: foundations.qmd
+      chapters:
+        - how-python-thinks.qmd
+        - values-and-variables.qmd
+        - strings-and-text.qmd
+        - control-flow-basics.qmd
+        - collections-basics.qmd
+        - functions-basics.qmd
+        - errors-and-exceptions.qmd
+        - files-and-io.qmd
+        - classes-basics.qmd
+        - modules-and-packages.qmd
+        - standard-library-tour.qmd
+        - writing-real-programs.qmd
 
     - part: data-structures.qmd
       chapters:

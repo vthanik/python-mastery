@@ -1,0 +1,220 @@
+# Modules and Packages {#sec-modules-and-packages}
+
+::: {.callout-note}
+## Core idea
+A **module** is a `.py` file. A **package** is a directory with an `__init__.py`. The `import` statement finds, runs (once), and exposes a module as a namespace. Use `import module` for clarity, `from module import name` only when the prefix clutters the code, and **never** `from module import *` in real code.
+:::
+
+In this chapter you will learn to:
+
+1. Distinguish modules from packages and explain how `import` finds them.
+2. Use the `import`, `from`, and `as` forms — and when each is appropriate.
+3. Recognize and use the `if __name__ == "__main__":` idiom.
+4. Lay out a real Python project's directory structure.
+5. Use a virtual environment to isolate dependencies.
+
+This chapter has more *operational* detail than most — it's the boundary between writing scripts and writing programs. Beazley's *Python Distilled* (Ch. 8) is the companion reference; we cite specific sections where its treatment is canonical.
+
+## What `import` actually does {#sec-mod-import}
+
+When Python executes `import module`:
+
+1. It searches a list of directories — `sys.path` — for `module.py` (or a `module/` package directory).
+2. It runs the file *top to bottom*, exactly once per process.
+3. It binds the resulting module object to the name `module` in the current namespace.
+
+```{python}
+import sys
+sys.path[:3]   # first three search directories
+```
+
+Subsequent `import module` calls find the already-loaded module in `sys.modules` and return it without re-running:
+
+```{python}
+import sys
+import math
+"math" in sys.modules
+```
+
+That "run once" property is why a top-level `print("loading")` in a module fires only the first time. It also means modules can hold *singleton* state (like a configured logger) safely.
+
+## Import styles {#sec-mod-styles}
+
+```{python}
+import math                    # whole module as a namespace
+math.sqrt(16)
+```
+
+```{python}
+import math as m               # with an alias
+m.pi
+```
+
+```{python}
+from math import sqrt, pi      # specific names — no namespace prefix
+sqrt(16), pi
+```
+
+```{python}
+from math import sqrt as sq    # specific name with alias
+sq(16)
+```
+
+The conventions:
+
+- **Default to `import module`.** It keeps the source of every name visible at the call site.
+- **`from module import name`** is fine when the prefix would clutter the code and the names are unambiguous (`from pathlib import Path`, `from collections import Counter`).
+- **`from module import *`** loads "everything public" — but in real code it makes name origins invisible. Avoid it.
+
+Universal aliases everyone uses: `import numpy as np`, `import pandas as pd`, `import matplotlib.pyplot as plt`. Stick to the convention.
+
+## The `if __name__ == "__main__":` idiom {#sec-mod-main}
+
+Every Python file has a `__name__` attribute. When the file is run directly, `__name__` is `"__main__"`. When it's imported, `__name__` is the module's name.
+
+```python
+# in mymodule.py:
+def compute(x):
+    return x * 2
+
+def main():
+    print(f"Result: {compute(21)}")
+
+if __name__ == "__main__":
+    main()
+```
+
+- `python3 mymodule.py` → runs `main()`.
+- `import mymodule` → loads the functions but does *not* run `main()`.
+
+Always structure scripts this way. It makes a file simultaneously *importable as a library* and *runnable as a script*. It's also what testing tools rely on — they import your module without triggering its CLI.
+
+## Packages {#sec-mod-packages}
+
+A package is a directory tree with `__init__.py` files marking each subdirectory.
+
+```
+myapp/
+    __init__.py
+    core.py
+    utils.py
+    data/
+        __init__.py
+        reader.py
+        writer.py
+```
+
+Importing from this layout:
+
+```python
+import myapp.core
+from myapp import utils
+from myapp.data import reader
+from myapp.data.reader import read_csv
+```
+
+Inside the package, **relative imports** use leading dots:
+
+```python
+# inside myapp/core.py:
+from . import utils                 # same package
+from .data import reader            # sub-package
+from ..other_pkg import something   # sibling package (rarely used)
+```
+
+Relative imports work *only* inside packages — never inside scripts. If you see `from .foo import bar` in a top-level script, it'll fail.
+
+`__init__.py` is run when the package is first imported. Use it to expose a clean API:
+
+```python
+# myapp/__init__.py:
+from .core import process
+from .data.reader import read_csv
+
+__all__ = ["process", "read_csv"]
+```
+
+Now consumers can write `from myapp import process, read_csv` without knowing the internal layout.
+
+## Project layout {#sec-mod-layout}
+
+For any project beyond a single file, start with this structure:
+
+```
+myproject/
+    src/
+        myapp/
+            __init__.py
+            main.py
+            utils.py
+            models.py
+    tests/
+        test_main.py
+        test_utils.py
+    pyproject.toml      # project config (PEP 518)
+    README.md
+```
+
+The `src/` layout prevents accidental imports of half-broken in-development code (it forces you to install the package, which catches missing files). `pyproject.toml` is the modern (PEP 518) standard for declaring project metadata, dependencies, and build configuration.
+
+A minimal `pyproject.toml`:
+
+```toml
+[project]
+name = "myapp"
+version = "0.1.0"
+dependencies = ["httpx", "pydantic"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+```
+
+## Virtual environments {#sec-mod-venv}
+
+A virtual environment is a *per-project* isolated Python installation. Without one, every `pip install` pollutes the system Python — and projects can't have conflicting dependencies. Always use one.
+
+```bash
+# Create:
+python3 -m venv .venv
+
+# Activate (bash/zsh):
+source .venv/bin/activate
+
+# Activate (Windows):
+.venv\Scripts\activate
+
+# Install dependencies:
+pip install httpx pandas
+
+# Freeze:
+pip freeze > requirements.txt
+```
+
+Modern alternatives — `uv`, `poetry`, `pipx`, `hatch` — handle this for you with one command. They all create venvs under the hood.
+
+::: {.callout-tip}
+## Why this matters
+The import system is what turns a folder of `.py` files into a *library*. Get the structure right at the start (src layout, `__init__.py` files, `if __name__ == "__main__":`, virtual environment) and the project scales without churn. Get it wrong and every refactor becomes an import-path treasure hunt.
+:::
+
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §8 is the canonical operational reference for the import system: module caching, the import path, package initialization, namespace control, and circular-import edge cases. Its 18 sections cover deployment topics this chapter only sketches.
+:::
+
+## Exercises {#sec-mod-exercises}
+
+1. **Top-level `print`.** Add `print("loading mymodule")` at the top of a module. Import it twice in a single script. How many lines print? Why?
+
+2. **Dual-mode file.** Write `square.py` with a `square(x)` function and a `main()` that prints `square(int(sys.argv[1]))`. Use `if __name__ == "__main__":` so `python3 square.py 7` works *and* `from square import square` works.
+
+3. **Package with `__init__.py`.** Create a directory `mathx/` with `__init__.py`, `linear.py` (functions `dot`, `norm`), and `stats.py` (functions `mean`, `stdev`). In `__init__.py`, expose all four at the top level so callers can write `from mathx import dot, mean`.
+
+4. **Relative vs. absolute.** Inside a package, what changes if you replace `from .utils import helper` with `from myapp.utils import helper`? Which is preferred and why?
+
+5. **`sys.path` mystery.** Write a script that prints `sys.path` and then runs `import some_local_module`. Now move the script and re-run. Why did the import behavior change?
+
+## Summary {#sec-mod-summary}
+
+Modules are files; packages are directories. The import system caches modules, the `__name__` idiom enables dual-mode files, and `pyproject.toml` plus a virtual environment make a project portable. The next chapter, @sec-standard-library-tour, surveys the most useful corners of Python's "batteries included" standard library.

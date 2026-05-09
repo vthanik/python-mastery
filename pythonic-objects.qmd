@@ -210,6 +210,11 @@ A well-designed Python class uses special methods to integrate with the language
 
 5. **Custom `__format__` codes.** Add a `"d"` (degrees) format code that returns the angle in degrees. Make `format(v, ".0fd")` work.
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §7.8–7.9 ("Avoiding Inheritance via Composition" / "Avoiding Inheritance via Functions") gives concrete anti-patterns and dispatch examples that complement Ramalho's narrative on object design. It's the operational companion to this chapter.
+:::
+
 ## Summary {#sec-pythonic-summary}
 
 A well-designed Python class earns its place by implementing the right small contracts: `__repr__`, `__str__`, properties, `__format__`, `__hash__`/`__eq__`, optional `__slots__`. None of these is mandatory, but each one buys you integration with a part of the language — `repr()`, `str()`, attribute access, `format()`, sets, memory layout.

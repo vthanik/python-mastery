@@ -1,0 +1,208 @@
+# Files and I/O {#sec-files-and-io}
+
+::: {.callout-note}
+## Core idea
+Programs talk to the world. `open()` plus `with` is the foundation; `pathlib.Path` is the modern way to represent a file path; the `csv` and `json` modules cover the two most common data formats. Always use `with`, always specify `encoding="utf-8"`.
+:::
+
+In this chapter you will learn to:
+
+1. Read and write text files with `open()` and `with`.
+2. Use `pathlib.Path` for file-system paths.
+3. Read and write CSV and JSON.
+4. Print to stderr, read from stdin, and parse command-line arguments with `argparse`.
+5. Replace ad-hoc `print` debugging with `logging`.
+
+We'll demonstrate everything against a writable temporary directory so the cells render without leaving stray files.
+
+```{python}
+import tempfile
+from pathlib import Path
+work = Path(tempfile.mkdtemp())
+work
+```
+
+## Reading and writing text files {#sec-io-text}
+
+```{python}
+target = work / "hello.txt"
+with open(target, "w", encoding="utf-8") as f:
+    f.write("Hello\nWorld\n")
+
+with open(target, encoding="utf-8") as f:
+    content = f.read()
+content
+```
+
+The `with` block guarantees `f.close()` runs — even if an exception interrupts the body. Always pass `encoding="utf-8"` explicitly; never rely on the platform default.
+
+For *line-by-line* reading on a large file, iterate the file object directly. It reads one line at a time:
+
+```{python}
+with open(target, encoding="utf-8") as f:
+    for line in f:
+        print(line.rstrip())
+```
+
+Modes: `"r"` (read, default), `"w"` (write — overwrites), `"a"` (append), `"x"` (create — fails if file exists), `"rb"`/`"wb"` (binary).
+
+## `pathlib.Path` — the modern path API {#sec-io-pathlib}
+
+`pathlib.Path` is object-oriented, cross-platform, and has shortcuts that replace half of `os.path`.
+
+```{python}
+p = work / "subdir" / "data.txt"
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text("first line\nsecond line\n", encoding="utf-8")
+
+[p.name, p.stem, p.suffix, p.parent.name]
+```
+
+`p.read_text()` and `p.write_text()` are one-liners for whole-file I/O:
+
+```{python}
+p.read_text(encoding="utf-8")
+```
+
+Walking a directory:
+
+```{python}
+for child in sorted(work.iterdir()):
+    print(child.name, "(dir)" if child.is_dir() else "(file)")
+```
+
+Globbing:
+
+```{python}
+list(work.glob("**/*.txt"))
+```
+
+`**/*.txt` recursively matches every `.txt` file. `Path.exists()`, `.is_file()`, `.is_dir()`, `.unlink()`, `.rename()`, `.mkdir()` round out the common operations.
+
+## CSV {#sec-io-csv}
+
+CSV (comma-separated values) is the most common tabular format. Always use the `csv` module — never parse it by hand.
+
+```{python}
+import csv
+
+target = work / "people.csv"
+people = [
+    {"name": "Alice", "score": 95},
+    {"name": "Bob", "score": 87},
+    {"name": "Carol", "score": 92},
+]
+
+with open(target, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["name", "score"])
+    writer.writeheader()
+    writer.writerows(people)
+
+target.read_text(encoding="utf-8")
+```
+
+```{python}
+with open(target, encoding="utf-8", newline="") as f:
+    rows = list(csv.DictReader(f))
+rows
+```
+
+The `newline=""` argument is required on Windows to handle line endings correctly. Always pass it.
+
+## JSON {#sec-io-json}
+
+JSON is the lingua franca of program-to-program data. The `json` module converts between JSON text and Python objects.
+
+```{python}
+import json
+
+target = work / "config.json"
+config = {"name": "Alice", "scores": [95, 87, 92], "active": True}
+
+with open(target, "w", encoding="utf-8") as f:
+    json.dump(config, f, indent=2)
+
+target.read_text(encoding="utf-8")
+```
+
+```{python}
+with open(target, encoding="utf-8") as f:
+    loaded = json.load(f)
+loaded
+```
+
+Type mapping: `None` ↔ `null`, `True`/`False` ↔ `true`/`false`, `int`/`float` ↔ `number`, `str` ↔ `string`, `list` ↔ `array`, `dict` ↔ `object`.
+
+`json.dumps(obj, indent=2)` and `json.loads(text)` are the string variants — useful for HTTP bodies and inline test data.
+
+## Standard streams and command-line arguments {#sec-io-stdio}
+
+`print()` writes to `stdout` by default; pass `file=sys.stderr` to write to standard error:
+
+```{python}
+import sys
+print("normal output")            # → stdout
+print("warning!", file=sys.stderr)  # → stderr
+```
+
+For real programs, parse arguments with `argparse` (not `sys.argv`):
+
+```python
+import argparse
+
+parser = argparse.ArgumentParser(description="Process input data.")
+parser.add_argument("input", type=Path, help="input JSON file")
+parser.add_argument("-o", "--output", type=Path, default=Path("results.json"))
+parser.add_argument("-v", "--verbose", action="store_true")
+args = parser.parse_args()
+# Now args.input, args.output, args.verbose are populated.
+```
+
+`argparse` handles type conversion, default values, help text, and `--help` automatically. Always use it for any script with more than one argument.
+
+## `logging` — when `print` isn't enough {#sec-io-logging}
+
+`print` is for users; `logging` is for developers and operators. Real programs should use `logging`.
+
+```{python}
+import logging
+
+logger = logging.getLogger("demo")
+logger.setLevel(logging.INFO)
+
+# A bare handler so this cell shows the output:
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+logger.addHandler(handler)
+
+logger.info("starting up")
+logger.warning("disk almost full")
+logger.error("could not connect to database")
+```
+
+Levels in increasing severity: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. `logger.exception(msg)` is `logger.error(msg)` plus the current traceback — use it inside an `except` block.
+
+::: {.callout-tip}
+## Why this matters
+File I/O is the boundary where most real-world bugs live: missing files, wrong encodings, half-written outputs. `with` makes leaks impossible; `pathlib` makes path manipulation portable; `csv` and `json` give you reliable parsers. Replace `print` debugging with `logging` the moment a script grows past 100 lines, and you'll never lose another error message.
+:::
+
+## Going deeper
+
+The `with` statement and the protocol behind it are in @sec-with-match-else. Iterators (which is how a file object iterates *line by line*) are in @sec-iterators. The `pathlib.Path` API is built on the descriptor and protocol patterns covered in @sec-pythonic-objects and @sec-protocols-abcs.
+
+## Exercises {#sec-io-exercises}
+
+1. **CSV → JSON.** Write a script that reads a CSV file and writes the same data as JSON. Use `csv.DictReader` and `json.dump(..., indent=2)`.
+
+2. **Word count.** Read a text file and print the 10 most common words using `Counter`. Strip punctuation; lowercase everything.
+
+3. **`pathlib` glob.** List every `.py` file in your project recursively using `Path(".").glob("**/*.py")`. Print each path's `parent` and `stem`.
+
+4. **`with` two files.** Open an input and output file in a single `with` statement. Write the input to the output, uppercased.
+
+5. **Forgotten `newline=""`.** On a Mac/Linux machine, write a CSV without `newline=""` and read it back. On Windows, the same code writes blank lines between rows. Why?
+
+## Summary {#sec-io-summary}
+
+`with open(...) as f:` covers most file I/O. `pathlib.Path` covers paths. `csv`, `json`, `argparse`, and `logging` cover the most common surrounding concerns. The next chapter, @sec-classes-basics, returns to language design — defining your own types — using everything we've built so far.

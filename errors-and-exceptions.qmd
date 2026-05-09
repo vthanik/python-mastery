@@ -1,0 +1,227 @@
+# Errors and Exceptions {#sec-errors-and-exceptions}
+
+::: {.callout-note}
+## Core idea
+An exception is an object that represents an error. Code that *raises* an exception interrupts normal flow until something *catches* it. The `try` / `except` / `else` / `finally` block lets you separate the happy path from the recovery path — and `with` lets you guarantee cleanup even when things go wrong.
+:::
+
+In this chapter you will learn to:
+
+1. Catch exceptions with `try` / `except` and re-raise the ones you can't handle.
+2. Use `else` and `finally` correctly.
+3. Raise exceptions yourself and chain them with `from`.
+4. Build a custom exception hierarchy for an application.
+5. Manage resources with `with` and write a context manager.
+
+## Reading a traceback {#sec-err-traceback}
+
+When an exception goes uncaught, Python prints a *traceback* — the chain of calls that led to the failure. Read it from the **bottom up**: the last line is the error type and message; the lines above show the call path.
+
+```{python}
+#| error: true
+def divide(a, b):
+    return a / b
+
+divide(10, 0)
+```
+
+`ZeroDivisionError: division by zero` — that's the *what*. The frames above are the *where*.
+
+## `try` / `except` {#sec-err-try-except}
+
+```{python}
+def safe_divide(a, b):
+    try:
+        return a / b
+    except ZeroDivisionError:
+        return float("inf")
+
+[safe_divide(10, 2), safe_divide(10, 0)]
+```
+
+Bind the exception to a name with `as` to inspect it:
+
+```{python}
+try:
+    int("not a number")
+except ValueError as e:
+    message = f"can't parse: {e}"
+message
+```
+
+You can catch several types:
+
+```{python}
+def parse_int(s):
+    try:
+        return int(s)
+    except (ValueError, TypeError) as e:
+        return f"error: {e}"
+
+[parse_int("42"), parse_int("nope"), parse_int(None)]
+```
+
+::: {.callout-warning}
+**Never use a bare `except:`.** It catches *everything*, including `KeyboardInterrupt` (Ctrl+C) and `SystemExit`. If you really need a catch-all, write `except Exception:` — that omits the system-exit family.
+:::
+
+## `else` and `finally` {#sec-err-else-finally}
+
+`else` runs only if no exception was raised in the `try` block. `finally` runs whether an exception happened or not — it's for cleanup.
+
+```{python}
+def parse_log_line(line):
+    try:
+        n = int(line)
+    except ValueError:
+        return None
+    else:
+        return n * 2
+    finally:
+        # always runs — useful for cleanup, logging, releasing resources
+        pass
+
+[parse_log_line("21"), parse_log_line("oops")]
+```
+
+## Raising exceptions {#sec-err-raising}
+
+You raise an exception when something is wrong that callers must know about.
+
+```{python}
+#| error: true
+def set_age(age):
+    if not isinstance(age, int):
+        raise TypeError(f"age must be int, got {type(age).__name__}")
+    if not 0 <= age <= 150:
+        raise ValueError(f"age {age} is not realistic")
+    return age
+
+set_age("not a number")
+```
+
+Use `raise X from Y` to chain — the traceback shows both the original cause and the new exception:
+
+```{python}
+#| error: true
+import json
+
+def load_config(text):
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError("config file is not valid JSON") from e
+
+load_config("{ bad json")
+```
+
+## The exception hierarchy {#sec-err-hierarchy}
+
+All exceptions inherit from `BaseException`. Most "normal" errors inherit from `Exception` — that's the level you usually catch.
+
+```
+BaseException
+ ├── SystemExit          # raised by sys.exit() — don't catch
+ ├── KeyboardInterrupt   # Ctrl+C — don't catch
+ └── Exception           # catch this level for general errors
+      ├── ValueError
+      ├── TypeError
+      ├── KeyError
+      ├── IndexError
+      ├── AttributeError
+      ├── OSError
+      │    ├── FileNotFoundError
+      │    └── PermissionError
+      └── ZeroDivisionError, ImportError, RuntimeError, …
+```
+
+The rule: **catch the most specific exception** that fits. Catching `Exception` everywhere hides bugs.
+
+## Custom exceptions {#sec-err-custom}
+
+Define your own hierarchy for an application. It lets callers handle specific errors without string-matching.
+
+```{python}
+class AppError(Exception):
+    """Base exception for this application."""
+
+class DataError(AppError):
+    """Raised when data is invalid or missing."""
+
+class AuthError(AppError):
+    """Raised when authentication fails."""
+    def __init__(self, user, reason):
+        self.user = user
+        self.reason = reason
+        super().__init__(f"auth failed for {user!r}: {reason}")
+
+try:
+    raise AuthError("alice", "wrong password")
+except AppError as e:
+    str(e)
+```
+
+## `with` and context managers {#sec-err-with}
+
+The `with` statement guarantees cleanup even when exceptions occur — by calling the object's `__enter__` and `__exit__` methods. The most common use is opening a file:
+
+```{python}
+import tempfile
+from pathlib import Path
+
+target = Path(tempfile.mkdtemp()) / "hello.txt"
+target.write_text("hello\nworld\n", encoding="utf-8")
+
+with open(target, encoding="utf-8") as f:
+    content = f.read()
+content
+```
+
+The file closes the moment the `with` block exits — even if `f.read()` raises.
+
+You can write your own context manager with `contextlib.contextmanager`:
+
+```{python}
+import time
+from contextlib import contextmanager
+
+@contextmanager
+def timer(label):
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        print(f"{label}: {time.perf_counter() - start:.4f}s")
+
+with timer("compute"):
+    total = sum(range(1_000_000))
+
+total
+```
+
+The deep treatment of `with`, including the `__enter__` / `__exit__` protocol and `contextlib.suppress`, is in @sec-with-match-else.
+
+::: {.callout-tip}
+## Why this matters
+Exceptions separate the *happy path* from the *recovery path*. Code with explicit error returns (`if result is None: …`) clutters every call site; code with exceptions reads as the algorithm. The `with` statement makes resource leaks impossible — a guarantee that's hard to provide with manual `try` / `finally`.
+:::
+
+## Going deeper
+
+`with`, `match`, and the orphaned `else` clauses on `for` and `while` loops are the subject of @sec-with-match-else. The descriptor protocol behind `__enter__` / `__exit__` and the broader data model is @sec-data-model.
+
+## Exercises {#sec-err-exercises}
+
+1. **Specific over generic.** Catch only `FileNotFoundError` for a missing file, returning a default. Run again with `except Exception` — what bugs would the broad catch hide?
+
+2. **Chain a parse error.** Write `parse_age(s)` that calls `int(s)` and re-raises `ValueError(f"age must be a number, got {s!r}")` — chained with `from`.
+
+3. **Custom hierarchy.** Define `ConfigError(Exception)` with subclasses `MissingKeyError` and `BadValueError`. Write a function that raises one or the other.
+
+4. **`with` for cleanup.** Write a context manager `chdir(path)` that changes the working directory on entry and restores it on exit, even if the body raises.
+
+5. **`finally` order.** Predict the print order of: `try: print("a"); raise ValueError("x") except ValueError: print("b") finally: print("c")`.
+
+## Summary {#sec-err-summary}
+
+`try` / `except` / `else` / `finally` cover error handling; `raise` and `from` cover signaling; `with` covers resource lifecycles. The next chapter, @sec-files-and-io, applies all of this to the most common source of errors in real programs — talking to the file system.

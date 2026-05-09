@@ -1,0 +1,115 @@
+# How Python Thinks {#sec-how-python-thinks}
+
+::: {.callout-note}
+## Core idea
+Everything in Python is an object. A variable is not a box that holds a value — it is a *label* attached to an object. And Python asks "what can this *do*?" (protocols), never "what *is* this?" (types).
+:::
+
+In this chapter you will learn to:
+
+1. Describe an object by its three properties: **value, type, identity**.
+2. Picture a variable as a label, not a box.
+3. State the duck-typing rule and explain why a `for` loop works on a list, a string, and a file.
+4. Recognize that indentation is syntax, not style.
+
+Most Python tutorials skip the mental models and dive into syntax. We don't, because the models you build in the first hour decide how every later chapter lands.
+
+## An object has value, type, and identity {#sec-how-python-thinks-objects}
+
+Every object Python creates carries three pieces of information: its **value** (what it contains), its **type** (what kind of thing it is), and its **identity** (its address in memory).
+
+```{python}
+x = 42
+x, type(x), id(x)
+```
+
+`type(x)` reports the kind of thing `x` points to; `id(x)` reports its identity. Two objects with the same value can have *different* identities.
+
+```{python}
+a = [1, 2, 3]
+b = [1, 2, 3]
+a == b, a is b
+```
+
+`a == b` asks about value. `a is b` asks about identity. They are not the same question. The deep treatment is in @sec-references-mutability.
+
+## Variables are labels {#sec-how-python-thinks-labels}
+
+Assignment does not copy a value into a box. It creates an object and ties a name tag to it.
+
+```{python}
+x = 42
+y = x
+x, y, x is y
+```
+
+`x` and `y` are two labels on the *same* `42`. No copy happened. This single idea explains most of Python's surprises: why a list modified through one variable shows the change through another, why functions can mutate the objects you pass them, and why mutable defaults are a trap.
+
+```{python}
+xs = [1, 2, 3]
+ys = xs
+ys.append(4)
+xs
+```
+
+`ys.append(4)` modified the one list both names point to. We revisit this in detail in @sec-references-mutability.
+
+## Protocols, not types — the duck-typing rule {#sec-how-python-thinks-duck}
+
+Python rarely asks "what type is this object?" It asks "can this object *do* what I need?" That question is answered by *protocols* — sets of special methods like `__iter__`, `__len__`, `__getitem__`.
+
+A `for` loop doesn't care if the thing being iterated is a list, a string, a file, a dictionary, or a custom class — it asks only "can I iterate over you?"
+
+```{python}
+def first_two(thing):
+    seen = []
+    for x in thing:
+        seen.append(x)
+        if len(seen) == 2:
+            break
+    return seen
+
+first_two([10, 20, 30]), first_two("hello"), first_two({"a": 1, "b": 2, "c": 3})
+```
+
+One function works on a list, a string, and a dictionary because all three answer "yes, I can be iterated." This is **duck typing**: *if it walks like a duck and quacks like a duck, it's a duck*. The deep dive into the protocols themselves is the entire spine of Part I — starting with @sec-data-model.
+
+## Indentation is syntax {#sec-how-python-thinks-indentation}
+
+Python uses indentation — usually four spaces — to mark blocks of code. There are no curly braces, no `begin`/`end` keywords. The indentation isn't a *style* convention — it's the syntax itself.
+
+```{python}
+def classify(n):
+    if n > 0:
+        return "positive"
+    elif n < 0:
+        return "negative"
+    return "zero"
+
+classify(7), classify(-3), classify(0)
+```
+
+The body of `if`, `elif`, and `def` is whatever is indented one level beneath. Mixing tabs and spaces is a runtime error. This forces readable code — a feature, not a limitation.
+
+::: {.callout-tip}
+## Why this matters
+Three mental models — *objects with value/type/identity*, *variables-as-labels*, and *protocols over types* — are load-bearing for the rest of the book. Almost every "surprise" in Python traces back to one of them. Internalize these now and the data model in @sec-data-model becomes obvious instead of magical.
+:::
+
+## Going deeper
+
+This chapter only sketches identity vs. equality and protocols. The full story arrives later: identity and aliasing in @sec-references-mutability, the data model and special methods in @sec-data-model, and the iterator protocol specifically in @sec-iterators.
+
+## Exercises {#sec-how-python-thinks-exercises}
+
+1. **Same value, different identity.** Create two lists `a = [1, 2, 3]` and `b = [1, 2, 3]`. Confirm `a == b` is `True` and `a is b` is `False`. Explain in one sentence.
+
+2. **Aliasing.** Set `x = [10, 20, 30]` and `y = x`. Run `y.append(40)`. Print `x`. Predict and explain.
+
+3. **Duck typing.** Write a function `count_a(thing)` that returns how many `'a'` characters a thing contains. Make it work on a string and on a list of strings using only `for` and `==`.
+
+4. **Indentation.** Re-format a small block of code by indenting an extra level inside an `if`. What error appears at *parse* time vs. *run* time?
+
+## Summary {#sec-how-python-thinks-summary}
+
+Python is built on a small number of consistent rules: every value is an object with identity, type, and value; names are labels, not containers; behavior comes from protocols, not type hierarchies; indentation is syntax. The next chapter, @sec-values-and-variables, turns these rules into concrete primitives: `int`, `float`, `str`, `bool`, and `None`.

@@ -1,0 +1,267 @@
+# Standard Library Tour {#sec-standard-library-tour}
+
+::: {.callout-note}
+## Core idea
+Python's "batteries included" philosophy: the standard library solves most common problems without installing anything extra. Before reaching for a third-party package, check what's already there. It's faster, more reliable, and more portable.
+:::
+
+In this chapter you will learn to:
+
+1. Use `collections` for `Counter`, `defaultdict`, `deque`, and `namedtuple`.
+2. Use `itertools` for `chain`, `islice`, `groupby`, and `accumulate`.
+3. Use `functools` for `lru_cache`, `cached_property`, `partial`, `reduce`, and `wraps`.
+4. Use `datetime` for dates, times, and durations.
+5. Use `re` for regular expressions — and recognize when *not* to.
+
+This is a tour, not an encyclopedia — pointers to the modules you'll reach for repeatedly. Beazley's *Python Distilled* §9–10 is the canonical reference for the broader stdlib (asyncio, threading, sockets, struct, tempfile, urllib, xml, …).
+
+## `collections` {#sec-stdlib-collections}
+
+```{python}
+from collections import Counter, defaultdict, deque, namedtuple
+```
+
+**`Counter`** counts occurrences:
+
+```{python}
+words = "the cat sat on the mat the".split()
+c = Counter(words)
+[c["the"], c["missing"], c.most_common(2)]
+```
+
+`Counter` arithmetic merges two counters: `c + c2`, `c - c2`. Missing keys return `0`, never `KeyError`.
+
+**`defaultdict`** auto-creates a default value for missing keys:
+
+```{python}
+groups = defaultdict(list)
+for name, team in [("Alice", "eng"), ("Bob", "design"), ("Carol", "eng")]:
+    groups[team].append(name)
+dict(groups)
+```
+
+`defaultdict(int)` for counters; `defaultdict(list)` for grouping; `defaultdict(set)` for collecting unique items per key.
+
+**`deque`** — fast append/pop from *both* ends:
+
+```{python}
+from collections import deque
+queue = deque(["a", "b", "c"])
+queue.appendleft("z")
+queue.popleft()
+queue.append("d")
+list(queue)
+```
+
+A list's `pop(0)` is O(n); `deque.popleft()` is O(1). Use `deque` for queues and sliding windows.
+
+**`namedtuple`** — a tuple with named fields:
+
+```{python}
+Point = namedtuple("Point", ["x", "y"])
+p = Point(3, 4)
+[p.x, p.y, p[0]]
+```
+
+For modern code, prefer `typing.NamedTuple` (gives you type hints and methods) or `@dataclass`. The full data-class comparison is in @sec-dataclasses.
+
+## `itertools` {#sec-stdlib-itertools}
+
+```{python}
+import itertools
+```
+
+**`chain`** — flatten multiple iterables:
+
+```{python}
+list(itertools.chain([1, 2], [3, 4], [5, 6]))
+```
+
+**`islice`** — take a slice from any iterable (lazily):
+
+```{python}
+list(itertools.islice(range(100), 5))
+```
+
+**`cycle`** — repeat forever (combine with `islice` to stop):
+
+```{python}
+list(itertools.islice(itertools.cycle(["red", "green", "blue"]), 7))
+```
+
+**`groupby`** — group *consecutive* equal items. The data must already be sorted by the same key:
+
+```{python}
+data = sorted(["alice", "bob", "adam", "carol", "charlie"], key=lambda x: x[0])
+[(letter, list(g)) for letter, g in itertools.groupby(data, key=lambda x: x[0])]
+```
+
+**`accumulate`** — running totals:
+
+```{python}
+list(itertools.accumulate([1, 2, 3, 4, 5]))
+```
+
+**`combinations`, `permutations`, `product`** — combinatorial generators:
+
+```{python}
+[
+    list(itertools.combinations("ABCD", 2)),
+    list(itertools.permutations("ABC", 2))[:3],
+    list(itertools.product("AB", range(2))),
+]
+```
+
+## `functools` {#sec-stdlib-functools}
+
+```{python}
+import functools
+```
+
+**`lru_cache` / `cache`** — memoize a pure function's results:
+
+```{python}
+@functools.lru_cache(maxsize=None)
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+[fib(50), fib.cache_info()]
+```
+
+`@functools.cache` (Python 3.9+) is `@lru_cache(maxsize=None)` — unbounded.
+
+**`cached_property`** — compute once per instance, then read like an attribute:
+
+```{python}
+import statistics
+
+class DataSet:
+    def __init__(self, data):
+        self._data = data
+
+    @functools.cached_property
+    def stats(self):
+        return {
+            "mean": statistics.mean(self._data),
+            "median": statistics.median(self._data),
+            "stdev": statistics.stdev(self._data),
+        }
+
+ds = DataSet([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+ds.stats   # computed once
+```
+
+**`partial`** — pre-fill some of a function's arguments:
+
+```{python}
+def power(base, exp):
+    return base ** exp
+
+square = functools.partial(power, exp=2)
+cube = functools.partial(power, exp=3)
+[square(4), cube(3)]
+```
+
+**`reduce`** — fold a sequence into a single value:
+
+```{python}
+import operator
+[functools.reduce(operator.add, [1, 2, 3, 4, 5]),
+ functools.reduce(operator.mul, [1, 2, 3, 4, 5])]
+```
+
+**`wraps`** — preserve a function's name and docstring inside a decorator. We saw this in @sec-functions-basics; the deep treatment is @sec-decorators.
+
+## `datetime` {#sec-stdlib-datetime}
+
+```{python}
+from datetime import datetime, date, timedelta, timezone
+
+now = datetime.now(tz=timezone.utc)
+today = date.today()
+[now.year, today.isoformat()]
+```
+
+Arithmetic uses `timedelta`:
+
+```{python}
+yesterday = now - timedelta(days=1)
+next_week = now + timedelta(weeks=1)
+[yesterday.date(), next_week.date()]
+```
+
+Formatting and parsing use `strftime` / `strptime`:
+
+```{python}
+[
+    now.strftime("%Y-%m-%d %H:%M:%S"),
+    datetime.strptime("2024-01-15", "%Y-%m-%d"),
+    datetime.fromisoformat("2024-01-15T12:30:00"),
+]
+```
+
+For anything time-zone-sensitive, always include `tzinfo` (`timezone.utc` for UTC, `zoneinfo.ZoneInfo("Europe/London")` for local zones — Python 3.9+).
+
+## `re` — regular expressions {#sec-stdlib-re}
+
+Regex is powerful but easy to overuse. Reach for it when patterns are *truly* irregular; for fixed strings, `.startswith()` and `.split()` are simpler.
+
+```{python}
+import re
+
+m = re.search(r"(\d+)-(\d+)", "phone: 123-456")
+[m.group(), m.group(1), m.group(2)]
+```
+
+Always use **raw strings** (`r"..."`) for patterns — `\d` and `\w` would otherwise need double backslashes.
+
+The core entry points:
+
+- `re.search(pattern, text)` — first match anywhere.
+- `re.match(pattern, text)` — match at the *start*.
+- `re.fullmatch(pattern, text)` — match the *entire* string.
+- `re.findall(pattern, text)` — list of every match.
+- `re.sub(pattern, repl, text)` — replace every match.
+- `re.split(pattern, text)` — split on the pattern.
+
+Compile patterns you'll reuse:
+
+```{python}
+phone = re.compile(r"\b(\d{3})-(\d{3,4})\b")
+phone.findall("call 555-1234 or 555-5678 today")
+```
+
+Named groups make the resulting matches self-documenting:
+
+```{python}
+m = re.search(r"(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})", "2024-01-15")
+m.groupdict()
+```
+
+::: {.callout-tip}
+## Why this matters
+The standard library is the largest, best-tested Python codebase in existence. Knowing what's already there is a force multiplier: `Counter` replaces a dozen lines of `if/else`; `lru_cache` replaces a manual cache; `pathlib` replaces hand-rolled string manipulation. The first question for any new task should be "is there already a stdlib module for this?"
+:::
+
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §9–10 surveys the rest of the standard library — `socket`, `select`, `asyncio`, `threading`, `tempfile`, `struct`, `urllib`, `xml`, `inspect`, and more — with example-driven notes that complement this chapter's tour.
+:::
+
+## Exercises {#sec-stdlib-exercises}
+
+1. **`Counter` for word frequency.** Read a text file and print the 10 most common words. Strip punctuation and lowercase everything before counting.
+
+2. **`groupby` after sorting.** Given a list of `(date, event)` tuples, group events by date. Why must you sort first?
+
+3. **`lru_cache` speedup.** Time `fib(35)` with and without `@lru_cache`. Predict the speedup.
+
+4. **`partial` for sort keys.** Use `functools.partial` to construct a sort key that sorts strings by their *n*-th character, where `n` is configurable.
+
+5. **Regex pitfall.** Predict and verify: `re.search(r"a+", "")` vs. `re.search(r"a*", "")`. Why does the second one match?
+
+## Summary {#sec-stdlib-summary}
+
+`collections`, `itertools`, `functools`, `datetime`, `re` — five modules cover most everyday tasks. The next chapter, @sec-writing-real-programs, brings everything together: how to structure a script, how to add tests, and the Pythonic idioms that separate working code from *clean* working code.

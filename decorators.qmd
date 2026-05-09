@@ -321,6 +321,11 @@ A closure is a function that remembers the enclosing scope's variables even afte
 
 5. **Custom `singledispatch`.** Add a fourth `htmlize` registration for `dict` that renders a definition list (`<dl>` / `<dt>` / `<dd>`). Test it.
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §5.18–5.22 covers function introspection, dynamic execution, and the runtime-introspection patterns decorators rely on. Read it for a low-level view of *why* `functools.wraps` matters and what Python's call machinery looks like underneath.
+:::
+
 ## Summary {#sec-decorators-summary}
 
 Decorators are sugar for `func = decorator(func)`. They run at import time. Their power comes from closures, which let an inner function carry state from the outer one even after the outer returns. With these two ideas plus `functools.wraps`, you can write any decorator the standard library ships and most of those you'll encounter in real projects.

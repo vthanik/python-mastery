@@ -1,0 +1,25 @@
+# Foundations {#sec-part-foundations .unnumbered}
+
+This part is the running start. It assumes nothing — not Python, not programming, not even that you've read about Python before. By the time you finish it, you will be able to read and write idiomatic Python code: variables, control flow, functions, classes, files, modules, the standard library, and the practices that make a script a real program.
+
+The arc walks the ladder from concept to capability:
+
+- @sec-how-python-thinks introduces the three mental models — *every value is an object*, *variables are labels not boxes*, *Python uses protocols not types* — that the rest of the book rests on.
+
+- @sec-values-and-variables, @sec-strings-and-text, @sec-control-flow-basics give you the primitives: numbers, strings, branches, and loops.
+
+- @sec-collections-basics covers the four built-in containers — list, tuple, dict, set — and the comprehensions that build them.
+
+- @sec-functions-basics introduces functions as objects, scope, closures, and a first taste of decorators and generators.
+
+- @sec-errors-and-exceptions handles what happens when things go wrong; @sec-files-and-io handles talking to the file system.
+
+- @sec-classes-basics lets you define your own types with `__init__`, `@property`, inheritance, and `super()`.
+
+- @sec-modules-and-packages and @sec-standard-library-tour zoom out from single files to projects and the standard library.
+
+- @sec-writing-real-programs collects the idioms — type hints, tests, logging, `argparse`, and the fifteen patterns that separate beginner Python from idiomatic Python.
+
+Each chapter ends with a **Going deeper** pointer to the chapter in Parts I–V where the topic is taken apart in detail. You can read this Foundations part end-to-end, then continue into the deep dives — or you can skip ahead and treat Foundations as reference. The book is structured to support either path.
+
+By the end, you will be a capable Python programmer. After that, the rest of the book is about *why* Python feels the way it does — the data model, the protocols, the descriptors, the metaclasses — and how to use those mechanisms to write code that participates in the language instead of fighting it.

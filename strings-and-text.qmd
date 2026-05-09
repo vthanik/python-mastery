@@ -1,0 +1,169 @@
+# Strings and Text {#sec-strings-and-text}
+
+::: {.callout-note}
+## Core idea
+Strings in Python are immutable Unicode sequences. f-strings are the modern way to format. Slicing, joining, and the standard methods cover almost every text task you'll meet.
+:::
+
+In this chapter you will learn to:
+
+1. Create strings with single, double, triple, and *raw* quoting — and choose the right one.
+2. Format values with f-strings and the `{value:spec}` mini-language.
+3. Index, slice, search, and split strings.
+4. Use `.join()` to combine many strings efficiently.
+
+## Creating strings {#sec-strings-creating}
+
+```{python}
+a = "hello"
+b = 'hello'
+c = """multi-
+line string"""
+d = r"C:\Users\Alice"   # raw string — backslashes are literal
+[a, b, c, d]
+```
+
+Single and double quotes are interchangeable. Use whichever avoids escaping. Triple quotes preserve newlines. **Raw strings** (`r"..."`) treat backslash as a normal character — essential for Windows paths and regular-expression patterns.
+
+```{python}
+# Without raw, you'd write \\d+ to mean \d+
+import re
+pattern = r"\d+"
+re.findall(pattern, "abc 12 def 345")
+```
+
+## f-strings {#sec-strings-fstrings}
+
+f-strings ("formatted string literals") embed expressions directly inside a string. Always prefer them to `+` concatenation or `%` formatting.
+
+```{python}
+name = "Alice"
+score = 95.6789
+[
+    f"Hello, {name}!",
+    f"Score: {score:.2f}",        # 2 decimal places
+    f"Padded: {42:5d}",            # width 5
+    f"Thousands: {1_000_000:,}",
+    f"Debug: {name=}",             # shows name AND value
+    f"Repr: {name!r}",             # shows quotes
+    f"Expr: {2 + 2}",              # any expression
+]
+```
+
+The format spec is `{value:[align][width][.precision][type]}`:
+
+```{python}
+[
+    f"{score:>10.2f}",   # right-align, width 10, 2 decimals
+    f"{score:<10.2f}",   # left-align
+    f"{score:^10.2f}",   # center
+    f"{255:x}",          # hex
+    f"{255:b}",          # binary
+]
+```
+
+## Indexing and slicing {#sec-strings-slicing}
+
+A string is a sequence of characters, indexed from `0`. Negative indices count from the end.
+
+```{python}
+s = "Hello, World!"
+[s[0], s[-1], s[7:12], s[:5], s[::-1]]
+```
+
+`s[start:stop:step]` is the slicing form. `step=-1` reverses. The deep treatment of slicing — and how it generalizes to all sequences — is in @sec-sequences.
+
+`len(s)` is the character count; `in` is a membership test:
+
+```{python}
+[len(s), "World" in s, "world" in s]
+```
+
+## Joining and splitting {#sec-strings-joining}
+
+Concatenation works with `+`, but for *many* strings, `.join()` is dramatically faster — and more idiomatic:
+
+```{python}
+words = ["Hello", "World", "Python"]
+[" ".join(words), ", ".join(words), "".join(words)]
+```
+
+`split()` reverses it:
+
+```{python}
+[
+    "a,b,c".split(","),
+    "  spaces   between   ".split(),   # default: split on any whitespace
+    "line1\nline2\nline3".splitlines(),
+]
+```
+
+The rule: **never** use `+=` in a loop to build a string. Each `+=` allocates a new string. Use `.join(list_of_pieces)` instead.
+
+## String methods {#sec-strings-methods}
+
+Strings are immutable, so every method returns a *new* string.
+
+```{python}
+s = "  Hello, World!  "
+[
+    s.strip(),
+    s.lower(),
+    s.upper(),
+    s.replace("World", "Python"),
+    s.startswith("  Hello"),
+    s.find("World"),    # -1 if not found
+    "abc123".isalnum(),
+]
+```
+
+Useful predicates: `.isdigit()`, `.isalpha()`, `.isalnum()`, `.isspace()`, `.startswith(prefix)`, `.endswith(suffix)`.
+
+```{python}
+[
+    "  hello  ".strip(),
+    "xxhelloxx".strip("x"),    # strip a custom set of chars
+    "abc".count("a"),
+    "abc".replace("a", "A").replace("b", "B"),
+]
+```
+
+## Escape sequences {#sec-strings-escape}
+
+Inside a non-raw string, `\` introduces an escape:
+
+```{python}
+[
+    "line1\nline2",
+    "tab\there",
+    "quote: \"hi\"",
+    "backslash: \\",
+]
+```
+
+A raw string disables this — useful for paths, regex, and any string with many backslashes.
+
+::: {.callout-tip}
+## Why this matters
+String handling in Python is uniform: every string is Unicode, every method returns a new string (because strings are immutable), and f-strings give you a single, consistent way to format any value. The mini-language inside `{value:spec}` covers width, precision, alignment, and number bases — once learned, it replaces almost every other formatting tool.
+:::
+
+## Going deeper
+
+This chapter treats `str` as a workable text type. The deeper questions — what *is* a Unicode code point, how do `str` and `bytes` differ, and what does normalization mean — are covered in @sec-unicode. Slicing is a small example of the *sequence protocol* that runs through @sec-sequences.
+
+## Exercises {#sec-strings-exercises}
+
+1. **Format spec.** Write an f-string that prints a float with three decimals, padded to 12 characters, right-aligned.
+
+2. **Reverse with slicing.** Write `reverse(s)` using only slicing.
+
+3. **Title case the hard way.** Implement your own `title()` that capitalizes the first letter of each word using `.split()`, capitalization, and `.join()`.
+
+4. **Count vowels.** Count how many vowels appear in a string using a generator expression and `sum()`.
+
+5. **Why never `+=`?** Time the difference between building a 100,000-piece string with `+=` and with `"".join(pieces)`. Use `time.perf_counter()`.
+
+## Summary {#sec-strings-summary}
+
+Strings are immutable Unicode sequences with a deep but consistent method set. f-strings are the format mechanism; slicing, `.join()`, and `.split()` cover most text manipulation. The next chapter, @sec-control-flow-basics, turns to the structures that make a program *do* things: `if`, `for`, `while`, and the loop-control keywords.

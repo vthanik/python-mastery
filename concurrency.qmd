@@ -158,6 +158,11 @@ Choose the right concurrency model:
 
 5. **Cancellation.** In the `asyncio` spinner, `spinner.cancel()` is the only way to stop the spinner. What happens if you forget to call it?
 
+::: {.callout-note}
+## Further reading
+Beazley, *Python Distilled* §9.14 ("Blocking Operations and Concurrency") gives concrete operational caveats for threads, polling, and asyncio — the pitfalls that show up in real systems. Use it as the practitioner's reference once the conceptual model from this chapter has clicked.
+:::
+
 ## Summary {#sec-conc-summary}
 
 Concurrency is about *structure*; parallelism is about *execution*. Python's three models map cleanly to three workload shapes: threads for simple I/O, `asyncio` for I/O at scale, processes for CPU. The GIL is the constraint that determines the boundaries.
