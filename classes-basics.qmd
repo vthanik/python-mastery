@@ -248,15 +248,75 @@ The general pattern: start with a plain attribute. The day you need validation, 
 
 What if you want to construct a `Person` from a date string like `"1985-03-15"`, not a year integer? You could write a second `__init__` — except Python only allows one. The standard answer is an **alternative constructor**: a `@classmethod` named like a factory (`from_birth_date`, `from_dict`, `from_csv`).
 
-| Method type | First arg | Use case |
-|---|---|---|
-| Instance | `self` | Operates on an instance |
-| `@classmethod` | `cls` (the class) | Alternative constructor |
-| `@staticmethod` | none | Utility function in a class namespace |
+Three method types live inside a class. The difference is what gets passed as the first argument:
+
+| Method type | First arg | What it gets | Use case |
+|---|---|---|---|
+| Instance method | `self` | The instance you called it on | Operates on the instance's data |
+| `@classmethod` | `cls` | The class itself | Alternative constructor; class-level state |
+| `@staticmethod` | none | nothing automatic | Utility function namespaced inside the class |
+
+Build them up one at a time.
+
+**Step 1: a plain class with one `__init__`.** This is the case we already know — instance methods take `self`:
 
 ```{python}
 from datetime import date
 
+class Person:
+    def __init__(self, name, birth_year):
+        self.name = name
+        self.birth_year = birth_year
+
+p = Person("Bob", 1985)
+[p.name, p.birth_year]
+```
+
+But suppose callers have ISO date strings (`"1985-03-15"`), not integers. They'd have to parse manually before every call: `Person("Bob", int("1985-03-15".split("-")[0]))`. We'd rather expose a second way to build a `Person` — without rewriting `__init__`.
+
+**Step 2: `@classmethod` as an alternative constructor.** A class method receives the class itself as `cls`. Calling `cls(...)` inside the body builds an instance — going through the normal `__init__`:
+
+```{python}
+class Person:
+    def __init__(self, name, birth_year):
+        self.name = name
+        self.birth_year = birth_year
+
+    @classmethod
+    def from_birth_date(cls, name, iso_date):
+        year = int(iso_date.split("-")[0])
+        return cls(name, year)
+
+bob = Person.from_birth_date("Bob", "1985-03-15")
+[bob.name, bob.birth_year]
+```
+
+- `@classmethod` tells Python "when this method is called, pass the class itself as the first argument." Inside the body, `cls` *is* `Person`.
+- `cls(name, year)` calls `Person(name, year)` — i.e., the normal `__init__`. Using `cls` instead of hard-coding `Person` is what makes alternative constructors work for subclasses: if someone defines `class Employee(Person):`, then `Employee.from_birth_date(...)` runs `cls(...)` where `cls` is `Employee`, and the result is an `Employee`. Hard-coding `Person(...)` would be a subtle inheritance bug.
+- The naming convention is `from_xxx` — `from_birth_date`, `from_dict`, `from_csv`. The standard library uses it everywhere: `dict.fromkeys`, `datetime.fromisoformat`, `Path.cwd`. Read the call site `Person.from_birth_date(...)` aloud — it tells you exactly what's happening.
+
+**Step 3: `@staticmethod` for utilities that need neither `self` nor `cls`.** Sometimes a helper is logically grouped with a class — it makes sense to find it inside `Person` — but doesn't read the instance or the class. It's a plain function that happens to live in the class's namespace:
+
+```{python}
+class Person:
+    def __init__(self, name, birth_year):
+        self.name = name
+        self.birth_year = birth_year
+
+    @staticmethod
+    def is_adult(age):
+        return age >= 18
+
+[Person.is_adult(20), Person.is_adult(15)]
+```
+
+- `@staticmethod` says "no automatic first argument." `is_adult` takes only `age` — no `self`, no `cls`.
+- Call it on the class: `Person.is_adult(20)`. You can also call it on an instance, but the class form reads better — it makes clear the function uses no instance state.
+- Use sparingly. If a helper needs neither `self` nor `cls`, ask whether it should be a class method at all — often it's just a module-level function in disguise. `@staticmethod` is the right answer when the strong association with the class outweighs the cost of indirection.
+
+Putting all three together — the same `Person` with an instance attribute, a computed property, an alternative constructor, and a utility:
+
+```{python}
 class Person:
     def __init__(self, name, birth_year):
         self.name = name
@@ -276,16 +336,10 @@ class Person:
         return age >= 18
 
 bob = Person.from_birth_date("Bob", "1985-03-15")
-[bob.name, bob.age, Person.is_adult(20)]
+[bob.name, bob.age, Person.is_adult(bob.age)]
 ```
 
-Walking through this:
-
-- `@classmethod` makes the first parameter `cls` (the class itself), not `self` (an instance). When you call `Person.from_birth_date("Bob", "1985-03-15")`, Python passes `Person` in as `cls`.
-- `return cls(name, year)` calls the constructor — using `cls` instead of hard-coding `Person` means subclasses get instances of *their own* type back automatically. Hard-coding `Person(name, year)` would be a subtle bug for inheritance.
-- `@staticmethod` declares a function that lives in the class's namespace but takes neither `self` nor `cls`. It's purely a packaging choice — `is_adult` could be a top-level function, but keeping it on `Person` groups it with the type it relates to.
-
-The cheap rule of thumb: need the instance? Regular method. Need the class (alternative constructor, factory)? `@classmethod`. Need neither? `@staticmethod` — or just a module-level function.
+The general pattern: instance methods for instance state; `@classmethod` for alternative constructors and class-level state; `@staticmethod` for closely-related utilities. The first parameter tells you which is which.
 
 ## Inheritance and `super()` {#sec-cls-inheritance}
 
