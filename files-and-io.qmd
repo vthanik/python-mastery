@@ -118,23 +118,41 @@ for root, dirs, files in work.walk():
 
 ## Reading TOML config: `tomllib` {#sec-io-tomllib}
 
-Python 3.11 added `tomllib` — a TOML parser in the standard library. TOML is the format for `pyproject.toml` and most modern Python tooling configs. `tomllib` is read-only and binary-mode:
+Python 3.11 added `tomllib` — a TOML parser in the standard library. TOML is the format for `pyproject.toml` and most modern Python tooling configs. The module is read-only (there is no writer) and exposes two functions:
+
+- `tomllib.loads(s)` — parse a `str`. Returns a `dict`.
+- `tomllib.load(fp)` — parse a binary file object. Open the file with `"rb"`.
 
 ```{python}
 import tomllib
 
-snippet = b"""
+snippet = """
 [project]
 name = "myapp"
 version = "0.1.0"
 dependencies = ["httpx", "pydantic"]
 """
 
-config = tomllib.loads(snippet.decode("utf-8"))
+config = tomllib.loads(snippet)
 config["project"]["name"], config["project"]["dependencies"]
 ```
 
-To read from disk, open the file in binary mode and call `tomllib.load(f)`. For *writing* TOML, you need a third-party package (`tomli-w` or `tomlkit`).
+Reading from disk uses `load` with a binary-mode file:
+
+```python
+with open("pyproject.toml", "rb") as f:
+    config = tomllib.load(f)
+```
+
+Why binary? TOML 1.0 mandates UTF-8, and `tomllib` does the decoding itself — opening in text mode would let the OS decode first and could disagree on the encoding. Open `"rb"`, hand the bytes to `load`, done.
+
+A few details worth knowing:
+
+- TOML types map cleanly to Python: tables → `dict`, arrays → `list`, strings → `str`, integers → `int`, floats → `float`, booleans → `bool`, datetimes → `datetime.datetime` / `date` / `time`.
+- Invalid TOML raises `tomllib.TOMLDecodeError` (a subclass of `ValueError`) with `lineno` and `colno` attributes for diagnostics.
+- For exact decimals (e.g., money, scientific data) pass `parse_float=decimal.Decimal` to keep precision instead of rounding to binary float.
+
+For *writing* TOML, you need a third-party package — `tomli-w` for round-tripping, `tomlkit` for style-preserving edits.
 
 ## CSV {#sec-io-csv}
 
