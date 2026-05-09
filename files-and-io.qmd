@@ -240,9 +240,28 @@ print("warning!", file=sys.stderr)  # → stderr
 
 ### Parsing command-line arguments with `argparse` {#sec-io-argparse}
 
-When a user runs `python myscript.py data.json -v`, Python gives you the raw arguments as `sys.argv` — a list of strings: `["myscript.py", "data.json", "-v"]`. You *could* slice that list yourself, separate flags from positional arguments, convert types, and write your own `--help`. Or you could let `argparse` (in the standard library) do it for you. It handles type conversion, defaults, help text, and validation through a small declarative API. Build a parser in two steps.
+Start from first principles. When a user runs `python myscript.py data.json -v`, what does Python actually hand to your program? Just a list of strings — `sys.argv`:
 
-**Step 1: a minimum parser with one positional argument.**
+```{python}
+# If the user had run: python myscript.py data.json -v
+# sys.argv would look like this:
+fake_argv = ["myscript.py", "data.json", "-v"]
+fake_argv
+```
+
+That's the raw input — no types, no validation, no help text, no notion of which token is a flag and which is positional. You could parse it yourself: walk the list, recognise leading `-`, convert `"data.json"` to a `Path`, decide what to do if the user typed `--input` instead of `-i`, write a `--help` message. For a one-line script that's tolerable; for anything bigger it's a mess of conditionals.
+
+Step back and ask: what does *any* argument parser need to know about each argument?
+
+1. Its **name** (so we can refer to it later as `args.input`).
+2. Whether it's **positional** (required, no leading `-`) or **optional** (a flag, with a default).
+3. Its **type** (a `Path`? an `int`? a string?).
+4. A **default** if the user omits it.
+5. A **help string** so `--help` is useful.
+
+`argparse` is the standard library's answer: a tiny declarative API where you describe each argument with those five pieces, and the module does parsing, type conversion, validation, and `--help` for you. Build a parser in two steps.
+
+**Step 1: declare one positional argument.**
 
 ```{python}
 import argparse
@@ -252,15 +271,15 @@ parser = argparse.ArgumentParser(description="Process input data.")
 parser.add_argument("input", type=Path, help="input JSON file")
 
 args = parser.parse_args(["data.json"])
-args.input
+args.input, type(args.input).__name__
 ```
 
 - `ArgumentParser(description=...)` creates the parser. The description shows up in the auto-generated `--help` text.
-- `parser.add_argument("input", ...)` declares a **positional** argument named `input`. Because the name has no leading `-`, it's required and the parser consumes the first non-flag word from the command line.
-- `type=Path` tells `argparse` to convert the string to `pathlib.Path` before handing it back. You can pass any one-arg callable (`int`, `float`, your own function).
-- `parse_args(["data.json"])` returns a `Namespace` object where each declared argument is an attribute. Inside a real script you'd call `parse_args()` with no list — `argparse` reads `sys.argv` itself. Passing a list is the testing/demo idiom.
+- `add_argument("input", ...)` declares an argument named `input`. The name has no leading `-`, so it's *positional* — required, consumed from the first non-flag word.
+- `type=Path` tells `argparse` to convert the raw string with `Path(...)`. You can pass *any* one-argument callable: `int`, `float`, your own validation function. The argument arrives already-typed.
+- `parse_args(["data.json"])` returns a `Namespace` where each declared argument is an attribute. In a real script you'd call `parse_args()` with no list and `argparse` would read `sys.argv` itself; passing a list is the testing/demo idiom.
 
-**Step 2: add optional flags with defaults.** Names starting with `-` or `--` are *optional* flags; users skip them and the parser uses your default:
+**Step 2: add optional flags with defaults.** Argument names starting with `-` or `--` are *optional*. The user may skip them; the parser then uses the `default` you supply:
 
 ```{python}
 parser.add_argument("-o", "--output", type=Path, default=Path("results.json"))
@@ -270,49 +289,59 @@ args = parser.parse_args(["data.json", "-v"])
 [args.input, args.output, args.verbose]
 ```
 
-- The short form (`-o`) and long form (`--output`) refer to the same argument. The attribute on `args` uses the long name with hyphens turned to underscores.
+- `-o` and `--output` are two spellings of the same flag — short for typing, long for readability. The attribute name on `args` comes from the long form (with hyphens turned to underscores).
 - `default=Path("results.json")` is what `args.output` becomes when the user doesn't pass `--output`. Without `default`, the value is `None`.
-- `action="store_true"` declares a pure on/off flag — no value follows it. `-v` present → `args.verbose = True`; absent → `False`.
-- In our call we passed `-v` but not `-o`, so `verbose` is `True` and `output` falls back to the default.
+- `action="store_true"` declares a pure on/off switch with no value following it. Present → `args.verbose = True`; absent → `False`.
+- Our call passed `-v` but not `-o`, so `verbose` is `True` and `output` falls back to the default.
 
-You also get `--help` for free: running `python script.py --help` prints the description, every argument's name and help text, and exits. Always use `argparse` for any script with more than one argument — the cost is small and the help output ships you a usage doc you'd otherwise write by hand.
+The pay-off: declare each argument once, get parsing + typing + defaults + a generated `--help` (try `python script.py --help`). Always use `argparse` for any script with more than one argument — the cost is small and you ship a usage doc you'd otherwise write by hand.
 
 ## `logging` — when `print` isn't enough {#sec-io-logging}
 
-`print` debugging is fine for a 50-line script. Past that, you need three things `print` can't give you:
+Start from what `print("ERROR: connection failed")` actually does in a real program:
 
-- **Severity levels** so a benign info message and a real error look different and can be filtered separately.
-- **Destinations** — stderr in development, a rotating file in production, a remote sink for the ops team. The same code, different sinks.
-- **A silence knob** — turn off the noisy debug lines in production without deleting them, so you can turn them back on when you need to investigate.
+- It writes one line to stdout. There's no machine-readable signal that this line is an *error* and the next one is a routine *trace* — they're all just text.
+- Every `print` call ships in production. There's no off-switch for the noisy ones short of deleting them.
+- It writes to stdout, full stop. You can't redirect *only* the errors to a file, or send them to a remote alert sink.
+- The line carries no timestamp, no module name, no severity — no metadata an operator can grep, sort, or filter by.
 
-The standard library's `logging` module gives you all three. The mental model: every log line has a *level* (`DEBUG` < `INFO` < `WARNING` < `ERROR` < `CRITICAL`); a *logger* decides whether to keep it; a *handler* sends it somewhere; a *formatter* shapes the line. Build it up in three steps.
+Each of those is a small annoyance for a 50-line script and a serious problem at 5,000. The standard library's `logging` module is the systematic answer. It introduces three concepts:
 
-**Step 1: log a few messages.** `logging.basicConfig` configures the root logger in one call — fine for scripts and demos. The module-level `logging.info`, `logging.warning`, `logging.error` then emit messages at the matching level:
+- A **level** is the severity tag attached to each log line — `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`, in increasing order.
+- A **logger** is the object you call to emit a line. It carries a name and a level threshold; lines below the threshold are silently dropped.
+- A **handler** is the destination — stderr, a rotating file, a network sink. A logger can have multiple handlers; each can have its own format.
+
+Build it up in three steps.
+
+**Step 1: levels — a silence knob and a severity tag.** Set a threshold; lines below it disappear without code edits:
 
 ```{python}
 import logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s", force=True)
 
+logging.debug("about to start")          # DROPPED — below INFO threshold
 logging.info("starting up")
 logging.warning("disk almost full")
 logging.error("could not connect to database")
 ```
 
-- `level=logging.INFO` says "discard `DEBUG`, keep `INFO` and up." Switch to `logging.WARNING` and the `info` line disappears — that's the silence knob, no calls deleted.
-- `format` is a template. `%(levelname)s` becomes `INFO`/`WARNING`/`ERROR`; `%(message)s` becomes the text you passed. Real production formats add `%(asctime)s` (timestamp) and `%(name)s` (logger name).
-- `force=True` lets `basicConfig` replace any handler an earlier cell installed. In a real script you call `basicConfig` once at startup and don't need it.
+- `basicConfig(level=logging.INFO)` configures the root logger in one call. Threshold = `INFO`, so `DEBUG` is dropped and `INFO`/`WARNING`/`ERROR` are kept.
+- The silence knob: change `level=INFO` to `level=WARNING` and the `info` line stops appearing. No calls deleted; you can turn them back on by flipping the threshold.
+- `format` is a template. `%(levelname)s` becomes `INFO`/`WARNING`/`ERROR`; `%(message)s` becomes the text. Real production formats add `%(asctime)s` (timestamp) and `%(name)s` (logger name).
+- `force=True` lets `basicConfig` replace any earlier handler — useful when re-running notebook cells. In a real script you call `basicConfig` once at startup and don't need it.
 
-**Step 2: a named logger per module.** In real code, you don't use the module-level `logging.info`. You ask for a logger by name and call methods on it. The name is conventionally `__name__` — the module's import path — so the logs are tagged by component, and you can tune one component's level without touching the rest:
+**Step 2: named loggers — per-component control.** Step 1 used `logging.info(...)` directly, which is the root logger. In real code, every module asks for *its own* logger so logs are tagged by component and a noisy component can be quieted without touching the rest:
 
 ```{python}
 logger = logging.getLogger("payments")
 logger.warning("retrying after timeout")
 ```
 
-- `logging.getLogger("payments")` looks up (or creates) the `payments` logger. Loggers are dot-namespaced: `myapp`, `myapp.payments`, `myapp.email`. Setting `myapp.setLevel(WARNING)` quiets every child unless the child overrides.
-- The named logger inherits configuration from the root — same handler, same format. You only customize per-logger when you actually need different behavior.
+- `logging.getLogger("payments")` looks up (or creates) a logger named `payments`. Convention: write `logger = logging.getLogger(__name__)` at the top of every module — `__name__` is the module's import path, so the logger name auto-tracks the source.
+- Logger names are **dot-namespaced**: `myapp` is the parent of `myapp.payments` and `myapp.email`. `logging.getLogger("myapp").setLevel(logging.WARNING)` quiets every child at once unless a child overrides.
+- Children inherit the root config from `basicConfig` — same handler, same format. Override per-logger only when you genuinely need different behaviour.
 
-**Step 3: log an exception with full traceback.** Inside an `except` block, `logger.exception` writes the message *and* the current traceback. Use it instead of `logger.error("...", exc_info=True)`:
+**Step 3: log an exception with its full traceback.** Inside an `except` block, `logger.exception` records the message *and* the current traceback. That's the difference between "something broke" and "exact line, exact stack":
 
 ```{python}
 try:
@@ -321,10 +350,10 @@ except ZeroDivisionError:
     logger.exception("could not compute ratio")
 ```
 
-- Same severity as `error`, but the traceback comes for free. In production logs that's the difference between "something broke" and "exact line, exact stack."
-- Never swallow an exception silently — at minimum, `logger.exception(...)` it before re-raising or returning a fallback.
+- Same severity as `logger.error`, but `exception` adds the traceback automatically. Use it whenever you catch.
+- Never swallow an exception silently — at minimum, `logger.exception(...)` before you re-raise or return a fallback.
 
-The general rule: at the top of every module, write `logger = logging.getLogger(__name__)`. Configure handlers once at startup with `basicConfig` (or a real config object). Then call `.debug` / `.info` / `.warning` / `.error` / `.exception` instead of `print`. Levels let you silence noisy components in production without deleting any code.
+Distilled: at the top of every module, `logger = logging.getLogger(__name__)`. Once at startup, configure handlers and format with `basicConfig` (or a real config object). Then replace `print` with `.debug` / `.info` / `.warning` / `.error` / `.exception`. Levels make silencing free; named loggers make per-component tuning free; `exception` makes diagnostics free. None of this is more code than `print` — it's the same number of lines with the metadata your future self (or your operator) will need.
 
 ::: {.callout-tip}
 ## Why this matters
