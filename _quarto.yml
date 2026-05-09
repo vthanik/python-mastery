@@ -5,7 +5,7 @@ project:
 engine: jupyter
 
 book:
-  title: "Python — From Foundations to Mastery"
+  title: "fluent-python-book"
   reader-mode: true
 
   page-footer:
