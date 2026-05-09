@@ -5,6 +5,205 @@
 Descriptors reuse property logic across multiple attributes or classes. They power Python's fundamental machinery: methods, `@property`, `@classmethod`, `@staticmethod` — all implemented as descriptors.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. State the descriptor protocol: `__get__`, `__set__`, `__delete__`.
+2. Implement a validating descriptor and use it on multiple attributes via `__set_name__`.
+3. Distinguish *overriding* (data) descriptors from *non-overriding* (non-data) descriptors.
+4. See methods themselves as descriptors — and understand why `obj.method` is a *bound method*.
+5. Choose between `@property`, descriptors, and `__init_subclass__` (the next chapter's tool).
+
+## The descriptor protocol {#sec-desc-protocol}
+
+A *descriptor* is an object that lives on a class and intercepts attribute access on instances. The protocol has three methods, all optional:
+
+- `__get__(self, instance, owner=None)` — called when the attribute is read.
+- `__set__(self, instance, value)` — called when it's written.
+- `__delete__(self, instance)` — called when `del` is used on it.
+
+A descriptor with `__set__` (or `__delete__`) is a *data* (or *overriding*) descriptor — it shadows the instance dict. Without `__set__`, it's a *non-data* descriptor — the instance dict can shadow it.
+
+## A validating descriptor {#sec-desc-quantity}
+
+Reusable per-attribute validation, the descriptor way:
+
+```{python}
+class Quantity:
+    def __set_name__(self, owner, name):
+        self.storage_name = name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return instance.__dict__[self.storage_name]
+
+    def __set__(self, instance, value):
+        if value > 0:
+            instance.__dict__[self.storage_name] = value
+        else:
+            raise ValueError(f"{self.storage_name} must be > 0")
+
+
+class LineItem:
+    weight = Quantity()
+    price = Quantity()
+
+    def __init__(self, description, weight, price):
+        self.description = description
+        self.weight = weight
+        self.price = price
+    def subtotal(self):
+        return self.weight * self.price
+
+raisins = LineItem("Golden raisins", 10, 6.95)
+raisins.subtotal()
+```
+
+```{python}
+#| error: true
+raisins.weight = 0
+```
+
+Three pieces fit together:
+
+- `weight = Quantity()` *creates* a descriptor instance and stores it on the class.
+- Python calls `Quantity.__set_name__(LineItem, "weight")` automatically — that's how the descriptor learns the attribute's name.
+- When you do `raisins.weight = 10`, Python's attribute machinery sees the descriptor on the class, finds `__set__`, and calls it with `(raisins, 10)`.
+
+The descriptor stores values in *the instance's* `__dict__` — keyed by `storage_name`. That keeps each instance's data separate, which is what you want.
+
+## Overriding versus non-overriding {#sec-desc-overriding}
+
+Here's the distinction in action. An overriding descriptor (with `__set__`) wins over the instance dict; a non-overriding one (without `__set__`) loses to it.
+
+```{python}
+class Overriding:
+    def __get__(self, instance, owner=None):
+        return "overriding.__get__"
+    def __set__(self, instance, value):
+        print("overriding.__set__")
+
+class NonOverriding:
+    def __get__(self, instance, owner=None):
+        return "nonoverriding.__get__"
+
+class Managed:
+    over = Overriding()
+    non = NonOverriding()
+
+m = Managed()
+m.over, m.non
+```
+
+```{python}
+m.over = 7
+m.over, m.__dict__
+```
+
+`m.over = 7` ran `__set__`. The instance dict stayed empty.
+
+```{python}
+m.non = 7
+m.non, m.__dict__
+```
+
+`m.non = 7` updated the instance dict. The descriptor still exists on the class, but now `m.non` finds `7` in the instance dict first and never consults the descriptor.
+
+`@property` is always an overriding descriptor — it has both `__get__` and `__set__`. Functions are non-overriding — they have `__get__` but not `__set__`, which is why an instance can shadow a method by setting an attribute with the same name.
+
+## Methods are descriptors {#sec-desc-methods}
+
+This is the deep cut. A function defined in a class body is a non-overriding descriptor. When you access it through an instance, Python calls `function.__get__(instance, class)` — and that returns a *bound method*:
+
+```{python}
+class C:
+    def method(self):
+        return "hi"
+
+C.method, C().method
+```
+
+`C.method` is the function. `C().method` is a *bound method* — a small wrapper that pre-binds the instance as the first argument. The whole "implicit `self`" of Python is just the descriptor protocol wrapping a function.
+
+The same mechanism explains `@classmethod` and `@staticmethod`:
+
+- `@classmethod` is a descriptor whose `__get__` binds the *class* (not the instance).
+- `@staticmethod` is a descriptor whose `__get__` returns the function unchanged.
+
+There's no "magic." The same pattern — descriptor + `__get__` — implements all three.
+
+## A complete validating descriptor {#sec-desc-complete}
+
+A common production pattern: an abstract base descriptor that defines the protocol, with subclasses for specific validation:
+
+```{python}
+import abc
+
+class Validated(abc.ABC):
+    def __set_name__(self, owner, name):
+        self.public_name = name
+        self.private_name = "_" + name
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        return getattr(instance, self.private_name)
+
+    def __set__(self, instance, value):
+        value = self.validate(value)
+        setattr(instance, self.private_name, value)
+
+    @abc.abstractmethod
+    def validate(self, value): ...
+
+class Positive(Validated):
+    def validate(self, value):
+        if value <= 0:
+            raise ValueError(f"value must be positive, got {value!r}")
+        return value
+
+class NonEmpty(Validated):
+    def validate(self, value):
+        if not value:
+            raise ValueError("value cannot be empty")
+        return value
+
+class Order:
+    qty = Positive()
+    name = NonEmpty()
+    def __init__(self, name, qty):
+        self.name = name
+        self.qty = qty
+
+Order("widget", 3).__dict__
+```
+
+```{python}
+#| error: true
+Order("", 3)
+```
+
+The descriptor handles all the boring storage-and-retrieval work; subclasses just implement `validate`. This is the right structure when the same validation pattern repeats across attributes or classes.
+
+::: {.callout-tip}
+## Why this matters
+Descriptors are Python's mechanism for customizing attribute access at the class level. `@property`, `@classmethod`, `@staticmethod`, and function objects themselves are all implemented as descriptors. When you understand descriptors, you understand how Python's object system works at the deepest level.
+:::
+
+## Exercises {#sec-desc-exercises}
+
+1. **`__delete__`.** Extend `Quantity` to support `del`, raising an error if the descriptor is required. Test with `del raisins.weight`.
+
+2. **Class-level access.** Notice the `if instance is None: return self` line in `__get__`. Remove it and access `LineItem.weight`. What goes wrong?
+
+3. **Function as descriptor.** Run `print(C.method)` and `print(C().method)`. Now do `C.method.__get__(C(), C)`. What's the type? What did `__get__` do?
+
+4. **An auto-typed descriptor.** Write `Typed(int)` that rejects assignments not matching the given type. Use it to create a class with `Typed(int)` and `Typed(str)` attributes.
+
+5. **Compare with `@property`.** Re-implement the `LineItem` class using `@property` for both `weight` and `price`. Count the lines. Now imagine the class has ten such attributes.
+
+## Summary {#sec-desc-summary}
+
+Descriptors are the engine behind `@property`, methods, classmethods, and static methods. Use them when the *same* logic applies across attributes or classes — that's when the protocol pays for its complexity. For one-off validation, `@property` is plenty.
+
+Next, @sec-metaclasses closes the book with the deepest layer: classes are objects, classes have classes (called *metaclasses*), and `__init_subclass__` lets you customize subclass creation without writing a metaclass.

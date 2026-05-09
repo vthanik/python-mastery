@@ -5,6 +5,286 @@
 Functions in Python are objects. They can be stored in variables, passed as arguments, returned from functions, and introspected. This is the foundation of decorators, higher-order functions, and functional programming in Python.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Treat a function as an object — assign it, pass it, inspect it.
+2. Use higher-order functions (`map`, `filter`, `sorted`, `reduce`) and recognize when a comprehension is more readable.
+3. Recognize the *nine* kinds of callable in Python.
+4. Make an instance callable with `__call__`.
+5. Use `*`, `**`, and `/` to define flexible parameter signatures.
+6. Replace one-line lambdas with `operator` and `functools.partial`.
+
+## Treating a function like an object {#sec-functions-as-objects}
+
+Python's function objects have attributes you can read and (sometimes) write:
+
+```{python}
+def factorial(n):
+    """Return n!"""
+    return 1 if n < 2 else n * factorial(n - 1)
+
+factorial.__doc__, factorial.__name__, type(factorial)
+```
+
+Assigning a function to another name does not copy it — it adds a label:
+
+```{python}
+fact = factorial
+fact(5), fact is factorial
+```
+
+Passing it as an argument works the same way:
+
+```{python}
+list(map(factorial, range(6)))
+```
+
+`map` *received* the `factorial` object and called it on each element of `range(6)`. Nothing magical — `map` calls its first argument like any other.
+
+## Higher-order functions {#sec-functions-higher-order}
+
+A *higher-order* function takes a function as a parameter or returns one. The standard library has many:
+
+```{python}
+fruits = ["strawberry", "fig", "apple", "cherry", "raspberry", "banana"]
+sorted(fruits, key=len)
+```
+
+`sorted` calls `len(item)` for each item and sorts by the result. `map` and `filter` are similar:
+
+```{python}
+list(map(factorial, range(6)))
+```
+
+```{python}
+list(filter(lambda n: n % 2, range(10)))
+```
+
+Comprehensions usually read better than `map`/`filter`:
+
+```{python}
+[factorial(n) for n in range(6)]
+```
+
+```{python}
+[n for n in range(10) if n % 2]
+```
+
+`functools.reduce` is the cumulative-sum form:
+
+```{python}
+from functools import reduce
+from operator import add
+reduce(add, range(100))
+```
+
+For sums specifically, prefer `sum(range(100))` — `reduce` shines for non-trivial accumulators.
+
+## Anonymous functions {#sec-functions-lambda}
+
+A `lambda` is a one-expression function literal. It's useful when you'd otherwise have to give a name to something the reader will read once:
+
+```{python}
+sorted(fruits, key=lambda word: word[::-1])
+```
+
+Sorted by *reversed* word, so words ending in `a` cluster.
+
+::: {.callout-tip}
+## Lundh's recipe for difficult lambdas
+
+When a lambda is hard to read:
+
+1. Write a comment explaining what it does.
+2. Think of a name that captures the essence.
+3. Convert to a `def`.
+4. Remove the comment.
+
+The named version is almost always easier to read.
+:::
+
+## The nine callables {#sec-functions-callables}
+
+`callable()` reports whether an object can be called:
+
+```{python}
+callable(abs), callable([])
+```
+
+Python has nine kinds of callable. You don't memorize the list, but it's worth knowing it exists:
+
+1. User-defined functions (`def` and `lambda`)
+2. Built-in functions (`len`, `abs`, …)
+3. Built-in methods (`dict.get`, `list.append`)
+4. Methods (functions defined in a class body)
+5. Classes (calling a class creates an instance)
+6. Class instances (if `__call__` is defined)
+7. Generator functions (use `yield`)
+8. Native coroutine functions (`async def`)
+9. Asynchronous generator functions
+
+Item 6 — *classes whose instances are callable* — is the trick that makes a class as flexible as a function with state.
+
+## User-defined callable types {#sec-functions-callable-class}
+
+Define `__call__` and an instance becomes callable:
+
+```{python}
+import random
+
+class BingoCage:
+    def __init__(self, items):
+        self._items = list(items)
+        random.shuffle(self._items)
+
+    def pick(self):
+        try:
+            return self._items.pop()
+        except IndexError:
+            raise LookupError("pick from empty BingoCage")
+
+    def __call__(self):
+        return self.pick()
+
+random.seed(0)
+bingo = BingoCage(range(3))
+bingo(), bingo(), callable(bingo)
+```
+
+`bingo()` calls `__call__`, which calls `pick`. The instance is *also* a regular object — you can store state, add methods, subclass it. A function can't do all of that.
+
+## From positional to keyword-only {#sec-functions-params}
+
+Python's parameter system is rich. The `tag` example exercises most of it:
+
+```{python}
+def tag(name, /, *content, class_=None, **attrs):
+    """Generate one or more HTML tags."""
+    if class_ is not None:
+        attrs["class"] = class_
+    attr_pairs = (f' {a}="{v}"' for a, v in sorted(attrs.items()))
+    attr_str = "".join(attr_pairs)
+    if content:
+        elements = (f"<{name}{attr_str}>{c}</{name}>" for c in content)
+        return "\n".join(elements)
+    return f"<{name}{attr_str} />"
+
+tag("br")
+```
+
+```{python}
+tag("p", "hello")
+```
+
+```{python}
+print(tag("p", "hello", "world"))
+```
+
+```{python}
+tag("p", "hello", class_="sidebar")
+```
+
+```{python}
+tag("img", src="sunset.jpg", class_="framed", alt="sunset")
+```
+
+Reading the signature `def tag(name, /, *content, class_=None, **attrs)`:
+
+- `name` is *positional-only* (the `/` after it forbids `name=...`).
+- `*content` collects extra positional arguments.
+- `class_` is *keyword-only* (anything after `*content` must be passed by keyword).
+- `**attrs` collects extra keyword arguments.
+
+The trailing underscore on `class_` avoids a clash with Python's reserved word `class`.
+
+## The `operator` module {#sec-functions-operator}
+
+`operator` exports the arithmetic, comparison, and access operators as named functions, so you don't have to write a one-line lambda for them:
+
+```{python}
+from operator import mul, itemgetter, attrgetter, methodcaller
+from functools import reduce
+
+reduce(mul, range(1, 6))
+```
+
+`itemgetter(i)` is equivalent to `lambda r: r[i]`:
+
+```{python}
+metro_data = [
+    ("Tokyo", "JP", 36.933),
+    ("Delhi NCR", "IN", 21.935),
+    ("São Paulo", "BR", 21.090),
+]
+for city in sorted(metro_data, key=itemgetter(2), reverse=True):
+    print(city[0], city[2])
+```
+
+`itemgetter` accepts multiple indices and returns a tuple — useful for sort keys with tie-breakers.
+
+`attrgetter` is the same trick for attribute access — and it understands dotted paths:
+
+```{python}
+from collections import namedtuple
+Coord = namedtuple("Coord", "lat lon")
+City = namedtuple("City", "name pop coord")
+
+cities = [
+    City("Tokyo", 36.933, Coord(35.69, 139.69)),
+    City("Lagos", 13.46, Coord(6.45, 3.40)),
+]
+get_lat = attrgetter("coord.lat")
+sorted(cities, key=get_lat)[0].name
+```
+
+`methodcaller` calls a named method, with optional bound arguments:
+
+```{python}
+hyphenate = methodcaller("replace", " ", "-")
+hyphenate("hello world")
+```
+
+## Freezing arguments with `partial` {#sec-functions-partial}
+
+`functools.partial` returns a new callable with some arguments already supplied:
+
+```{python}
+from operator import mul
+from functools import partial
+
+triple = partial(mul, 3)
+list(map(triple, range(1, 6)))
+```
+
+A useful real-world example — pre-binding the form of Unicode normalization:
+
+```{python}
+import unicodedata, functools
+nfc = functools.partial(unicodedata.normalize, "NFC")
+nfc("café")
+```
+
+Now `nfc(s)` is a one-argument function with `"NFC"` baked in. Cleaner at the call site than passing the form repeatedly.
+
+::: {.callout-tip}
+## Why this matters
+Functions are objects — they have attributes (`__name__`, `__doc__`, `__annotations__`, `__defaults__`), they can be passed around and stored, and they can be called with `__call__`. This is not a special trick — it's Python's fundamental design.
+:::
+
+## Exercises {#sec-functions-exercises}
+
+1. **Sort by reversed word.** Without `lambda`, sort `fruits` by reversed word using `operator.itemgetter` or a small `def`. Compare readability.
+
+2. **`__call__` for caches.** Write a `Memoize` class whose instances behave like a memoized version of a function passed in `__init__`. `bingo` shows the pattern.
+
+3. **Keyword-only parameters.** Modify `tag` so that `id_` is also keyword-only. Verify positionally passing `id_` raises `TypeError`.
+
+4. **`partial` vs `lambda`.** Express `lambda x: x.replace(" ", "-")` using `methodcaller`. Now express it using `partial(str.replace, ...)` — does that work, and why or why not?
+
+5. **Find the callable.** Given a list of mixed values (functions, classes, instances, integers), filter only the callables using `callable`.
+
+## Summary {#sec-functions-summary}
+
+Functions are first-class objects. Every higher-order pattern in Python — comprehensions, `sorted(key=...)`, decorators, callbacks, `functools.partial`, callable instances — depends on this. Once you internalize that a function is just another object, the rest of the language becomes consistent.
+
+Next, @sec-type-hints layers an optional, gradual type system on top of these functions: hints checked by tools, ignored by the interpreter, and powerful enough to catch real bugs.

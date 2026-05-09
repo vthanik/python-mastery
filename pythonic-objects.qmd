@@ -5,6 +5,213 @@
 Build a complete, idiomatic Python class by implementing just the right special methods. The `Vector2d` class in this chapter is the canonical example — it shows what a well-designed Python object looks like.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Implement `__repr__` and `__str__` for both developers and users.
+2. Use `@property` to expose read-only attributes.
+3. Implement `__format__` so your class works with `format()` and f-strings.
+4. Make a class hashable by implementing `__hash__` *and* `__eq__` together.
+5. Use `__slots__` to save memory when you have many instances.
+6. Choose between `@classmethod` and `@staticmethod` (hint: usually `@classmethod`).
+
+## Object representations {#sec-pythonic-repr}
+
+Python has two string-conversion dunders. `__repr__` is for developers — it should be unambiguous and ideally `eval()`-able. `__str__` is for users — readable.
+
+```{python}
+import math
+
+class Vector2d:
+    typecode = "d"
+
+    def __init__(self, x, y):
+        self.__x = float(x)
+        self.__y = float(y)
+
+    @property
+    def x(self):
+        return self.__x
+
+    @property
+    def y(self):
+        return self.__y
+
+    def __iter__(self):
+        return (i for i in (self.x, self.y))
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f"{class_name}({self.x!r}, {self.y!r})"
+
+    def __str__(self):
+        return str(tuple(self))
+
+    def __abs__(self):
+        return math.hypot(self.x, self.y)
+
+    def __bool__(self):
+        return bool(abs(self))
+
+    def __eq__(self, other):
+        return tuple(self) == tuple(other)
+```
+
+```{python}
+v = Vector2d(3, 4)
+repr(v), str(v), abs(v), bool(v)
+```
+
+A few things are subtle:
+
+- `__x` (double underscore) triggers Python's *name mangling*: outside the class, you access it as `_Vector2d__x`. The single `_` convention says "private by convention"; the double `__` says "private to this class, even subclasses see a different name." We use `__x` here so subclasses don't accidentally clobber the field.
+- `@property` exposes `x` and `y` as read-only attributes — the getter has no setter.
+- `__iter__` makes the vector iterable, which is what enables `tuple(self)` and unpacking like `x, y = v`.
+
+## `classmethod` versus `staticmethod` {#sec-pythonic-classmethod}
+
+A `@classmethod` receives the class as its first argument. The most common use is *alternative constructors*:
+
+```{python}
+import array
+
+class Vector2dV2(Vector2d):
+    @classmethod
+    def frombytes(cls, octets):
+        typecode = chr(octets[0])
+        memv = memoryview(octets[1:]).cast(typecode)
+        return cls(*memv)
+
+# Round-trip through bytes
+v = Vector2dV2(3, 4)
+b = bytes([ord(v.typecode)]) + bytes(array.array(v.typecode, v))
+Vector2dV2.frombytes(b)
+```
+
+`cls(*memv)` is the point — by referring to `cls`, the alternative constructor works in subclasses too. A `@staticmethod` has no special first argument; it's just a plain function that happens to live in the class namespace. Use `@classmethod` by default; reach for `@staticmethod` rarely.
+
+## Formatted displays {#sec-pythonic-format}
+
+`__format__` is what `format(obj, spec)` and `f"{obj:spec}"` call. The format spec is a string; you parse it however you like.
+
+```{python}
+class Vector2dF(Vector2d):
+    def angle(self):
+        return math.atan2(self.y, self.x)
+
+    def __format__(self, fmt_spec=""):
+        if fmt_spec.endswith("p"):
+            fmt_spec = fmt_spec[:-1]
+            coords = (abs(self), self.angle())
+            outer = "<{}, {}>"
+        else:
+            coords = self
+            outer = "({}, {})"
+        components = (format(c, fmt_spec) for c in coords)
+        return outer.format(*components)
+
+v = Vector2dF(3, 4)
+format(v, ".2f"), format(v, ".3ep"), f"{v:.1f}"
+```
+
+We added a custom format code `p` for polar coordinates. The default behavior — when the spec doesn't end in `p` — passes through to the components, so all the standard numeric format codes (`.2f`, `.3e`, `b`, etc.) keep working.
+
+## A hashable `Vector2d` {#sec-pythonic-hashable}
+
+To put a `Vector2d` in a `set` or use it as a `dict` key, two methods are required: `__hash__` *and* `__eq__`. Both must be consistent — equal objects must have equal hashes — and both depend on attributes that don't change.
+
+```{python}
+class Vector2dH(Vector2d):
+    def __hash__(self):
+        return hash((self.x, self.y))
+
+v1 = Vector2dH(3, 4)
+v2 = Vector2dH(3.0, 4.0)
+hash(v1) == hash(v2), v1 == v2, len({v1, v2})
+```
+
+`{v1, v2}` collapses to a single element because `v1 == v2`. Hashing a tuple of components is the standard recipe: it composes the hashes of immutable parts.
+
+::: {.callout-warning}
+## `__hash__` and `__eq__` go together
+
+If you implement `__eq__`, Python sets `__hash__` to `None` unless you also define it. This is by design — equal objects with different hashes would silently break set/dict membership. The rule: *implement both, or neither*.
+:::
+
+## Saving memory with `__slots__` {#sec-pythonic-slots}
+
+By default, every Python instance has a `__dict__` — a hash table for its attributes. That's flexible but expensive: ~200 bytes per instance even for two floats. `__slots__` swaps the dict for a fixed-size array of attribute slots:
+
+```{python}
+class Vector2dSlots:
+    __slots__ = ("__x", "__y")
+    typecode = "d"
+
+    def __init__(self, x, y):
+        self.__x = float(x)
+        self.__y = float(y)
+
+    @property
+    def x(self): return self.__x
+
+    @property
+    def y(self): return self.__y
+
+import sys
+class V2dDict:
+    def __init__(self, x, y):
+        self.x, self.y = x, y
+
+sys.getsizeof(Vector2dSlots(3, 4)), sys.getsizeof(V2dDict(3, 4)) + sys.getsizeof(V2dDict(3, 4).__dict__)
+```
+
+The slotted version is dramatically smaller. The cost: instances can't grow new attributes (`v.z = 7` raises `AttributeError`), and subclasses must also define `__slots__` to keep the saving.
+
+Reach for `__slots__` only when you have *millions* of instances. For everything else, the dict is fine and the flexibility is worth the bytes.
+
+## Class attributes and overriding them {#sec-pythonic-class-attrs}
+
+`typecode = "d"` on the class is a *class attribute* — a shared default. Reading `v.typecode` looks at the instance first, then falls back to the class:
+
+```{python}
+v = Vector2d(1, 2)
+v.typecode, Vector2d.typecode
+```
+
+Assigning to `v.typecode` *creates* an instance attribute, shadowing the class one:
+
+```{python}
+v.typecode = "f"
+v.typecode, Vector2d.typecode
+```
+
+The class attribute is untouched. The idiomatic way to change the default for a *kind* of vector is to subclass:
+
+```{python}
+class ShortVector2d(Vector2d):
+    typecode = "f"
+
+ShortVector2d(1, 2).typecode, Vector2d(1, 2).typecode
+```
+
+::: {.callout-tip}
+## Why this matters
+A well-designed Python class uses special methods to integrate with the language. It implements `__repr__` for debugging, `__str__` for users, `__eq__` and `__hash__` together (or neither), `__bool__` for truthiness, `__iter__` for unpacking. These are the contracts that make your class feel like a built-in.
+:::
+
+## Exercises {#sec-pythonic-exercises}
+
+1. **Override `__str__`.** Replace the `tuple` form of `__str__` with `f"{self.x:g}, {self.y:g}"`. What does that change in `print(v)`?
+
+2. **`__bytes__` and round-trip.** Add a `__bytes__` method to `Vector2d` (the snippet in the chapter shows the form). Verify `Vector2d.frombytes(bytes(v)) == v`.
+
+3. **Drop `__hash__`.** Remove `__hash__` from `Vector2dH`. Try inserting an instance into a set. What error do you get? Why?
+
+4. **`__slots__` and inheritance.** Subclass `Vector2dSlots` and add a third slot. Compare `sys.getsizeof` to a class without `__slots__`.
+
+5. **Custom `__format__` codes.** Add a `"d"` (degrees) format code that returns the angle in degrees. Make `format(v, ".0fd")` work.
+
+## Summary {#sec-pythonic-summary}
+
+A well-designed Python class earns its place by implementing the right small contracts: `__repr__`, `__str__`, properties, `__format__`, `__hash__`/`__eq__`, optional `__slots__`. None of these is mandatory, but each one buys you integration with a part of the language — `repr()`, `str()`, attribute access, `format()`, sets, memory layout.
+
+Next, @sec-sequence-methods extends the same approach to a multi-dimensional `Vector` and shows how protocols make a class behave like a built-in sequence.

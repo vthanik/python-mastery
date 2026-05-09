@@ -5,6 +5,214 @@
 Python 3 has a hard separation: `str` is text (Unicode code points), `bytes` is binary data. Encode to go from `str → bytes`. Decode to go `bytes → str`. Handle this at the I/O boundary; work with `str` inside.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub. Full content will follow once the @sec-data-model, @sec-sequences, and @sec-dicts-sets chapters are reviewed.
+1. Distinguish between *characters* (`str`) and *bytes*, and convert between them with explicit encodings.
+2. Recognize `UnicodeEncodeError` and `UnicodeDecodeError` and choose an appropriate `errors=` strategy.
+3. Apply the *Unicode sandwich*: decode on input, work in `str`, encode on output.
+4. Normalize `str` to NFC/NFD/NFKC/NFKD for reliable comparisons.
+5. Sort Unicode text correctly with `locale` or `pyuca`.
+6. Look up character names and properties via `unicodedata`.
+
+## The `str` / `bytes` boundary {#sec-unicode-boundary}
+
+A `str` is a sequence of *code points* — abstract numbers like `U+0041` for `A`. A `bytes` is a sequence of 8-bit integers. The two never mix.
+
+```{python}
+s = "café"
+len(s)
+```
+
+Four characters. But the byte representation is encoding-dependent. UTF-8 takes one byte for ASCII characters and two bytes for `é`:
+
+```{python}
+b = s.encode("utf-8")
+b, len(b)
+```
+
+The reverse trip is `decode`:
+
+```{python}
+b.decode("utf-8")
+```
+
+`bytes` is immutable; `bytearray` is its mutable sibling. Slicing `bytes` returns `bytes`, but indexing returns an `int`:
+
+```{python}
+cafe = bytes("café", encoding="utf-8")
+cafe[0], cafe[:1]
+```
+
+`99` is the byte value of `c`. `b'c'` is a one-byte slice. This asymmetry trips up everyone the first time.
+
+## Encode and decode errors {#sec-unicode-errors}
+
+Encoding can fail when the target charset can't represent a character. Decoding can fail when the bytes are invalid for the chosen encoding.
+
+```{python}
+#| error: true
+city = "São Paulo"
+city.encode("cp437")
+```
+
+`cp437` is an old DOS code page that doesn't include `ã`. The `errors=` parameter chooses what happens on failure:
+
+```{python}
+city.encode("cp437", errors="ignore")
+```
+
+```{python}
+city.encode("cp437", errors="replace")
+```
+
+```{python}
+city.encode("cp437", errors="xmlcharrefreplace")
+```
+
+Decoding is the harder direction because *any* sequence of bytes can be misinterpreted under the wrong encoding.
+
+```{python}
+#| error: true
+octets = b"Montr\xe9al"
+octets.decode("utf-8")
+```
+
+```{python}
+octets.decode("iso8859-1")
+```
+
+```{python}
+octets.decode("utf-8", errors="replace")
+```
+
+The `replace` form *succeeded* — but it produced wrong data. `Montréal` and `Montr�al` are not the same. Silent data loss is the danger of permissive decoding.
+
+To detect an unknown encoding, the `chardet` package guesses based on byte statistics:
+
+```python
+import chardet  # pip install chardet
+rawdata = open("mystery.txt", "rb").read()
+chardet.detect(rawdata)
+# {'encoding': 'ISO-8859-1', 'confidence': 0.73}
+```
+
+Confidence below ~0.9 means you should treat the result as a hint, not an answer.
+
+## The Unicode sandwich {#sec-unicode-sandwich}
+
+The right design for any text-handling program: *decode bytes on input, work with `str` throughout, encode to bytes on output*. This is the **Unicode sandwich**.
+
+```{python}
+import tempfile, os
+
+with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as fp:
+    fp.write("café")
+    path = fp.name
+
+with open(path, encoding="utf-8") as fp:
+    print(fp.read())
+
+os.unlink(path)
+```
+
+::: {.callout-warning}
+## Always pass `encoding=` explicitly
+
+`open()` defaults to a platform-dependent encoding (often UTF-8 on macOS/Linux but `cp1252` on Windows). Code that omits `encoding=` is a Heisenbug waiting for the day you ship to a different OS. Always pass it.
+:::
+
+## Normalizing Unicode for comparisons {#sec-unicode-normalization}
+
+The same visible text can be represented two ways. `é` can be a single code point (`U+00E9`) or `e` followed by a combining accent (`U+0301`):
+
+```{python}
+s1 = "café"          # composed
+s2 = "cafe\u0301"    # decomposed
+s1 == s2, len(s1), len(s2)
+```
+
+Visually identical, byte-different, `==`-different. `unicodedata.normalize` collapses both to a canonical form:
+
+```{python}
+from unicodedata import normalize
+normalize("NFC", s1) == normalize("NFC", s2)
+```
+
+| Form | Meaning | Use for |
+|---|---|---|
+| **NFC** | composed (shortest) | default; storage and display |
+| **NFD** | decomposed | char-by-char ASCII operations |
+| **NFKC**, **NFKD** | compatibility (more aggressive) | search, deduplication |
+
+For case-insensitive comparison, prefer `casefold` over `lower`:
+
+```{python}
+"ß".casefold(), "Σ".casefold()
+```
+
+`ß` lowercases to `ß` but case-folds to `ss`, which is what a German speaker would consider equal.
+
+## Sorting Unicode text {#sec-unicode-sorting}
+
+The default `sorted` orders by code point, which gives the wrong answer for any language with diacritics:
+
+```{python}
+fruits = ["caju", "atemoia", "cajá", "açaí", "acerola"]
+sorted(fruits)
+```
+
+`acerola < açaí` is wrong in Portuguese — `ç` should sort with `c`. The fix is `locale.strxfrm`, but it requires that the locale be installed on your OS:
+
+```python
+import locale
+locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
+sorted(fruits, key=locale.strxfrm)
+```
+
+A portable alternative is `pyuca`, a pure-Python implementation of the Unicode Collation Algorithm:
+
+```python
+import pyuca   # pip install pyuca
+coll = pyuca.Collator()
+sorted(fruits, key=coll.sort_key)
+```
+
+## The Unicode database {#sec-unicode-database}
+
+`unicodedata` exposes the metadata that ships with Python:
+
+```{python}
+import unicodedata
+unicodedata.name("A"), unicodedata.name("€")
+```
+
+```{python}
+unicodedata.lookup("SNOWMAN"), unicodedata.lookup("EURO SIGN")
+```
+
+```{python}
+unicodedata.numeric("⅔"), unicodedata.digit("3")
+```
+
+::: {.callout-tip}
+## Why this matters
+The Unicode sandwich: decode bytes on input → work with `str` throughout → encode to bytes on output. Never mix `str` and `bytes`. Never rely on default encodings. Always pass `encoding="utf-8"` explicitly.
+:::
+
+## Exercises {#sec-unicode-exercises}
+
+1. **Round-trip.** Take the string `"naïve"`, encode it as UTF-8 and as Latin-1. How many bytes does each produce? Decode each back to `str` — do you recover the original?
+
+2. **Spot the silent failure.** Decode `b"naïve".replace(b"\xc3\xaf", b"\xee")` (which simulates a corrupted byte) with `errors="replace"`. What do you see? With `errors="strict"`?
+
+3. **Composed vs decomposed.** Build the string `"café"` two ways: as `"caf" + "\u00e9"` and as `"cafe" + "\u0301"`. They print identically. Why does `set()` count them as different elements? Fix it.
+
+4. **Casefold corner.** Find a character whose `.lower()` and `.casefold()` differ. The notes mention one — German `ß` — find another.
+
+5. **Sort by accent.** Without using `locale` or `pyuca`, write a sort key that strips accents using NFD plus `unicodedata.combining`. Sort the `fruits` list and compare with the broken default order.
+
+## Summary {#sec-unicode-summary}
+
+Python 3 makes a hard separation between `str` (text) and `bytes` (binary). The Unicode sandwich is the discipline that keeps that separation clean: decode at the boundary, work with `str` inside, encode on the way out. Combined with explicit encodings and Unicode normalization, you have a working model that handles every language.
+
+Next, @sec-dataclasses introduces Python's three (or four) ways to build data-record classes: `namedtuple`, `typing.NamedTuple`, `@dataclass`, and the older path of writing classes by hand.

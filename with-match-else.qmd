@@ -5,6 +5,176 @@
 Three often-underused Python blocks: `with` (context managers), `match` (structural pattern matching), and `else` after `for`/`while`/`try` (the "no exception" / "no break" block).
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Write a context manager class with `__enter__` and `__exit__`.
+2. Use `@contextlib.contextmanager` to make a generator into a context manager.
+3. Use `contextlib.suppress`, `redirect_stdout`, and `ExitStack`.
+4. Recognize the three forms of `else` block — on `for`, `while`, and `try`.
+
+## Context managers and `with` {#sec-cm-with}
+
+A context manager is an object with `__enter__` (setup, returns the `as` value) and `__exit__` (teardown, called even on exception). The classic example is file I/O:
+
+```{python}
+import io
+with io.StringIO("hello\nworld\n") as fp:
+    print(fp.read().upper())
+```
+
+`with` calls `fp.__enter__()`, binds the result to `fp`, runs the block, then calls `fp.__exit__(...)` no matter what — exception or clean exit.
+
+A custom context manager:
+
+```{python}
+import sys
+
+class LookingGlass:
+    def __enter__(self):
+        self.original_write = sys.stdout.write
+        sys.stdout.write = self.reverse_write
+        return "JABBERWOCKY"
+
+    def reverse_write(self, text):
+        self.original_write(text[::-1])
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.write = self.original_write
+        if exc_type is ZeroDivisionError:
+            print("Please DO NOT divide by zero!")
+            return True   # suppresses the exception
+        return False      # propagates everything else
+
+with LookingGlass() as label:
+    print("Alice")
+    print(label)
+
+print("normal again")
+```
+
+`__enter__` returns `"JABBERWOCKY"` — that's what `as label` binds. Inside the block, `print` writes to a function that reverses each string. On exit, the original `write` is restored.
+
+The three arguments to `__exit__` describe the exception — or `None` if there wasn't one. Returning `True` suppresses the exception; `False` propagates it.
+
+## `@contextmanager` {#sec-cm-contextmanager}
+
+The class form is verbose. `contextlib.contextmanager` turns a generator into a context manager, with `yield` as the pivot:
+
+```{python}
+import contextlib
+
+@contextlib.contextmanager
+def looking_glass():
+    original_write = sys.stdout.write
+    def reverse_write(text):
+        original_write(text[::-1])
+    sys.stdout.write = reverse_write
+    try:
+        yield "JABBERWOCKY"
+    finally:
+        sys.stdout.write = original_write
+
+with looking_glass() as label:
+    print("Alice")
+    print(label)
+
+print("normal again")
+```
+
+The code *before* `yield` runs on `__enter__`; the value yielded is `as`-bound; the code after `yield` runs on `__exit__`. The `try/finally` is what guarantees cleanup runs even on exception.
+
+The `contextlib` toolkit goes further:
+
+```{python}
+import os, tempfile, contextlib
+
+with tempfile.TemporaryDirectory() as tmp:
+    path = os.path.join(tmp, "missing.txt")
+    with contextlib.suppress(FileNotFoundError):
+        os.remove(path)
+    print("done")
+```
+
+`suppress(FileNotFoundError)` swallows the named exception (and only that one). Useful for "remove if it exists" patterns without the `try`/`except`/`pass` ritual.
+
+`contextlib.redirect_stdout` and `redirect_stderr` swap a stream temporarily:
+
+```{python}
+import io
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    print("captured!")
+buf.getvalue()
+```
+
+`contextlib.ExitStack` lets you stack a *dynamic* number of context managers — useful when the count isn't known at write time.
+
+## `else` blocks {#sec-else}
+
+Python has three `else` clauses you may have missed.
+
+**`for/else`** — the `else` runs when the loop completes *without* a `break`:
+
+```{python}
+items = [1, 2, 3, 4]
+target = 5
+
+for item in items:
+    if item == target:
+        print("found")
+        break
+else:
+    print("not found")
+```
+
+If you'd searched for `3`, the `break` would have fired and the `else` would have been skipped.
+
+**`while/else`** — the same idea: `else` runs when the condition becomes false (no break):
+
+```{python}
+n = 5
+while n > 0:
+    n -= 1
+else:
+    print(f"loop done, n={n}")
+```
+
+**`try/else`** — the `else` runs if the `try` block raised *no* exception. Use it to keep the success-path logic out of the `try`:
+
+```{python}
+import json
+text = '{"a": 1}'
+try:
+    data = json.loads(text)
+except ValueError:
+    print("bad JSON")
+else:
+    print("parsed:", data)
+finally:
+    print("cleanup")
+```
+
+If `json.loads` had raised, the `else` would have been skipped and the `except` would have run instead.
+
+::: {.callout-tip}
+## Why this matters
+The `with` statement is Python's universal resource management tool. `@contextmanager` turns a generator into a context manager with `try/yield` as the pivot point. The `else` clause on loops and `try` blocks expresses "success path" logic cleanly — without extra flags.
+:::
+
+## Exercises {#sec-with-exercises}
+
+1. **A logging CM.** Write a context manager `log_block(name)` that prints `"enter <name>"` on entry, `"exit <name>"` on exit, and `"raised <exc_type>"` if an exception passed through.
+
+2. **Suppress vs. except.** Replace a `try/except FileNotFoundError: pass` block with `contextlib.suppress`. Compare clarity.
+
+3. **Search with `for/else`.** Rewrite a search loop using `for/else`. Then rewrite it again using `next(iter, default)` from a generator expression. Which reads better?
+
+4. **`ExitStack`.** Use `contextlib.ExitStack` to open *N* files (where `N` is a runtime value) and ensure all are closed even on exception.
+
+5. **`try/else` for clarity.** Find a `try/except` block in your code that has follow-up logic in the `try`. Move that logic to `else`. Did readability improve?
+
+## Summary {#sec-with-summary}
+
+`with` is Python's universal teardown — class-form or `@contextmanager`-form. `match` (covered in @sec-sequences and @sec-dicts-sets) destructures by shape. `else` on loops and `try` blocks gives a clean "success path" without a flag variable. Three small features that quietly add up.
+
+Next, @sec-concurrency steps back to the conceptual chapter on concurrency: threads vs. processes vs. coroutines, and why each one solves a different problem.

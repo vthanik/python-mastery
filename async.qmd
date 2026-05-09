@@ -5,6 +5,186 @@
 `asyncio` enables high-concurrency I/O in a single thread via native coroutines. The key: `await` suspends the current coroutine and gives control to the event loop, which runs other coroutines while I/O waits.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Define a *native coroutine* with `async def` and `await`.
+2. Schedule and run coroutines with `asyncio.run`, `asyncio.create_task`, and `asyncio.gather`.
+3. Iterate over coroutines as they finish with `asyncio.as_completed`.
+4. Throttle concurrency with `asyncio.Semaphore`.
+5. Run blocking code from async with `loop.run_in_executor`.
+
+## A few definitions {#sec-async-definitions}
+
+- **Coroutine**: a function defined with `async def`. Calling it does *not* run the body — it returns a coroutine object.
+- **Task**: a coroutine wrapped in a `Future`, scheduled by the event loop.
+- **Awaitable**: anything with `__await__` — coroutines, Tasks, Futures.
+
+A useful reading trick: when you see `result = await some_coroutine()`, read it as `result = some_coroutine()` — the value flow looks like a normal function call. The difference is that *the current coroutine yields control* while waiting, so the event loop can run other coroutines.
+
+## A first asyncio program {#sec-async-first}
+
+`asyncio.run(coro)` is the entry point in a script. It starts an event loop, runs the top-level coroutine, and shuts the loop down.
+
+::: {.callout-tip}
+## Top-level `await` in notebooks
+The cells below use `await main()` directly because Jupyter (and Quarto's Jupyter engine) already runs an event loop, so calling `asyncio.run` from inside it raises `RuntimeError`. In a `.py` script, replace each `await main()` with `asyncio.run(main())`.
+:::
+
+```{python}
+import asyncio
+
+async def hello(name, delay):
+    await asyncio.sleep(delay)
+    return f"hello, {name}"
+
+async def main():
+    return await hello("world", 0.05)
+
+await main()
+```
+
+`await asyncio.sleep(...)` is the canonical "do nothing for a while *but yield control*" call. It's the simplest awaitable.
+
+## Running coroutines concurrently {#sec-async-gather}
+
+To run several coroutines concurrently, schedule them with `asyncio.create_task` or collect them with `asyncio.gather`:
+
+```{python}
+import time
+
+async def main():
+    t0 = time.perf_counter()
+    results = await asyncio.gather(
+        hello("a", 0.1),
+        hello("b", 0.1),
+        hello("c", 0.1),
+    )
+    return results, f"{time.perf_counter() - t0:.2f}s"
+
+await main()
+```
+
+Three sleeps of 0.1 seconds finished in ~0.1 seconds — they were *concurrent*, not sequential. `asyncio.gather` waits for all of them and returns their results in order.
+
+`asyncio.create_task(coro)` schedules a coroutine and returns a Task immediately, so you can fire something off and continue:
+
+```{python}
+async def main():
+    task = asyncio.create_task(hello("background", 0.05))
+    print("(doing something else)")
+    return await task
+
+await main()
+```
+
+## Iterating as coroutines complete {#sec-async-as-completed}
+
+`asyncio.as_completed` is the async cousin of `concurrent.futures.as_completed`. It yields awaitables in the order they finish, not the order you submitted them:
+
+```{python}
+async def slow(label, delay):
+    await asyncio.sleep(delay)
+    return label
+
+async def main():
+    coros = [slow("a", 0.3), slow("b", 0.1), slow("c", 0.2)]
+    finished = []
+    for coro in asyncio.as_completed(coros):
+        finished.append(await coro)
+    return finished
+
+await main()
+```
+
+`b` finished first because it had the shortest sleep. The loop *awaits* each future as it becomes ready.
+
+## Throttling with `Semaphore` {#sec-async-semaphore}
+
+You don't always want unbounded concurrency. A semaphore limits how many coroutines can be inside a critical region at once:
+
+```{python}
+async def fetch(label, delay, sem):
+    async with sem:
+        await asyncio.sleep(delay)
+        return label
+
+async def main():
+    sem = asyncio.Semaphore(2)
+    coros = [fetch(f"r{i}", 0.05, sem) for i in range(6)]
+    t0 = time.perf_counter()
+    results = await asyncio.gather(*coros)
+    return results, f"{time.perf_counter() - t0:.3f}s"
+
+await main()
+```
+
+Six tasks; two-at-a-time throttle; six 0.05-s tasks complete in ~0.15 s instead of ~0.30 s sequential or ~0.05 s unbounded. The `async with sem:` form is exactly like the synchronous `with` — it acquires on entry, releases on exit.
+
+## Async file I/O? No. Async network I/O? Yes. {#sec-async-real}
+
+The realistic shape of async code uses `httpx.AsyncClient` (or `aiohttp`) to fetch many URLs concurrently:
+
+```python
+import asyncio, httpx
+from collections import Counter
+
+MAX_CONCURRENT = 5
+
+async def get_one(client, url, sem):
+    async with sem:
+        resp = await client.get(url, timeout=5)
+        return resp.status_code
+
+async def main(urls):
+    sem = asyncio.Semaphore(MAX_CONCURRENT)
+    async with httpx.AsyncClient() as client:
+        statuses = await asyncio.gather(
+            *(get_one(client, u, sem) for u in urls)
+        )
+    return Counter(statuses)
+```
+
+`async with httpx.AsyncClient()` is itself an async context manager — the `__aenter__`/`__aexit__` analogues of `__enter__`/`__exit__`.
+
+## Bridging async and blocking code {#sec-async-executor}
+
+If you must call a blocking function from an async context, hand it to a thread pool with `loop.run_in_executor`:
+
+```{python}
+import time
+
+def blocking(n):
+    time.sleep(0.05)
+    return n * 2
+
+async def main():
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, blocking, 21)
+
+await main()
+```
+
+`None` means "use the default thread pool." Pass a `ProcessPoolExecutor` if the function is CPU-bound. The pattern keeps the event loop responsive — the blocking work happens off-loop.
+
+::: {.callout-tip}
+## Why this matters
+`asyncio` is not faster than threads for a single operation — it's better for **many** concurrent operations in one process. Where threads need OS scheduling and memory per thread (MB), `asyncio` handles thousands of concurrent connections with one thread and bytes per coroutine. The `await` keyword is the cooperative yield point where the event loop takes back control.
+:::
+
+## Exercises {#sec-async-exercises}
+
+1. **`gather` order.** Submit three coroutines with sleep durations 0.3, 0.1, 0.2. Verify `gather` returns results in submission order. Verify `as_completed` does *not*.
+
+2. **The forgotten `await`.** Remove `await` from the `gather` call (so it returns the coroutine object instead of the result). What does Python warn about? Why?
+
+3. **Semaphore as rate limit.** Use `asyncio.Semaphore(3)` to limit concurrency to 3. Time 12 tasks of 0.1 s each. Does the wall time match your prediction?
+
+4. **`run_in_executor` for CPU.** Run the `is_prime` function (from @sec-executors) inside an `async def main` using a `ProcessPoolExecutor`. Verify the event loop stays responsive (e.g., a "tick" task continues to print).
+
+5. **Why no async file I/O.** The standard library has no `asyncio.open(...)` for files. Why? (Hint: think about how the OS handles disk vs. network reads.)
+
+## Summary {#sec-async-summary}
+
+`asyncio` is the model for I/O at scale. The vocabulary — `async def`, `await`, `gather`, `as_completed`, `Semaphore`, `run_in_executor` — is small and the surface area is consistent. For thousands of concurrent network calls, this is the right tool.
+
+That closes Part IV. Part V — the deep end — turns to metaprogramming: dynamic attributes, descriptors, and metaclasses. We start in @sec-dynamic-attrs with the simplest of the three: `__getattr__` and `@property`.

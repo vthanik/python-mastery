@@ -5,6 +5,176 @@
 `concurrent.futures` provides a high-level, uniform interface for both thread-based and process-based concurrency. `ThreadPoolExecutor` for I/O, `ProcessPoolExecutor` for CPU — same API for both.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Use `executor.map` to parallelize a function across an iterable.
+2. Switch between threads and processes by changing one identifier.
+3. Submit work with `executor.submit` and consume results with `as_completed`.
+4. Handle errors per task instead of letting one failure abort the batch.
+5. Use `ProcessPoolExecutor` for CPU-bound work to bypass the GIL.
+
+## A sequential baseline {#sec-exec-sequential}
+
+To see what `concurrent.futures` buys you, start with a sequential version. The pattern below is what every "fetch many" script looks like:
+
+```python
+def download_one(item):
+    # do the work for `item`
+    ...
+    return result
+
+def download_many(items):
+    return [download_one(x) for x in items]
+```
+
+For 20 items each taking a second, that's 20 seconds. We want to overlap them.
+
+## `executor.map` {#sec-exec-map}
+
+The simplest parallel form is `executor.map(func, iterable)`. It looks just like the built-in `map`, but the calls run in parallel:
+
+```{python}
+from concurrent.futures import ThreadPoolExecutor
+import time
+
+def slow_double(x):
+    time.sleep(0.1)
+    return x * 2
+
+t0 = time.perf_counter()
+with ThreadPoolExecutor(max_workers=5) as executor:
+    results = list(executor.map(slow_double, range(10)))
+elapsed = time.perf_counter() - t0
+results, f"{elapsed:.2f}s"
+```
+
+Ten 100-ms tasks finished in ~200 ms with five workers — five-way overlap. The `with` block ensures the pool is shut down cleanly when the block exits.
+
+Switching from threads to processes is one identifier:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+with ProcessPoolExecutor() as executor:
+    results = list(executor.map(slow_double, range(10)))
+```
+
+Same code, different machinery. Threads share memory and are good for I/O. Processes have their own memory and bypass the GIL — good for CPU work.
+
+## `submit` and `as_completed` {#sec-exec-submit}
+
+`executor.map` returns results in submission order. When you want results *as they finish* — and want to handle each one individually — use `submit` plus `as_completed`:
+
+```{python}
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def task(name, duration):
+    time.sleep(duration)
+    if name == "B":
+        raise RuntimeError("B failed")
+    return f"{name} done"
+
+with ThreadPoolExecutor(max_workers=4) as executor:
+    futures = {
+        executor.submit(task, name, dur): name
+        for name, dur in [("A", 0.2), ("B", 0.1), ("C", 0.3)]
+    }
+    for fut in as_completed(futures):
+        name = futures[fut]
+        try:
+            print(name, "→", fut.result())
+        except Exception as exc:
+            print(name, "raised", exc)
+```
+
+Three calls; one of them raises. With `as_completed` you decide per-future how to handle errors. With `executor.map`, the first exception aborts the iteration.
+
+`executor.submit(func, *args)` returns immediately with a `Future` object. The future gives you `.result()` (blocks until done; re-raises exceptions), `.done()`, `.cancel()`, and `.add_done_callback()`.
+
+## A real-world pattern: download with retries {#sec-exec-real}
+
+For network code, you typically want per-task error handling, status reporting, and a worker count *not* equal to the default (which is the number of CPUs):
+
+```python
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import httpx
+
+def get_flag(base_url, cc):
+    url = f"{base_url}/{cc}/{cc}.gif".lower()
+    resp = httpx.get(url, timeout=3.1, follow_redirects=True)
+    resp.raise_for_status()
+    return resp.content
+
+def download_many(cc_list, base_url):
+    results = {}
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(get_flag, base_url, cc): cc for cc in cc_list}
+        for fut in as_completed(futures):
+            cc = futures[fut]
+            try:
+                results[cc] = fut.result()
+            except Exception as exc:
+                print(f"{cc}: {exc}")
+    return results
+```
+
+The same pattern with `ProcessPoolExecutor` would be wrong — processes pay startup cost and can't share an HTTP client cleanly. For network I/O, `ThreadPoolExecutor` (or `asyncio` — see @sec-async) is the right tool.
+
+## Processes for CPU-bound work {#sec-exec-cpu}
+
+For CPU-bound work, the swap from threads to processes is exactly where the speedup comes from:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+from math import isqrt
+import time
+
+def is_prime(n):
+    if n < 2: return False
+    if n == 2: return True
+    if n % 2 == 0: return False
+    for i in range(3, isqrt(n) + 1, 2):
+        if n % i == 0:
+            return False
+    return True
+
+candidates = [11_111_111_111_111_111, 11_111_111_111_111_113,
+              999_999_999_999_999_989, 1_000_000_000_000_000_001]
+
+t0 = time.perf_counter()
+with ProcessPoolExecutor() as executor:
+    results = list(executor.map(is_prime, candidates))
+elapsed = time.perf_counter() - t0
+print(list(zip(candidates, results)), f"{elapsed:.2f}s")
+```
+
+Each `is_prime` call runs in its own process; they truly run in parallel on multiple cores. The `with` block joins them all and tears down the pool.
+
+::: {.callout-note}
+## Why this isn't executed in the rendered book
+
+`ProcessPoolExecutor` *pickles* the target function and ships it to each worker. Functions defined inside a notebook cell don't have a stable module path, so the workers can't import them — they raise `BrokenProcessPool`. To run this example, save the code as a `.py` file and execute it with `python script.py`.
+:::
+
+::: {.callout-tip}
+## Why this matters
+`executor.map()` = familiar `map()` API but concurrent. `executor.submit()` + `as_completed()` = more control — handles errors per item, processes results as they complete. The switch from `ThreadPoolExecutor` to `ProcessPoolExecutor` is often one word in the source code — same API, totally different machinery.
+:::
+
+## Exercises {#sec-exec-exercises}
+
+1. **Threads vs. processes.** Time `is_prime` over a list with `ThreadPoolExecutor` and with `ProcessPoolExecutor`. Predict and verify the difference.
+
+2. **`as_completed` order.** Submit five tasks with random sleep durations. Print results as they arrive — verify they don't come back in submission order.
+
+3. **`max_workers`.** Why is the default `max_workers` for `ThreadPoolExecutor` `min(32, os.cpu_count() + 4)`? When would you use 100? When 1?
+
+4. **`Future.add_done_callback`.** Replace the `as_completed` loop with `add_done_callback` on each future. Compare readability.
+
+5. **One word change.** Take a working `ThreadPoolExecutor` script. Change one identifier to use `ProcessPoolExecutor`. What broke? (Hint: think about pickling and shared state.)
+
+## Summary {#sec-exec-summary}
+
+`concurrent.futures` is the right level of abstraction for most "do these N things in parallel" tasks. Threads for I/O, processes for CPU; `map` for ordered, `submit + as_completed` for control. The same code shape works for both.
+
+Next, @sec-async covers `asyncio` — the model for I/O at scale, where one thread can manage thousands of concurrent operations.

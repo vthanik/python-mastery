@@ -5,6 +5,226 @@
 Properties and dynamic attributes let you start with simple public attributes and add behavior later without breaking the API. This is the "uniform access principle" in Python.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Use `__getattr__` to compute attributes on demand.
+2. Wrap a JSON-like dict so callers can write `obj.key.sub` instead of `obj["key"]["sub"]`.
+3. Add validation with `@property` and the `setter`/`deleter` decorators.
+4. Build a *property factory* when the same logic applies to multiple attributes.
+5. Cache an expensive computation with `functools.cached_property`.
+6. Read the contract of `__getattr__`, `__setattr__`, `__delattr__`, and `__getattribute__`.
+
+## Data wrangling with `__getattr__` {#sec-attrs-frozen-json}
+
+`__getattr__` is called only when normal attribute lookup *fails*. The classic use is to wrap a JSON-decoded dict so that `feed["a"]["b"][0]["c"]` becomes `feed.a.b[0].c`:
+
+```{python}
+class FrozenJSON:
+    """Read-only attribute access over a nested dict/list."""
+
+    def __new__(cls, arg):
+        if isinstance(arg, dict):
+            return super().__new__(cls)
+        elif isinstance(arg, list):
+            return [cls(item) for item in arg]
+        else:
+            return arg
+
+    def __init__(self, mapping):
+        self.__data = dict(mapping)
+
+    def __getattr__(self, name):
+        try:
+            return getattr(self.__data, name)
+        except AttributeError:
+            return FrozenJSON(self.__data[name])
+
+raw = {
+    "schedule": {
+        "speakers": [
+            {"name": "Cory Doctorow", "topic": "Surveillance Capitalism"},
+            {"name": "Brian Smith", "topic": "Inside Python"},
+        ],
+        "venue": "auditorium",
+    },
+}
+feed = FrozenJSON(raw)
+feed.schedule.speakers[0].name, feed.schedule.venue
+```
+
+Three things to notice:
+
+1. `__new__` runs *before* `__init__`. Returning a list when the input is a list is how recursive wrapping works.
+2. `__getattr__` first tries `getattr(self.__data, name)` — that's how `.keys()`, `.items()`, etc. keep working. Only if the dict has no such attribute does it fall through to wrapping a key value.
+3. The double-underscore `__data` triggers name mangling — outside the class it's `_FrozenJSON__data` — so subclasses can't accidentally clobber it.
+
+## `@property` for validation {#sec-attrs-property}
+
+Plain public attributes are fine until you need a check. The lovely thing about `@property` is that callers don't have to change a single line — `obj.weight = -1` still looks like an attribute assignment, but it now runs through your setter:
+
+```{python}
+class LineItem:
+    def __init__(self, description, weight, price):
+        self.description = description
+        self.weight = weight    # uses the setter
+        self.price = price
+
+    def subtotal(self):
+        return self.weight * self.price
+
+    @property
+    def weight(self):
+        return self.__weight
+
+    @weight.setter
+    def weight(self, value):
+        if value > 0:
+            self.__weight = value
+        else:
+            raise ValueError("weight must be > 0")
+
+    @property
+    def price(self):
+        return self.__price
+
+    @price.setter
+    def price(self, value):
+        if value > 0:
+            self.__price = value
+        else:
+            raise ValueError("price must be > 0")
+
+raisins = LineItem("Golden raisins", 10, 6.95)
+raisins.subtotal()
+```
+
+```{python}
+#| error: true
+raisins.weight = 0
+```
+
+`@property` is also where `@x.deleter` lives if you need to intercept `del obj.x` — rarely.
+
+## A property factory {#sec-attrs-factory}
+
+When two attributes need the same validation, the property declarations duplicate. Build a factory that returns a property:
+
+```{python}
+def quantity(storage_name):
+    def qty_getter(instance):
+        return instance.__dict__[storage_name]
+    def qty_setter(instance, value):
+        if value > 0:
+            instance.__dict__[storage_name] = value
+        else:
+            raise ValueError(f"{storage_name} must be > 0")
+    return property(qty_getter, qty_setter)
+
+class LineItemF:
+    weight = quantity("weight")
+    price = quantity("price")
+
+    def __init__(self, description, weight, price):
+        self.description = description
+        self.weight = weight
+        self.price = price
+    def subtotal(self):
+        return self.weight * self.price
+
+LineItemF("apples", 5, 2).subtotal()
+```
+
+```{python}
+#| error: true
+LineItemF("bad", -1, 2)
+```
+
+The factory is the entry point to descriptor land — see @sec-descriptors. A property *is* a descriptor, and the factory is one way to write one without the protocol boilerplate.
+
+## `cached_property` {#sec-attrs-cached}
+
+When the computation is expensive but the inputs don't change, `functools.cached_property` saves the result on the instance dict the first time it's accessed:
+
+```{python}
+from functools import cached_property
+import math
+
+class Circle:
+    def __init__(self, radius):
+        self.radius = radius
+
+    @cached_property
+    def area(self):
+        print("computing")
+        return math.pi * self.radius ** 2
+
+c = Circle(5)
+c.area, c.area
+```
+
+The "computing" message printed only once. The second access read from the instance dict directly. `cached_property` requires the instance to *have* a writable `__dict__`, so it's incompatible with `__slots__`.
+
+## The four attribute hooks {#sec-attrs-hooks}
+
+Python has four customization hooks for attribute access:
+
+| Method | When called |
+|---|---|
+| `__getattribute__(self, name)` | every access (`obj.x`); rarely override |
+| `__getattr__(self, name)` | only when normal lookup fails |
+| `__setattr__(self, name, value)` | every assignment (`obj.x = ...`) |
+| `__delattr__(self, name)` | every deletion (`del obj.x`) |
+
+`__getattribute__` is dangerous to override — it's called for *every* attribute access, including the ones inside the override itself. `__getattr__` is the safer 99% choice.
+
+`__setattr__` traps every assignment. The classic infinite-recursion bug:
+
+```python
+class Bad:
+    def __setattr__(self, name, value):
+        self.name = value      # ← calls __setattr__ again, recursively
+```
+
+The fix is to bypass the hook by writing to `__dict__` directly, or by calling `super().__setattr__`:
+
+```{python}
+class Logging:
+    def __setattr__(self, name, value):
+        print(f"{name} = {value!r}")
+        super().__setattr__(name, value)
+
+obj = Logging()
+obj.x = 42
+obj.x
+```
+
+The free helpers are worth knowing:
+
+- `getattr(obj, name, default)` — safe attribute access; returns `default` instead of raising.
+- `hasattr(obj, name)` — `True` if `getattr` would not raise.
+- `setattr(obj, name, value)` — programmatic assignment.
+- `delattr(obj, name)` — programmatic deletion.
+- `vars(obj)` — returns `obj.__dict__`.
+
+::: {.callout-tip}
+## Why this matters
+Start with plain public attributes. If you later need validation or computed values, add a `@property` — callers don't change their code. This is Python's answer to getters/setters: they're unnecessary at first, and available when needed, without breaking the API.
+:::
+
+## Exercises {#sec-attrs-exercises}
+
+1. **`FrozenJSON` for lists at top level.** Modify `FrozenJSON` so it works when the top-level argument is a list. (The `__new__` already handles it — verify.)
+
+2. **`@property` deleter.** Add `@weight.deleter` to `LineItem` so `del item.weight` raises a custom error. Test it.
+
+3. **Property factory + types.** Extend `quantity` to take an optional `expected_type`. Reject values that aren't instances of that type with a clear message.
+
+4. **`cached_property` and `__slots__`.** Try adding `__slots__` to `Circle`. What error do you get? Why?
+
+5. **Read the chain.** What does `obj.x = 1` actually do, step by step? Walk through `__setattr__`, the descriptor protocol, and the `__dict__` write.
+
+## Summary {#sec-attrs-summary}
+
+Dynamic attributes are the entry point to the *descriptor protocol* that powers all of Python's attribute access. `__getattr__` and `@property` cover almost every real-world case; `cached_property` is the one extension you'll reach for routinely. Use `__getattribute__` only when nothing else works.
+
+Next, @sec-descriptors goes one level deeper: descriptors are the mechanism behind `@property`, `@classmethod`, and methods themselves — and the right tool when *the same* validation logic applies to many attributes or many classes.

@@ -5,6 +5,239 @@
 Python variables are not boxes that hold values — they are labels attached to objects. This single mental model explains assignment, aliasing, copying, and garbage collection.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. State *why* `b = a` does not copy the object — and predict the consequences.
+2. Use `==` and `is` correctly: value equality versus object identity.
+3. Distinguish shallow copy (`list(x)`, `x[:]`) from deep copy (`copy.deepcopy`).
+4. Avoid the mutable-default-argument trap.
+5. Read object lifetimes through reference counting and `weakref`.
+6. Stop relying on Python's interning quirks for correctness.
+
+## Variables are labels, not boxes {#sec-references-labels}
+
+The single most useful mental model: a Python variable is a *sticky note* you attach to an object. Assignment moves the sticky note; it does not copy the object underneath.
+
+```{python}
+a = [1, 2, 3]
+b = a
+b.append(4)
+a
+```
+
+`a` and `b` are two labels on the same list. The `append` mutated the list — both labels see the change.
+
+```{python}
+a is b
+```
+
+`is` compares identity: same object in memory? Yes. Reassigning `b` does not affect `a`:
+
+```{python}
+b = [10, 20]
+a, b
+```
+
+Now `b` points to a new list. The original list (with `a` still attached) is untouched.
+
+## Identity, equality, and aliases {#sec-references-eq}
+
+`==` and `is` ask different questions. `==` calls `__eq__` — same value? `is` checks identity — same object?
+
+```{python}
+charles = {"name": "Charles L. Dodgson", "born": 1832}
+lewis = charles
+lewis is charles, id(lewis) == id(charles)
+```
+
+```{python}
+lewis["balance"] = 950
+charles
+```
+
+```{python}
+alex = {"name": "Charles L. Dodgson", "born": 1832, "balance": 950}
+alex == charles, alex is charles
+```
+
+`alex == charles` (same value) but `alex is not charles` (different objects in memory).
+
+::: {.callout-tip}
+## Use `is` only for `None`
+
+`x is None` is the idiomatic spelling. `x == None` works but goes through `__eq__`, which a malicious or buggy class can override. `is` is faster, simpler, and impossible to spoof. Reserve `is` for `None`, sentinel objects, and class identity (`type(x) is C`).
+:::
+
+## The relative immutability of tuples {#sec-references-tuple-immutability}
+
+A tuple is immutable in the sense that the *references it holds* cannot be replaced. The objects those references point to can still mutate:
+
+```{python}
+t1 = (1, 2, [30, 40])
+t2 = (1, 2, [30, 40])
+t1 == t2, t1 is t2
+```
+
+```{python}
+t1[-1].append(99)
+t1, t1 == t2
+```
+
+The tuple `t1` did not change in any sense Python checks at the tuple level — but the list inside it grew, so `t1 == t2` flipped to `False`. This is why `(1, 2, [30, 40])` is *not* hashable: the equality of the tuple depends on a value that can change.
+
+## Copies are shallow by default {#sec-references-shallow}
+
+`list(x)`, `x[:]`, `dict(x)`, and `set(x)` all make *shallow* copies. The outer container is new; the contained references are shared.
+
+```{python}
+import copy
+
+l1 = [3, [55, 44], (7, 8, 9)]
+l2 = list(l1)
+l1 == l2, l1 is l2
+```
+
+```{python}
+l2[1].append(33)
+l1
+```
+
+The outer lists are different (`l1 is not l2`), but the inner list is the same object. Mutating it through `l2` is visible through `l1`.
+
+For independence at every level, use `copy.deepcopy`:
+
+```{python}
+l3 = copy.deepcopy(l1)
+l3[1].append(99)
+l1[1], l3[1]
+```
+
+## Function parameters are references {#sec-references-parameters}
+
+Python passes references — not values, not pointers. Mutating a parameter mutates the caller's object. Rebinding a parameter does not.
+
+```{python}
+def f(x):
+    x *= 2
+
+a = [1, 2, 3]
+f(a)
+a
+```
+
+`*=` on a list is *in-place* repetition (it calls `__imul__`), so `a` was mutated.
+
+```{python}
+b = 5
+f(b)
+b
+```
+
+`*=` on an `int` is *not* in-place — `int` is immutable, so it rebinds the local name to a new object. The caller's `b` is unaffected.
+
+This is why **mutable default arguments are a trap.** The default is evaluated *once*, at function definition time, and shared across every call:
+
+```{python}
+class HauntedBus:
+    def __init__(self, passengers=[]):
+        self.passengers = passengers
+
+bus1 = HauntedBus(["Alice", "Bill"])
+bus2 = HauntedBus()
+bus3 = HauntedBus()
+bus2.passengers.append("Carrie")
+bus3.passengers
+```
+
+`bus3.passengers` is `["Carrie"]` even though we never told `bus3` about Carrie. Both `bus2` and `bus3` share the same default list.
+
+The fix is the standard idiom — `None` sentinel plus a copy:
+
+```{python}
+class Bus:
+    def __init__(self, passengers=None):
+        if passengers is None:
+            self.passengers = []
+        else:
+            self.passengers = list(passengers)
+
+bus_a = Bus()
+bus_b = Bus()
+bus_a.passengers.append("Carrie")
+bus_a.passengers, bus_b.passengers
+```
+
+`list(passengers)` makes a copy, so the caller's list is not aliased into the new bus.
+
+## `del` and garbage collection {#sec-references-gc}
+
+`del x` removes the *name* `x`. The object only goes away when its last reference does. CPython uses reference counting, plus a cycle detector for unreachable cycles.
+
+```{python}
+a = [1, 2, 3]
+b = a
+del a
+b
+```
+
+`a` is gone but the list lives on through `b`.
+
+`weakref` is a reference that *doesn't* keep the object alive:
+
+```{python}
+import weakref, gc
+class Holder: pass
+
+s1 = Holder()
+wref = weakref.ref(s1)
+print(wref() is s1)
+
+del s1
+gc.collect()
+print(wref())
+```
+
+Once the only strong reference is gone, the weak reference returns `None`. This is the building block for caches, observers, and any structure that should not extend an object's lifetime.
+
+## Tricks Python plays with immutables {#sec-references-interning}
+
+CPython sometimes *interns* small ints and short strings — the same value yields the same object — but only as an implementation detail.
+
+```{python}
+a = 1000
+b = 1000
+a is b, a == b
+```
+
+The result of `a is b` for `1000` is implementation-dependent and can change between Python versions. **Never use `is` for value comparison.** Use `==`.
+
+```{python}
+t1 = (1, 2, 3)
+t2 = (1, 2, 3)
+t1 is t2, t1 == t2
+```
+
+The first answer can be `True` or `False`. The second is always `True`. That's the one to trust.
+
+::: {.callout-tip}
+## Why this matters
+Variables are labels, not boxes. Assignment creates a new label for an existing object — it does not copy the object. This is why you must explicitly `copy()` or `deepcopy()` when you need independence. And it's why mutable default arguments are a trap that never fails to catch beginners.
+:::
+
+## Exercises {#sec-references-exercises}
+
+1. **Predict the output.** Given `a = [1, 2, 3]`, `b = a`, `b = b + [4]`, what does `a` end with? Now repeat with `b += [4]`. Why are the answers different?
+
+2. **Spot the alias.** Write a function `clone(d: dict) -> dict` that takes a dict of lists and returns a copy where mutations to the new dict's lists don't leak into the original. Test it.
+
+3. **Default-arg trap.** Write a function `append_then(x, lst=[])` that appends `x` to `lst` and returns it. Call it three times with no `lst` argument. Explain the result. Fix it.
+
+4. **Identity in containers.** Why is `[1, 2, [3]]` not allowed as a dict key? What error do you get? What about `(1, 2, (3, 4))`?
+
+5. **`weakref` lifetime.** Replace `Holder` with a class that prints `__del__` runs. Use `weakref.ref` to observe collection. Now create a *cycle* (`a.b = b; b.a = a`) and watch what happens with and without `gc.collect()`.
+
+## Summary {#sec-references-summary}
+
+Variables are labels. Assignment moves labels, not objects. Copies default to shallow; you opt into `deepcopy`. Mutable defaults are evaluated once and shared forever — use `None` and copy. Reference counting plus a cycle detector handle most cleanup automatically; `weakref` is the escape hatch for caches and observers.
+
+That closes Part I. Part II turns to functions: how Python's first-class function model enables decorators, closures, type hints, and a pattern catalog rewritten without classes. We start in @sec-first-class-functions.

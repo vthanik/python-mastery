@@ -5,6 +5,227 @@
 Python offers three ways to build data classes, each with a different trade-off. `@dataclass` is the modern default; `NamedTuple` is the immutable alternative; old-style classes are only when you need full control.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Compare the three builders — `collections.namedtuple`, `typing.NamedTuple`, `@dataclasses.dataclass` — and pick one for a given problem.
+2. Use `field()` to declare default factories, control `repr`, and control comparison.
+3. Run setup logic after `__init__` with `__post_init__`.
+4. Mark dataclass attributes as class-level (not instance-level) with `ClassVar`.
+5. Use `frozen=True` and `order=True` to opt into immutability and ordering.
+6. Pattern-match against dataclass instances with `case ClassName(...)`.
+
+## The three builders at a glance {#sec-dataclasses-overview}
+
+| | `namedtuple` | `typing.NamedTuple` | `@dataclass` |
+|---|---|---|---|
+| Mutable fields | no | no | **yes** |
+| Class statement | no | yes | yes |
+| Default values | limited (3.6.1+) | yes | yes |
+| `__repr__` | yes | yes | yes |
+| `__eq__` | yes | yes | yes |
+| Ordering | yes (tuple-style) | yes | opt-in (`order=True`) |
+| Hashable | yes | yes | conditional |
+| `__slots__` | yes | yes | opt-in (`slots=True`) |
+
+The choice in one line: *use `@dataclass` unless you need a tuple, in which case use `typing.NamedTuple`*. The classic `collections.namedtuple` is fine but offers strictly less than `typing.NamedTuple` once you want type hints.
+
+## Classic named tuples {#sec-dataclasses-namedtuple}
+
+`namedtuple` is a factory that returns a class:
+
+```{python}
+from collections import namedtuple
+
+Coordinate = namedtuple("Coordinate", ["lat", "lon"])
+moscow = Coordinate(55.756, 37.617)
+moscow.lat, moscow == Coordinate(55.756, 37.617)
+```
+
+Defaults are right-aligned, in the same way default arguments are:
+
+```{python}
+Coordinate = namedtuple("Coordinate", ["lat", "lon", "reference"], defaults=["WGS84"])
+Coordinate(55.756, 37.617)
+```
+
+Because a named tuple *is* a tuple, you can unpack it positionally:
+
+```{python}
+lat, lon, ref = Coordinate(55.756, 37.617)
+lat, ref
+```
+
+Two helpers worth remembering:
+
+```{python}
+moscow = Coordinate(55.756, 37.617)
+moscow._asdict()
+```
+
+```{python}
+Coordinate._make([55.756, 37.617, "WGS84"])
+```
+
+## Typed named tuples {#sec-dataclasses-typed-namedtuple}
+
+`typing.NamedTuple` lets you write a tuple as a class — type hints, methods, and all:
+
+```{python}
+from typing import NamedTuple
+
+class Coordinate(NamedTuple):
+    lat: float
+    lon: float
+    reference: str = "WGS84"
+
+    def __str__(self):
+        ns = "N" if self.lat >= 0 else "S"
+        we = "E" if self.lon >= 0 else "W"
+        return f"{abs(self.lat):.1f}°{ns}, {abs(self.lon):.1f}°{we}"
+
+print(Coordinate(55.756, 37.617))
+```
+
+The instance is still a tuple — the methods are added on top.
+
+## `@dataclass` {#sec-dataclasses-dataclass}
+
+`@dataclass` is the closest Python has to a Kotlin `data class` or a Scala `case class`. It generates `__init__`, `__repr__`, and `__eq__` from the class's annotated attributes:
+
+```{python}
+from dataclasses import dataclass, field
+from typing import ClassVar
+
+@dataclass
+class ClubMember:
+    name: str
+    guests: list[str] = field(default_factory=list)
+    athlete: bool = field(default=False, repr=False)
+
+ClubMember("Anna")
+```
+
+`field()` is the customization hook. Each option is a small but useful escape hatch:
+
+| `field()` option | Purpose |
+|---|---|
+| `default` | static default value |
+| `default_factory` | callable producing default (use this for any mutable type) |
+| `repr` | include in `__repr__`? |
+| `compare` | include in `__eq__` and ordering? |
+| `hash` | include in `__hash__`? |
+| `init` | accept as parameter to `__init__`? |
+
+**Rule:** never use a *mutable* default (`= []`, `= {}`) — every instance would share the same list. The whole reason `field(default_factory=list)` exists is to dodge that trap.
+
+## `__post_init__` {#sec-dataclasses-post-init}
+
+If you need logic after the auto-generated `__init__` runs, define `__post_init__`:
+
+```{python}
+@dataclass
+class HackerClubMember:
+    name: str
+    guests: list = field(default_factory=list)
+    handle: str = field(default="", init=True)
+
+    def __post_init__(self):
+        if self.handle == "":
+            self.handle = self.name.split()[0]
+
+HackerClubMember("Anna Ravenscroft", handle="AnnaRaven").handle, \
+HackerClubMember("Leo Rochael").handle
+```
+
+`__post_init__` is the right place to validate, normalize, or compute a derived attribute.
+
+## `ClassVar` for class-level attributes {#sec-dataclasses-classvar}
+
+Annotated attributes become `__init__` parameters by default. To opt out — to declare a *class-level* attribute that's shared across instances — wrap the type in `ClassVar`:
+
+```{python}
+@dataclass
+class HackerClub:
+    name: str
+    guests: list = field(default_factory=list)
+    all_handles: ClassVar[set[str]] = set()
+
+HackerClub.all_handles.add("anna")
+HackerClub.all_handles
+```
+
+Now `all_handles` is *not* a parameter to `__init__` — it's a single set shared by every instance.
+
+## `frozen` and `order` {#sec-dataclasses-frozen-order}
+
+Two flags handle the most common configurations. `frozen=True` makes instances immutable:
+
+```{python}
+#| error: true
+@dataclass(frozen=True)
+class FrozenCoordinate:
+    lat: float
+    lon: float
+
+c = FrozenCoordinate(55.756, 37.617)
+c.lat = 0
+```
+
+`order=True` generates `__lt__`, `__le__`, `__gt__`, `__ge__` based on the field order — the comparison is field-by-field, top to bottom:
+
+```{python}
+@dataclass(order=True)
+class Card:
+    rank: int
+    suit: str
+
+Card(2, "hearts") < Card(3, "spades")
+```
+
+## Pattern matching dataclass instances {#sec-dataclasses-match}
+
+Class patterns in `match`/`case` work cleanly with dataclasses, because the class already exposes its field names:
+
+```{python}
+@dataclass
+class City:
+    continent: str
+    name: str
+    country: str
+
+def describe(record):
+    match record:
+        case City(continent="Asia", name=city):
+            return f"Asian city: {city}"
+        case City(continent="Europe", name=city):
+            return f"European city: {city}"
+        case City(name=city):
+            return f"City: {city}"
+
+describe(City("Asia", "Tokyo", "JP")), describe(City("Africa", "Lagos", "NG"))
+```
+
+The same pattern works on `typing.NamedTuple` instances too.
+
+::: {.callout-tip}
+## Why this matters
+A data class with zero methods is a code smell — it's a dumb data container that forces callers to know its internals. Either add the methods that belong with the data, or use a tuple/dict and be explicit about its structure. A class earns its existence by encapsulating both data **and** behavior.
+:::
+
+## Exercises {#sec-dataclasses-exercises}
+
+1. **Defaults trap.** Write a `Bag` dataclass with a `contents: list = []` default. Create two `Bag` instances and add to one. Predict and explain what happens. Then fix it with `field(default_factory=list)`.
+
+2. **`__post_init__` validation.** Write a `Temperature` dataclass with `value: float` and `unit: str`. Reject any unit that isn't `"C"`, `"F"`, or `"K"` by raising `ValueError` in `__post_init__`.
+
+3. **Hashable but mutable?** Create a non-frozen dataclass with `frozen=False` (the default). Try inserting an instance into a `set`. What happens? Why does `frozen=True` fix it?
+
+4. **Match against `NamedTuple`.** Rewrite the `Coordinate` `NamedTuple` example to dispatch on hemisphere — north of the equator vs. south — using `match`/`case`.
+
+5. **`__slots__` opt-in.** Read the docs for `@dataclass(slots=True)`. Create a class with and without slots, and compare the size with `sys.getsizeof`.
+
+## Summary {#sec-dataclasses-summary}
+
+Python's three data-class builders cover three different needs: `namedtuple` for tuple-shaped immutable records, `typing.NamedTuple` for the same with type hints and methods, and `@dataclass` for everything else. They all generate the boring boilerplate (`__init__`, `__repr__`, `__eq__`); they all integrate with pattern matching; and they all reward the discipline of giving your data classes *behavior* alongside their data.
+
+Next, @sec-references-mutability fixes the three ideas every Python programmer eventually trips over: variables are labels, not boxes; `==` and `is` ask different questions; and `==` does not survive a copy by default.

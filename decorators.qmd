@@ -5,6 +5,324 @@
 Decorators are functions that wrap other functions. To truly understand them you must understand closures and how Python resolves variable names. Once you do, decorators become trivial — and powerful.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Read `@decorate` syntax as the equivalent `target = decorate(target)`.
+2. Predict *when* decorator code runs (import time, not call time).
+3. State Python's LEGB scope rule and avoid `UnboundLocalError`.
+4. Define a closure and use `nonlocal` to rebind a free variable.
+5. Write a decorator that preserves the wrapped function's metadata.
+6. Use `functools.cache`, `lru_cache`, and `singledispatch`.
+7. Build a decorator factory — a parameterized decorator.
+
+## Decorators 101 {#sec-decorators-101}
+
+A decorator is *syntactic sugar*. Two forms are identical:
+
+```python
+@decorate
+def target(): ...
+
+# is exactly equivalent to:
+
+def target(): ...
+target = decorate(target)
+```
+
+The decorator is a function that takes a function and returns *something* (usually a function):
+
+```{python}
+def deco(func):
+    def inner():
+        print("running inner()")
+    return inner
+
+@deco
+def target():
+    print("running target()")
+
+target()
+```
+
+Notice the surprise: calling `target` runs `inner`, not the original body. `deco` returned `inner`, and the `@deco` line replaced `target` with that return value.
+
+## When Python executes decorators {#sec-decorators-when}
+
+Decorator *code* runs at *import time* — when the `def` is processed — not when the decorated function is called. This is the foundation of registry decorators:
+
+```{python}
+registry = []
+
+def register(func):
+    print(f"running register({func.__name__})")
+    registry.append(func)
+    return func
+
+@register
+def f1(): pass
+
+@register
+def f2(): pass
+
+[f.__name__ for f in registry]
+```
+
+The two `running register(...)` lines printed when the cell *defined* the functions, not when something *called* them. This timing is what lets decorators register, count, or transform on definition.
+
+## Variable scope rules {#sec-decorators-scope}
+
+To understand decorators you must understand Python's LEGB rule: a name is resolved in **L**ocal, **E**nclosing, **G**lobal, then **B**uilt-in scope.
+
+```{python}
+b = 6
+def f1(a):
+    print(a, b)
+
+f1(3)
+```
+
+`b` is read from the *global* scope. But this fails:
+
+```{python}
+#| error: true
+b = 6
+def f2(a):
+    print(a, b)
+    b = 9
+f2(3)
+```
+
+`UnboundLocalError`. Python sees the assignment `b = 9` and decides `b` is *local* throughout `f2` — even before the assignment line. The earlier `print(b)` then fails because the local `b` hasn't been bound yet.
+
+The fix is to declare your intent:
+
+```{python}
+b = 6
+def f3(a):
+    global b
+    print(a, b)
+    b = 9
+f3(3)
+b
+```
+
+`global` says "the `b` I'm writing to is the module-level one." We'll meet `nonlocal` next, which plays the same role for *enclosing* scopes.
+
+## Closures {#sec-decorators-closures}
+
+A *closure* is a function that retains the bindings of free variables from its enclosing scope, even after the enclosing function has returned.
+
+```{python}
+def make_averager():
+    series = []
+    def averager(new_value):
+        series.append(new_value)
+        return sum(series) / len(series)
+    return averager
+
+avg = make_averager()
+avg(10), avg(11), avg(12)
+```
+
+`make_averager` returned. Its local frame is gone. Yet `avg` still has access to `series` — because `series` was captured by `averager`'s closure. You can look at the capture directly:
+
+```{python}
+avg.__code__.co_freevars
+```
+
+```{python}
+avg.__closure__[0].cell_contents
+```
+
+## `nonlocal` {#sec-decorators-nonlocal}
+
+The closure trick works because `series.append` *mutates* the list — it doesn't rebind the name. Try the same idea with an `int`:
+
+```{python}
+#| error: true
+def make_averager_v2():
+    count = 0
+    total = 0
+    def averager(new_value):
+        count += 1     # tries to rebind 'count'
+        total += new_value
+        return total / count
+    return averager
+
+avg = make_averager_v2()
+avg(10)
+```
+
+Same `UnboundLocalError`. `count += 1` is a rebinding, so Python decides `count` is local to `averager`. The fix:
+
+```{python}
+def make_averager_v3():
+    count = 0
+    total = 0
+    def averager(new_value):
+        nonlocal count, total
+        count += 1
+        total += new_value
+        return total / count
+    return averager
+
+avg = make_averager_v3()
+avg(10), avg(11), avg(12)
+```
+
+`nonlocal count, total` says "these names refer to the enclosing scope; I'm rebinding them there."
+
+## A simple decorator {#sec-decorators-simple}
+
+Putting it all together, a `clock` decorator that times a call:
+
+```{python}
+import time, functools
+
+def clock(func):
+    @functools.wraps(func)
+    def clocked(*args, **kwargs):
+        t0 = time.perf_counter()
+        result = func(*args, **kwargs)
+        elapsed = time.perf_counter() - t0
+        arg_lst = [repr(a) for a in args]
+        arg_lst.extend(f"{k}={v!r}" for k, v in kwargs.items())
+        print(f"[{elapsed:0.6f}s] {func.__name__}({', '.join(arg_lst)}) -> {result!r}")
+        return result
+    return clocked
+
+@clock
+def factorial(n):
+    return 1 if n < 2 else n * factorial(n - 1)
+
+factorial(5)
+```
+
+`@functools.wraps(func)` is the small detail that matters. Without it, `clocked` would *replace* `factorial` — its `__name__`, `__doc__`, and `__wrapped__` would all point to the wrapper, not the original. With it, the wrapper looks like the wrapped function to the outside world.
+
+## Decorators in the standard library {#sec-decorators-stdlib}
+
+`functools` ships three decorators you'll reach for routinely.
+
+**`@cache`** — memoize without a size limit:
+
+```{python}
+@functools.cache
+def fibonacci(n):
+    return n if n < 2 else fibonacci(n-1) + fibonacci(n-2)
+
+fibonacci(30)
+```
+
+The recursion that's `O(2^n)` without caching becomes `O(n)` with it.
+
+**`@lru_cache(maxsize=...)`** — memoize with eviction. Use this when your input space is unbounded.
+
+**`@singledispatch`** — write a "generic function" that dispatches on the first argument's type:
+
+```{python}
+import html
+from functools import singledispatch
+
+@singledispatch
+def htmlize(obj) -> str:
+    content = html.escape(repr(obj))
+    return f"<pre>{content}</pre>"
+
+@htmlize.register
+def _(text: str) -> str:
+    content = html.escape(text).replace("\n", "<br/>\n")
+    return f"<p>{content}</p>"
+
+@htmlize.register
+def _(seq: list) -> str:
+    inner = "\n".join(f"<li>{htmlize(x)}</li>" for x in seq)
+    return f"<ul>\n{inner}\n</ul>"
+
+@htmlize.register
+def _(n: int) -> str:
+    return f"<pre>{n} (0x{n:02X})</pre>"
+
+print(htmlize("hello"))
+print(htmlize(42))
+print(htmlize([1, "two", 3]))
+```
+
+`singledispatch` is the Pythonic alternative to a chain of `isinstance` branches.
+
+## Parameterized decorators {#sec-decorators-parameterized}
+
+A decorator that takes arguments is really a *factory* that returns a decorator. Three function nesting levels:
+
+```{python}
+def register_if(active=True):
+    def decorate(func):
+        if active:
+            registry.append(func)
+        return func
+    return decorate
+
+registry = []
+
+@register_if(active=False)
+def g1(): pass
+
+@register_if(active=True)
+def g2(): pass
+
+[f.__name__ for f in registry]
+```
+
+Read it from the inside out: `register_if(active=True)` *evaluates first*, returning the actual decorator `decorate`. `decorate` then receives `g2` and registers it.
+
+A parameterized version of `clock`:
+
+```{python}
+DEFAULT_FMT = "[{elapsed:0.8f}s] {name}({args}) -> {result}"
+
+def clock(fmt=DEFAULT_FMT):
+    def decorate(func):
+        @functools.wraps(func)
+        def clocked(*args, **kwargs):
+            t0 = time.perf_counter()
+            result = func(*args, **kwargs)
+            elapsed = time.perf_counter() - t0
+            print(fmt.format(
+                elapsed=elapsed,
+                name=func.__name__,
+                args=", ".join(repr(a) for a in args),
+                result=repr(result),
+            ))
+            return result
+        return clocked
+    return decorate
+
+@clock("{name}: {elapsed:.4f}s")
+def snooze(seconds):
+    time.sleep(seconds)
+
+snooze(0.01)
+```
+
+::: {.callout-tip}
+## Why this matters
+A closure is a function that remembers the enclosing scope's variables even after the enclosing function has returned. A decorator is a function that takes a function and returns a (modified) function. These are not tricks — they are direct consequences of functions being objects and Python having lexical scoping.
+:::
+
+## Exercises {#sec-decorators-exercises}
+
+1. **Order of decorators.** What's the difference between `@a @b def f` and `@b @a def f`? Try a `clock` and a `cache` decorator, both ways. Which call shows the timing?
+
+2. **Closures over a loop variable.** Write `make_funcs(n)` that returns a list of `n` zero-argument functions, where each one returns its index. Use `lambda i: i` in a list comprehension and watch what happens when you call them. Now fix it.
+
+3. **`functools.wraps`.** Remove `@functools.wraps` from the `clock` decorator. Print `clocked.__name__` and `clocked.__doc__`. What changed?
+
+4. **`@cache` on a method.** Define a class with a method decorated with `@cache`. Call it on two instances. Predict whether they share the cache. (This is a real-world pitfall.)
+
+5. **Custom `singledispatch`.** Add a fourth `htmlize` registration for `dict` that renders a definition list (`<dl>` / `<dt>` / `<dd>`). Test it.
+
+## Summary {#sec-decorators-summary}
+
+Decorators are sugar for `func = decorator(func)`. They run at import time. Their power comes from closures, which let an inner function carry state from the outer one even after the outer returns. With these two ideas plus `functools.wraps`, you can write any decorator the standard library ships and most of those you'll encounter in real projects.
+
+Next, @sec-design-patterns shows what happens when you take this view to its conclusion: classic OOP design patterns mostly disappear when functions are first-class.

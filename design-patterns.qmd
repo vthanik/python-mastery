@@ -5,6 +5,199 @@
 Classic OOP design patterns often become simpler or disappear entirely in Python because functions are first-class objects. The Strategy and Command patterns reduce to plain functions.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Recognize the *Strategy* pattern in its classic OOP form.
+2. Refactor it into a function-oriented form using first-class functions.
+3. Build a discoverable strategy registry with a decorator.
+4. Recognize the *Command* pattern and replace it with callable instances or plain functions.
+
+## Strategy, the classic way {#sec-patterns-strategy-oop}
+
+The textbook Strategy pattern uses an abstract base class, one subclass per algorithm, and a context that holds an instance:
+
+```{python}
+from abc import ABC, abstractmethod
+from collections import namedtuple
+from decimal import Decimal
+
+Customer = namedtuple("Customer", "name fidelity")
+LineItem = namedtuple("LineItem", "product quantity price")
+
+class Order:
+    def __init__(self, customer, cart, promotion=None):
+        self.customer = customer
+        self.cart = list(cart)
+        self.promotion = promotion
+
+    def total(self):
+        return sum(item.quantity * item.price for item in self.cart)
+
+    def due(self):
+        discount = Decimal(0) if self.promotion is None else self.promotion.discount(self)
+        return self.total() - discount
+
+class Promotion(ABC):
+    @abstractmethod
+    def discount(self, order: "Order") -> Decimal: ...
+
+class FidelityPromo(Promotion):
+    def discount(self, order):
+        rate = Decimal("0.05")
+        return order.total() * rate if order.customer.fidelity >= 1000 else Decimal(0)
+
+class BulkItemPromo(Promotion):
+    def discount(self, order):
+        d = Decimal(0)
+        for item in order.cart:
+            if item.quantity >= 20:
+                d += item.quantity * item.price * Decimal("0.1")
+        return d
+
+joe = Customer("John Doe", 0)
+ann = Customer("Ann Smith", 1100)
+cart = [LineItem("banana", 4, Decimal("0.5")),
+        LineItem("apple", 10, Decimal("1.5"))]
+Order(ann, cart, FidelityPromo()).due()
+```
+
+This is the pattern as it appears in *Design Patterns* (Gamma et al., 1994) — the form you'd write in Java or C++.
+
+## Strategy as plain functions {#sec-patterns-strategy-functions}
+
+In Python a *function* is a callable. The whole class hierarchy collapses to one function per strategy:
+
+```{python}
+def fidelity_promo(order):
+    rate = Decimal("0.05")
+    return order.total() * rate if order.customer.fidelity >= 1000 else Decimal(0)
+
+def bulk_item_promo(order):
+    d = Decimal(0)
+    for item in order.cart:
+        if item.quantity >= 20:
+            d += item.quantity * item.price * Decimal("0.1")
+    return d
+
+def large_order_promo(order):
+    distinct_items = {item.product for item in order.cart}
+    return order.total() * Decimal("0.07") if len(distinct_items) >= 10 else Decimal(0)
+
+class OrderF:
+    def __init__(self, customer, cart, promotion=None):
+        self.customer = customer
+        self.cart = list(cart)
+        self.promotion = promotion
+    def total(self):
+        return sum(item.quantity * item.price for item in self.cart)
+    def due(self):
+        discount = Decimal(0) if self.promotion is None else self.promotion(self)
+        return self.total() - discount
+
+OrderF(ann, cart, fidelity_promo).due()
+```
+
+Same answer; one-third the code; no abstract classes; no instantiation overhead. The strategy is just a function, and `Order` calls it.
+
+A "best-of" combinator is a one-liner:
+
+```{python}
+promos = [fidelity_promo, bulk_item_promo, large_order_promo]
+def best_promo(order):
+    return max(promo(order) for promo in promos)
+
+OrderF(ann, cart, best_promo).due()
+```
+
+## Discovering strategies automatically {#sec-patterns-strategy-discovery}
+
+`promos = [...]` is a hand-maintained list. Two ways to make it self-updating.
+
+**By inspection** — find every function in a module whose name ends `_promo`:
+
+```python
+import inspect
+import promotions_module
+
+promos = [func for name, func in inspect.getmembers(promotions_module, inspect.isfunction)
+          if name.endswith("_promo") and name != "best_promo"]
+```
+
+**By decorator registration** — even cleaner:
+
+```{python}
+from collections.abc import Callable
+
+Promotion = Callable[["OrderF"], Decimal]
+promos: list[Promotion] = []
+
+def promotion(promo: Promotion) -> Promotion:
+    promos.append(promo)
+    return promo
+
+@promotion
+def fidelity_promo(order):
+    rate = Decimal("0.05")
+    return order.total() * rate if order.customer.fidelity >= 1000 else Decimal(0)
+
+@promotion
+def bulk_item_promo(order):
+    d = Decimal(0)
+    for item in order.cart:
+        if item.quantity >= 20:
+            d += item.quantity * item.price * Decimal("0.1")
+    return d
+
+def best_promo(order):
+    return max(promo(order) for promo in promos)
+
+[p.__name__ for p in promos]
+```
+
+The decorator runs at import time (see @sec-decorators), so adding a new strategy is one `@promotion` line. The `best_promo` function picks it up automatically.
+
+## The Command pattern {#sec-patterns-command}
+
+The classic Command pattern wraps each action in an object with an `execute` method, so commands can be queued, logged, or undone. In Python, *any callable* already meets that interface — you don't need a class.
+
+```{python}
+class MacroCommand:
+    """Run a sequence of commands in order."""
+    def __init__(self, commands):
+        self.commands = list(commands)
+    def __call__(self):
+        for command in self.commands:
+            command()
+
+def open_file():  print("opening file")
+def save_file():  print("saving file")
+def close_app():  print("closing app")
+
+macro = MacroCommand([open_file, save_file, close_app])
+macro()
+```
+
+Each "command" is a plain function. `MacroCommand` is callable thanks to `__call__` (see @sec-first-class-functions). The Java version of this pattern would have an `interface Command { void execute(); }` and one class per command. None of that is needed here.
+
+::: {.callout-tip}
+## Why this matters
+The Strategy and Command design patterns encode behavior in classes because in languages like Java, functions are not first-class objects. In Python, behavior **is** a function. Replace strategy objects with strategy functions. Replace command objects with callables. The pattern disappears — you're left with cleaner code.
+:::
+
+## Exercises {#sec-patterns-exercises}
+
+1. **Add a strategy.** Write a `weekend_promo` function that gives 5% off if the order is placed on a Saturday or Sunday. Register it with `@promotion` and confirm `best_promo` finds it without other changes.
+
+2. **Strategy with state.** Suppose a strategy needs configuration (a discount rate, an enabled flag). How would you represent it as a function? As a class with `__call__`? Compare.
+
+3. **Discoverable Command.** Apply the registry-decorator idea from `@promotion` to commands: a `@command` decorator that registers each command in a global list. Implement `run_all()`.
+
+4. **Where the OOP version wins.** Name a real situation in which the class-based Strategy pattern is *better* than the function form. (Hint: think about state, inheritance, or testing.)
+
+5. **`MacroCommand` undo.** Add an `undo` method to `MacroCommand` that runs the commands in reverse. Then convert `MacroCommand` itself to a plain function — what's lost?
+
+## Summary {#sec-patterns-summary}
+
+This chapter closes Part II. Many of the *Gang of Four* patterns are workarounds for languages without first-class functions; in Python, those patterns shrink or vanish. The lesson is not that classes are bad — it's that you should reach for the simplest tool that solves the problem, and in Python that's often a function.
+
+Part III turns to the case where classes *do* earn their keep. We start in @sec-pythonic-objects with the canonical `Vector2d`: a single class that becomes printable, hashable, formattable, and slottable as we add the right special methods.

@@ -5,6 +5,267 @@
 Python's `for` loop calls `iter()` then repeatedly calls `next()`. Generators implement the iterator protocol lazily. Classic coroutines extend generators to receive values via `send()`. Understanding the iterator protocol makes all of Python's loop machinery transparent.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Trace what `for x in obj` does at the protocol level.
+2. Distinguish *iterables* (build an iterator) from *iterators* (have state).
+3. Write a generator function with `yield`.
+4. Use `itertools` for filtering, mapping, merging, and combinatoric generation.
+5. Compose generators with `yield from`.
+6. Write a classic coroutine that receives values via `send()`.
+
+## How `for` actually works {#sec-iter-for}
+
+Every `for` loop is desugared into the same pattern:
+
+```{python}
+s = "ABC"
+it = iter(s)
+next(it), next(it), next(it)
+```
+
+```{python}
+#| error: true
+next(it)
+```
+
+`iter(s)` calls `s.__iter__()` and returns an *iterator*. `next(it)` calls `it.__next__()`. When the iterator is exhausted, it raises `StopIteration`, which `for` catches silently.
+
+A useful side form: `iter(callable, sentinel)` creates an iterator that calls `callable()` until the result equals the sentinel.
+
+```{python}
+import io
+fp = io.StringIO("line one\nline two\n\nignored\n")
+for line in iter(fp.readline, "\n"):
+    print(repr(line))
+```
+
+The loop reads `fp.readline` until it returns `"\n"` (an empty-content line ending in newline), then stops.
+
+## Iterables versus iterators {#sec-iter-iterable-vs-iterator}
+
+The two roles are distinct:
+
+- An **iterable** has `__iter__` — calling it returns a *fresh* iterator each time.
+- An **iterator** has `__next__` *and* `__iter__` (which returns `self`).
+
+The most common bug is making one class do both — then iterating consumes the only iterator and the next loop sees nothing.
+
+```{python}
+class Sentence:
+    def __init__(self, text):
+        self._words = text.split()
+    def __iter__(self):
+        return SentenceIterator(self._words)
+
+class SentenceIterator:
+    def __init__(self, words):
+        self._words = words
+        self._index = 0
+    def __next__(self):
+        try:
+            word = self._words[self._index]
+        except IndexError:
+            raise StopIteration
+        self._index += 1
+        return word
+    def __iter__(self):
+        return self
+
+s = Sentence("Hello beautiful world")
+list(s), list(s)
+```
+
+Two iterations gave two complete results — `Sentence.__iter__` produces a fresh `SentenceIterator` each time. Compare with a class whose `__iter__` returns `self`: the second loop would be empty.
+
+## Generator functions {#sec-iter-generators}
+
+A *generator function* — any function with `yield` — produces an iterator without the boilerplate:
+
+```{python}
+class SentenceGen:
+    def __init__(self, text):
+        self._text = text
+    def __iter__(self):
+        for word in self._text.split():
+            yield word
+
+list(SentenceGen("Hello beautiful world")), list(SentenceGen("Hello beautiful world"))
+```
+
+The presence of `yield` turns `__iter__` into a generator factory. Calling it returns a generator *object* (an iterator). Each `next()` resumes execution at the last `yield`.
+
+A *generator expression* is the inline version:
+
+```{python}
+gen_exp = (word for word in "Hello beautiful world".split())
+next(gen_exp), next(gen_exp)
+```
+
+For lazy iteration over a regex, the generator-expression form is even shorter:
+
+```{python}
+import re
+RE_WORD = re.compile(r"\w+")
+
+class LazySentence:
+    def __init__(self, text):
+        self.text = text
+    def __iter__(self):
+        return (m.group() for m in RE_WORD.finditer(self.text))
+
+list(LazySentence("Hello there, beautiful world!"))
+```
+
+The text is never split into a list — `finditer` returns matches lazily, and each call to `iter()` creates a fresh generator.
+
+## The `itertools` cookbook {#sec-iter-itertools}
+
+`itertools` is the standard library's lazy-iterator toolkit. Worth knowing by category:
+
+```{python}
+import itertools, operator, functools
+
+list(itertools.compress("ABCDEF", [1, 0, 1, 0, 1, 1]))
+```
+
+```{python}
+list(itertools.dropwhile(lambda x: x < 5, [1, 5, 2, 6, 7]))
+```
+
+```{python}
+list(itertools.takewhile(lambda x: x < 5, [1, 4, 6, 4, 1]))
+```
+
+```{python}
+list(itertools.accumulate([1, 2, 3, 4, 5])), list(itertools.accumulate([1, 2, 3, 4, 5], operator.mul))
+```
+
+```{python}
+list(itertools.chain("ABC", range(2)))
+```
+
+```{python}
+list(itertools.product("AB", range(2)))
+```
+
+```{python}
+list(itertools.combinations("ABC", 2)), list(itertools.permutations("ABC", 2))
+```
+
+```{python}
+list(itertools.islice(itertools.cycle("ABC"), 7))
+```
+
+The reduction functions — `all`, `any`, `sum`, `max`, `min`, `functools.reduce` — consume an iterable and return a single value:
+
+```{python}
+all([1, 2, 3]), any([0, 0, 1]), sum([1, 2, 3]), functools.reduce(operator.add, [1, 2, 3, 4, 5])
+```
+
+## `yield from` {#sec-iter-yield-from}
+
+`yield from sub_iterable` is more than a `for x in sub: yield x` — it forwards `send()` and `throw()` to the inner generator, which is what makes it the foundation of `asyncio`.
+
+```{python}
+def chain(*iterables):
+    for it in iterables:
+        yield from it
+
+list(chain("ABC", range(3), [10, 20]))
+```
+
+```{python}
+class Tree:
+    def __init__(self, value, *children):
+        self.value = value
+        self.children = list(children)
+
+def depth_first(node):
+    yield node.value
+    for child in node.children:
+        yield from depth_first(child)
+
+t = Tree("root",
+         Tree("A", Tree("A1"), Tree("A2")),
+         Tree("B", Tree("B1")))
+list(depth_first(t))
+```
+
+`yield from depth_first(child)` is the natural way to flatten a recursive iterator.
+
+## Classic coroutines {#sec-iter-coroutines}
+
+A *classic coroutine* is a generator that receives values via `send()`. The yield expression on the right of `=` is the receive point:
+
+```{python}
+def averager():
+    total = 0.0
+    count = 0
+    average = None
+    while True:
+        term = yield average
+        total += term
+        count += 1
+        average = total / count
+
+avg = averager()
+next(avg)         # prime: run to first yield
+avg.send(10), avg.send(30), avg.send(5)
+```
+
+Calling `next(avg)` advances to the first `yield` and returns `None` (the initial `average`). Each `send(value)` sends `value` *into* the coroutine — it becomes `term` — and runs until the next `yield`, which returns the new average.
+
+To return a value, raise `StopIteration` with `value`:
+
+```{python}
+from collections import namedtuple
+Result = namedtuple("Result", "count average")
+
+def averager_with_result():
+    total = 0.0
+    count = 0
+    average = None
+    while True:
+        term = yield
+        if term is None:
+            break
+        total += term
+        count += 1
+        average = total / count
+    return Result(count, average)
+
+coro = averager_with_result()
+next(coro)
+coro.send(10)
+coro.send(30)
+try:
+    coro.send(None)
+except StopIteration as exc:
+    print(exc.value)
+```
+
+This is the foundation that *native coroutines* (`async def` / `await`) build on; we'll meet them in @sec-async.
+
+::: {.callout-tip}
+## Why this matters
+Every Python `for` loop is secretly: `it = iter(obj); next(it)` in a loop. Every generator function is a factory for iterator objects. `yield from` connects generators into pipelines, forwarding values and exceptions transparently. This is the foundation that `async`/`await` builds upon.
+:::
+
+## Exercises {#sec-iter-exercises}
+
+1. **Iterable vs. iterator.** Write a class `Counter` that, on `iter`, counts up forever. Make `__iter__` return `self`. Try iterating twice — what happens?
+
+2. **Generator pipeline.** Compose three generators: read lines, strip whitespace, drop empty lines. Combine with `yield from`.
+
+3. **`itertools.tee`.** Read its docs. Use it to iterate over the same generator twice without re-running it. What's the memory cost?
+
+4. **Coroutine for streaming.** Write a coroutine that accepts integers via `send` and yields the running median.
+
+5. **`yield from` is more than a loop.** Demonstrate that `yield from` forwards `throw()` to the inner generator. (Hint: write a generator that catches a particular exception.)
+
+## Summary {#sec-iter-summary}
+
+The iterator protocol is the engine under every loop. Generator functions are the easy way to write iterators; `yield from` composes them; classic coroutines extend them with `send()`. Hold these in your head and the rest of Python's lazy-evaluation story falls into place.
+
+Next, @sec-with-match-else covers three control-flow blocks that don't appear in many other languages: `with` for context managers, `match` for structural pattern matching, and the surprising `else` clause on `for`/`while`/`try`.

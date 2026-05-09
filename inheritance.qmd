@@ -5,6 +5,169 @@
 Inheritance is frequently misused. Multiple inheritance in particular has real complexity costs. Know when to use it, when to avoid it, and how Python resolves method order when you do use it.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Use `super()` to call parent methods correctly.
+2. Recognize why subclassing built-in types (`dict`, `list`) is risky, and use `UserDict`/`UserList`/`UserString` instead.
+3. Read Python's *Method Resolution Order* (MRO) and predict what `super()` calls.
+4. Write a *mixin* — a class that adds focused behavior to other classes.
+5. Apply the six guidelines for inheritance that the chapter closes with.
+
+## Always use `super()` {#sec-inheritance-super}
+
+When overriding a method on a subclass, call the parent through `super()`:
+
+```{python}
+class DoppelDictUserDict:
+    def __setitem__(self, key, value):
+        super().__setitem__(key, [value] * 2)
+```
+
+Never call the parent class directly (`dict.__setitem__(self, ...)`). `super()` respects the MRO; direct calls bypass it, which silently breaks multiple inheritance.
+
+## Subclassing built-ins is tricky {#sec-inheritance-builtins}
+
+The dangerous part: when you subclass a *built-in* type like `dict`, the C-level methods don't always call your overrides.
+
+```{python}
+class DoppelDict(dict):
+    def __setitem__(self, key, value):
+        super().__setitem__(key, [value] * 2)
+
+dd = DoppelDict(one=1)        # __init__ ignored our __setitem__
+print(dd)
+dd["two"] = 2                 # explicit __setitem__ — does call our override
+print(dd)
+```
+
+`DoppelDict(one=1)` did *not* call `__setitem__` — `dict.__init__` is implemented in C and bypasses Python-level overrides. Only the explicit `dd["two"] = 2` triggered our doubled-value logic.
+
+The fix is to subclass `collections.UserDict`, which is written in pure Python and *does* call your overrides:
+
+```{python}
+from collections import UserDict
+
+class DoppelUserDict(UserDict):
+    def __setitem__(self, key, value):
+        super().__setitem__(key, [value] * 2)
+
+dd = DoppelUserDict(one=1)
+print(dd)
+```
+
+Now `__init__` correctly routed through `__setitem__`. The same rule applies to `UserList` (instead of `list`) and `UserString` (instead of `str`).
+
+## Multiple inheritance and the MRO {#sec-inheritance-mro}
+
+Python supports multiple inheritance, and resolves which method to call using the *Method Resolution Order* — a linearization of the inheritance graph.
+
+```{python}
+class A:
+    def ping(self):
+        print("ping:", type(self).__name__)
+
+class B(A):
+    def pong(self):
+        print("pong:", type(self).__name__)
+
+class C(A):
+    def pong(self):
+        print("PONG:", type(self).__name__)
+
+class D(B, C):
+    def ping(self):
+        super().ping()
+        print("post-ping:", type(self).__name__)
+
+D.__mro__
+```
+
+The MRO is `D → B → C → A → object`. When you call `D().pong()`, Python walks this chain and picks the first match — `B.pong`. When you call `D().ping()`, it calls our override; `super().ping()` then looks past `D` in the MRO and finds `A.ping`.
+
+```{python}
+D().ping()
+```
+
+```{python}
+D().pong()
+```
+
+To call a *specific* parent's method, bypass the MRO with the explicit form:
+
+```{python}
+C.pong(D())
+```
+
+But that's exactly the trap — direct calls don't compose with multiple inheritance. Use `super()` unless you have a very good reason.
+
+## Mixin classes {#sec-inheritance-mixins}
+
+A *mixin* is a class that adds focused behavior — usually no state — to other classes. Multiple mixins compose by inheritance. The convention is to suffix the class name with `Mixin` to signal intent.
+
+```{python}
+from collections import UserDict
+
+class CaseInsensitiveMixin:
+    def __setitem__(self, key, value):
+        super().__setitem__(key.lower(), value)
+    def __getitem__(self, key):
+        return super().__getitem__(key.lower())
+    def __contains__(self, key):
+        return super().__contains__(key.lower())
+    def get(self, key, default=None):
+        return super().get(key.lower(), default)
+
+class CaseInsensitiveDict(CaseInsensitiveMixin, UserDict):
+    pass
+
+d = CaseInsensitiveDict({"Color": "red"})
+d["Color"], d["color"], "COLOR" in d
+```
+
+Look at the MRO:
+
+```{python}
+CaseInsensitiveDict.__mro__
+```
+
+`CaseInsensitiveDict → CaseInsensitiveMixin → UserDict → ...`. When `d["color"]` runs:
+
+1. Python looks for `__getitem__` on `CaseInsensitiveDict` — not there.
+2. It walks to `CaseInsensitiveMixin` — finds it.
+3. `super().__getitem__(key.lower())` walks to `UserDict.__getitem__`.
+
+Each link in the chain does its small job and delegates upward.
+
+## Coping with inheritance: six guidelines {#sec-inheritance-guidelines}
+
+1. **Favor composition over inheritance.** "Has-a" beats "is-a" in most real systems.
+2. **Make interfaces explicit with ABCs or `Protocol`.** They document the contract.
+3. **Use explicit mixins for code reuse.** Suffix the class name with `Mixin`.
+4. **Provide aggregate classes.** Bundle commonly-paired mixins so callers get a one-line setup.
+5. **Subclass only classes designed for subclassing.** That excludes most built-ins (use `UserList`, `UserDict`, `UserString`).
+6. **Avoid subclassing concrete classes.** Prefer interfaces (`Protocol`, ABC) as the base type.
+
+These are guidelines, not rules. The trap they're protecting you from is the *fragile base class problem*: a small change to a parent class silently breaks a distant subclass. Composition contains that radius; inheritance widens it.
+
+::: {.callout-tip}
+## Why this matters
+Multiple inheritance with mixins works when each mixin adds one focused behavior, is stateless, and uses `super()` correctly. The C3 linearization algorithm (MRO) makes `super()` work predictably. The moment you have diamond inheritance with state, you're in trouble. Prefer composition.
+:::
+
+## Exercises {#sec-inheritance-exercises}
+
+1. **`UserList` vs `list`.** Subclass `list` and override `__setitem__` to log every assignment. Construct an instance from `[1, 2, 3]`. Are the constructor's assignments logged? Now do the same with `UserList`. Compare.
+
+2. **MRO for the diamond.** Define `class A: pass`, `class B(A): pass`, `class C(A): pass`, `class D(B, C): pass`. Print `D.__mro__`. What does it look like?
+
+3. **Order matters.** In the `CaseInsensitiveDict` example, swap the inheritance order to `class CaseInsensitiveDict(UserDict, CaseInsensitiveMixin)`. Does `d["color"]` still work? Why or why not?
+
+4. **A logging mixin.** Write a `LoggingMixin` that overrides `__setattr__` to print every assignment. Mix it into `Vector2d`. Does it interact with `__slots__` correctly?
+
+5. **Composition rewrite.** Take the `CaseInsensitiveDict` example and rewrite it using composition (a wrapper class that holds a `dict`). Compare line counts and readability.
+
+## Summary {#sec-inheritance-summary}
+
+Inheritance is a sharp tool. Use it with `super()`, prefer the `User*` wrappers when subclassing built-ins, and reserve multiple inheritance for stateless, well-named mixins. When in doubt, choose composition: it limits the blast radius and makes the dependency graph readable.
+
+Next, @sec-advanced-typing returns to type hints with the heavyweights: `@overload`, `TypedDict`, and the variance rules that explain why `list[int]` is *not* a `list[float]`.

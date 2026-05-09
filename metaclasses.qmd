@@ -5,6 +5,189 @@
 Classes are objects. `type()` is the metaclass of all classes. You can create classes dynamically, customize class creation with `__init_subclass__`, or build metaclasses for framework-level control. These are powerful tools — use them sparingly.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Confirm that classes are first-class objects whose class is `type`.
+2. Create a class dynamically with `type(name, bases, dict)`.
+3. Customize subclass creation with `__init_subclass__` (PEP 487).
+4. Distinguish "import time" from "call time" — the moment when class bodies and decorators run.
+5. Write a metaclass and recognize when (rarely!) it's the right tool.
+
+## Classes as objects {#sec-meta-classes-as-objects}
+
+Every class in Python is an *instance* of `type`. That includes built-ins:
+
+```{python}
+int.__class__, str.__class__, type.__class__
+```
+
+`type` is its own metaclass — that's how the system bootstraps. Classes carry the same kind of attributes any other object does:
+
+```{python}
+class Foo: ...
+Foo.__name__, Foo.__mro__, Foo.__module__
+```
+
+You can pass classes around, store them in lists and dicts, and pick one at runtime to instantiate. None of that is "metaprogramming" — it's just the data model.
+
+## `type` as a class factory {#sec-meta-type-factory}
+
+`type` has a three-argument form that *creates* a class:
+
+```{python}
+MyClass = type("MyClass", (object,), {"x": 1, "method": lambda self: self.x})
+MyClass.__name__, MyClass().method()
+```
+
+That's exactly equivalent to:
+
+```python
+class MyClass(object):
+    x = 1
+    def method(self):
+        return self.x
+```
+
+The `class` statement is syntax sugar over `type(name, bases, dict)`. Frameworks that *generate* classes (Django models, SQLAlchemy mappers) use this form internally.
+
+## When the class body runs {#sec-meta-import-time}
+
+Class bodies run at *import time*, not at call time. Decorators on classes also run at import time. This is what makes registry decorators useful, and what makes metaclasses occasionally surprising:
+
+```{python}
+class Watcher:
+    print("class body executing")
+
+class Watched(Watcher):
+    print("subclass body executing")
+
+print("module loaded")
+```
+
+When the cell is run, both class bodies execute. There is no "instantiate to run" step for the class body — the body runs once, and the result is the class object.
+
+## `__init_subclass__` (PEP 487) {#sec-meta-init-subclass}
+
+The modern alternative to a metaclass for many use cases. `__init_subclass__` is a `classmethod` (implicitly) that's called on the *parent* whenever a *subclass* is created:
+
+```{python}
+class Pluggable:
+    plugins = []
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        Pluggable.plugins.append(cls)
+        print(f"registered {cls.__name__}")
+
+class A(Pluggable): ...
+class B(Pluggable): ...
+
+[c.__name__ for c in Pluggable.plugins]
+```
+
+Each subclass declaration triggered the registration. No metaclass; no decorator on each subclass; just a single hook on the base.
+
+A real-world pattern: combine `__init_subclass__` with descriptors to wire up a tiny ORM-like model:
+
+```{python}
+import abc
+
+class Validated(abc.ABC):
+    def __set_name__(self, owner, name):
+        self.private = "_" + name
+    def __get__(self, instance, owner=None):
+        if instance is None: return self
+        return getattr(instance, self.private)
+    def __set__(self, instance, value):
+        setattr(instance, self.private, self.validate(value))
+    @abc.abstractmethod
+    def validate(self, value): ...
+
+class Positive(Validated):
+    def validate(self, value):
+        if value <= 0:
+            raise ValueError(f"expected > 0, got {value!r}")
+        return value
+
+class Checked:
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for name, type_ in cls.__annotations__.items():
+            if isinstance(type_, type) and issubclass(type_, Validated):
+                descriptor = type_()
+                descriptor.__set_name__(cls, name)
+                setattr(cls, name, descriptor)
+
+    def __init__(self, **kwargs):
+        for name, value in kwargs.items():
+            setattr(self, name, value)
+
+class Movie(Checked):
+    title: str
+    year: int
+    box_office: Positive
+
+m = Movie(title="Godzilla", year=2014, box_office=300_000_000)
+m.title, m.box_office
+```
+
+```{python}
+#| error: true
+m.box_office = -1
+```
+
+`__init_subclass__` walked `cls.__annotations__` and replaced any field whose type is a `Validated` subclass with a fresh descriptor instance. The Movie class doesn't need a metaclass — the parent's hook does the work.
+
+## Metaclasses, when nothing else fits {#sec-meta-metaclass}
+
+A metaclass is a class whose instances are *classes*. The convention is to subclass `type`:
+
+```{python}
+class Loud(type):
+    def __new__(meta, name, bases, namespace):
+        cls = super().__new__(meta, name, bases, namespace)
+        print(f"created {name}")
+        return cls
+
+class Quiet(metaclass=Loud):
+    ...
+```
+
+`metaclass=Loud` says "use `Loud` as the class factory for `Quiet`." `Loud.__new__` runs at the moment `Quiet` is being created — a step earlier than `__init_subclass__`, and one with broader scope.
+
+Modern features have largely replaced metaclasses:
+
+| Old reason for a metaclass | Modern replacement |
+|---|---|
+| Track all subclasses | `__init_subclass__` |
+| Inject descriptors based on annotations | `__init_subclass__` + `__set_name__` |
+| Customize class namespace | rarely needed; sometimes class decorators |
+| Generate `__init__`/`__repr__`/`__eq__` | `@dataclass` |
+
+The rule, in plain English: if you think you need a metaclass, you probably don't. Try `__init_subclass__` first; try a class decorator second; reach for a metaclass only when both fail.
+
+::: {.callout-tip}
+## Why this matters — and the final insight of the whole book
+
+Python is a language with a consistent, uniform data model. Functions are objects. Classes are objects. Metaclasses are classes. Everything is subject to the same rules: attribute access, the descriptor protocol, the iterator protocol. The "magic" is not magic — it's a carefully designed system where the same machinery applies at every level. When you see a built-in like `len()` or `for` or `with`, you are seeing the data model at work. Implement the right special methods and your code becomes part of the language itself.
+:::
+
+## Exercises {#sec-meta-exercises}
+
+1. **Build a class with `type`.** Use `type("Point", (object,), {...})` to create a `Point` class with `x`, `y` attributes and an `__init__`. Compare with the equivalent `class` statement.
+
+2. **`__init_subclass__` for registration.** Extend the `Pluggable` example so each subclass can pass a `name="..."` keyword in its `class` line, and the parent registers it under that name in a dict.
+
+3. **Walk the chain.** Print `Movie.__mro__` for the example above. Where does `Checked` appear? Where does `object`?
+
+4. **Class decorator alternative.** Re-implement the `Checked`/`__init_subclass__` example as a class decorator (`@checked`). When is the decorator clearer?
+
+5. **A small metaclass.** Write a `Counted(type)` metaclass that tracks how many instances of *each* class have been created. Apply it to two unrelated classes and verify each has its own count.
+
+## Summary {#sec-meta-summary}
+
+`type` is a class factory; classes are objects; `__init_subclass__` and `__set_name__` cover the common framework-building cases without metaclasses. The deepest tool — a custom metaclass — exists for the rare case when nothing else reaches deep enough.
+
+That closes the book. The single thread running through all twenty-four chapters is the *data model*: the contracts that built-in syntax delegates to, and the dunder methods you implement to participate. Everything else — sequences, dicts, classes, decorators, descriptors, async — is variations on that one theme. The references in @sec-references-mutability remind us that variables are labels; the data model reminds us that *every* object is a participant in the same protocol-driven language.
+
+Read PEPs. Read the standard library. Write small classes. The data model rewards the time you put in.

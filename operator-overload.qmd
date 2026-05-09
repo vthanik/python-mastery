@@ -5,6 +5,226 @@
 Python allows you to overload operators for your own types. The rules are clear: return `NotImplemented` (not raise) when you can't handle the operand type, and Python will try the reflected method on the other side.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Define unary operators (`-x`, `+x`, `abs(x)`).
+2. Implement `+` so it works with both same-type and unrelated operands — and let Python try the *reflected* operand's method.
+3. Implement `*` for scalar multiplication and have `2 * v` work as well as `v * 2`.
+4. Use `@` for matrix multiplication / dot products.
+5. Implement rich comparison and use `@total_ordering` to fill in the rest.
+6. Choose between `+` (returns new) and `+=` (mutates in place) by defining `__iadd__`.
+
+## The rules of the road {#sec-operator-rules}
+
+Three rules apply to *every* operator overload:
+
+1. You **cannot** overload operators for built-in types — only for your own classes.
+2. You **cannot** create new operators — only the ones Python already has.
+3. The operators `is`, `and`, `or`, `not` cannot be overloaded.
+
+For binary operators, Python's resolution is consistent across the language. When you write `a + b`:
+
+1. Python calls `a.__add__(b)`.
+2. If that returns the special `NotImplemented` value, Python tries `b.__radd__(a)`.
+3. If *that* also returns `NotImplemented`, Python raises `TypeError`.
+
+This is what makes `2 * vector` work even when `int` knows nothing about `Vector` — `int.__mul__` returns `NotImplemented`, and Python falls through to `Vector.__rmul__`.
+
+## Unary operators {#sec-operator-unary}
+
+The minus, plus, and absolute-value operators each call one method:
+
+```{python}
+import math
+from array import array
+
+class Vector:
+    typecode = "d"
+
+    def __init__(self, components):
+        self._components = array(self.typecode, components)
+
+    def __iter__(self):
+        return iter(self._components)
+
+    def __len__(self):
+        return len(self._components)
+
+    def __repr__(self):
+        return f"Vector({list(self._components)})"
+
+    def __abs__(self):
+        return math.hypot(*self)
+
+    def __neg__(self):
+        return Vector(-x for x in self)
+
+    def __pos__(self):
+        return Vector(self)
+
+v = Vector([3, 4, 5])
+-v, +v, abs(v)
+```
+
+`__pos__` returns a *copy* — `+v` looks like a no-op, but it's the conventional place to materialize a lazy or contextual value.
+
+## Overloading `+` {#sec-operator-add}
+
+```{python}
+import itertools
+
+class Vector(Vector):
+    def __add__(self, other):
+        try:
+            pairs = itertools.zip_longest(self, other, fillvalue=0.0)
+            return Vector(a + b for a, b in pairs)
+        except TypeError:
+            return NotImplemented
+
+    def __radd__(self, other):
+        return self + other
+
+v1 = Vector([1, 2, 3])
+v2 = Vector([10, 20, 30])
+v1 + v2
+```
+
+`zip_longest` lets us add vectors of different length:
+
+```{python}
+v1 + Vector([1])
+```
+
+The `__radd__` exists so that `[1, 2, 3] + v1` would also work — Python tries `list.__add__(v1)`, which returns `NotImplemented` (a list can't add a Vector), and Python then calls `v1.__radd__([1, 2, 3])`.
+
+The crucial detail is the `return NotImplemented` on failure. Don't `raise TypeError` — that prevents Python from trying the reflected method.
+
+## Scalar multiplication {#sec-operator-mul}
+
+```{python}
+class Vector(Vector):
+    def __mul__(self, scalar):
+        try:
+            factor = float(scalar)
+        except TypeError:
+            return NotImplemented
+        return Vector(n * factor for n in self)
+
+    def __rmul__(self, scalar):
+        return self * scalar
+
+v = Vector([1, 2, 3])
+v * 3, 3 * v, v * True
+```
+
+`v * True` works because `True` is `1` numerically — `float(True)` is `1.0`. `v * "spam"` would return `NotImplemented` (the `float()` call fails), and Python would raise `TypeError`.
+
+## The `@` operator {#sec-operator-matmul}
+
+Python 3.5 added `@` as the matrix-multiplication operator. The dunder is `__matmul__` (and the reflected form is `__rmatmul__`):
+
+```{python}
+from collections import abc
+
+class Vector(Vector):
+    def __matmul__(self, other):
+        if isinstance(other, abc.Sized) and isinstance(other, abc.Iterable):
+            if len(self) == len(other):
+                return sum(a * b for a, b in zip(self, other))
+        return NotImplemented
+
+va = Vector([1, 2, 3])
+vb = Vector([5, 6, 7])
+va @ vb
+```
+
+The dot product `1*5 + 2*6 + 3*7 = 38`. NumPy uses this same operator for matrix multiplication, which is why it was introduced.
+
+## Rich comparison {#sec-operator-compare}
+
+Comparison operators each have a dunder. The most important pair is `__eq__` (returns `True`, `False`, or `NotImplemented`) and `__hash__` (must agree with `__eq__`).
+
+```{python}
+class Vector(Vector):
+    def __eq__(self, other):
+        if isinstance(other, Vector):
+            return len(self) == len(other) and all(a == b for a, b in zip(self, other))
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(tuple(self))
+
+Vector([1, 2, 3]) == Vector([1.0, 2.0, 3.0])
+```
+
+For ordering, define one of `__lt__`, `__le__`, `__gt__`, `__ge__` and use `@functools.total_ordering` to fill in the rest:
+
+```{python}
+from functools import total_ordering
+
+@total_ordering
+class Angle:
+    def __init__(self, degrees):
+        self.degrees = degrees % 360
+    def __eq__(self, other):
+        return self.degrees == other.degrees
+    def __lt__(self, other):
+        return self.degrees < other.degrees
+
+a, b = Angle(30), Angle(45)
+a < b, a >= b, a != b, sorted([Angle(45), Angle(30), Angle(60)], key=lambda x: x.degrees)
+```
+
+`total_ordering` derives the missing comparisons from the two you wrote.
+
+## Augmented assignment {#sec-operator-augmented}
+
+`+=` is *not* the same as `+`. By default, `x += y` is `x = x + y` — a fresh object. If you define `__iadd__`, Python uses it for in-place mutation:
+
+```{python}
+class MutableVector:
+    typecode = "d"
+    def __init__(self, components):
+        self._components = array(self.typecode, components)
+    def __iadd__(self, other):
+        try:
+            pairs = itertools.zip_longest(self, other, fillvalue=0.0)
+            self._components = array(self.typecode, (a + b for a, b in pairs))
+        except TypeError:
+            return NotImplemented
+        return self
+    def __iter__(self):
+        return iter(self._components)
+    def __repr__(self):
+        return f"MutableVector({list(self._components)})"
+
+v = MutableVector([1, 2, 3])
+before = id(v)
+v += MutableVector([10, 20, 30])
+id(v) == before, v
+```
+
+Same object (`id` unchanged), updated contents. *Immutable* types should not implement `__iadd__` — let Python fall back to `__add__` and create a new object.
+
+::: {.callout-tip}
+## Why this matters
+The key insight: return `NotImplemented`, don't raise `TypeError`. Returning `NotImplemented` tells Python to try the reflected method. If you raise, Python can't recover — it propagates the error immediately, even if the other operand could have handled it.
+:::
+
+## Exercises {#sec-operator-exercises}
+
+1. **`__sub__`.** Implement `__sub__` and `__rsub__` for `Vector`. Test `v1 - v2` and `[1, 2, 3] - v2`.
+
+2. **Scalar division.** Implement `__truediv__` so `v / 2` works. Should `2 / v` work? Argue why or why not.
+
+3. **`@total_ordering` quirks.** Try implementing `__eq__` and `__lt__` *without* `@total_ordering` on `Angle`. What does `a > b` do? Why?
+
+4. **`__iadd__` correctness.** Add `__iadd__` to a *frozen* dataclass. Predict whether it's allowed. Try it and explain.
+
+5. **The `@` shape.** Define `Matrix` as a list of `Vector` rows. Implement `__matmul__` so `m1 @ m2` returns the matrix product. (Be careful with shapes — what should `__matmul__` return for incompatible matrices?)
+
+## Summary {#sec-operator-summary}
+
+Operator overloading in Python is principled: every operator is a dunder, every binary operator has a *reflected* form, and the right way to refuse an operand is `return NotImplemented`. Once you internalize this, integrating your class with arithmetic, comparison, and matrix operators is mechanical.
+
+That closes Part IV's first chapter on the *call site*. Next, @sec-iterators turns to the *implementation side*: how iteration, generators, and classic coroutines work under the hood.

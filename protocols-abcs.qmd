@@ -5,6 +5,213 @@
 Python has four typing approaches (duck, goose, static, runtime). ABCs define formal interfaces. Protocols define structural interfaces. Both are tools — use the right one for the job.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Place every type-checking style into the four-approach map.
+2. Use duck typing to satisfy a built-in protocol without inheritance.
+3. Register a virtual subclass of an ABC, and define your own ABC with abstract methods.
+4. Use `typing.Protocol` for structural typing that the static checker understands.
+5. Choose between an ABC (runtime + partial implementations) and a `Protocol` (static, structural).
+
+## The typing map {#sec-protocols-map}
+
+Python supports four typing styles, and they coexist in the same codebase:
+
+| Approach | Checked when | Mechanism |
+|---|---|---|
+| Duck typing | runtime | EAFP — just call the method |
+| Goose typing | runtime | `isinstance(x, ABC)` |
+| Static typing | at type-check | `mypy`, `pyright` |
+| Runtime protocol | runtime | `isinstance(x, Protocol)` (with `@runtime_checkable`) |
+
+The right choice depends on *who* checks the contract and *when*. We'll walk through the four in order.
+
+## Duck typing: Python digs sequences {#sec-protocols-duck}
+
+Duck typing is the original Python style: don't ask what something *is*; try to use it. The standard-library ABCs are written so that anything implementing the right methods passes `isinstance` *automatically*:
+
+```{python}
+from collections import abc
+
+class Struggle:
+    def __len__(self):
+        return 23
+
+isinstance(Struggle(), abc.Sized)
+```
+
+`Struggle` never inherited from `Sized`. It just has a `__len__`. The `Sized.__subclasshook__` recognizes that and lets `isinstance` succeed. This is duck typing made formal — the standard library calls it "structural subtyping by special method."
+
+## Monkey patching to fit a protocol {#sec-protocols-monkey}
+
+Sometimes a class is *almost* compatible with a protocol but missing one method. You can patch it at runtime — *gingerly*. The classic example: `random.shuffle` requires `__len__` and `__setitem__`, but a `FrenchDeck` that only supports reading doesn't have `__setitem__`.
+
+```{python}
+import collections, random
+
+Card = collections.namedtuple("Card", "rank suit")
+
+class FrenchDeck:
+    ranks = [str(n) for n in range(2, 11)] + list("JQKA")
+    suits = "spades diamonds clubs hearts".split()
+    def __init__(self):
+        self._cards = [Card(r, s) for s in self.suits for r in self.ranks]
+    def __len__(self):
+        return len(self._cards)
+    def __getitem__(self, pos):
+        return self._cards[pos]
+
+deck = FrenchDeck()
+
+def setitem(deck, position, card):
+    deck._cards[position] = card
+
+FrenchDeck.__setitem__ = setitem
+random.shuffle(deck)
+deck[0]
+```
+
+Monkey patching is a *last resort*. It modifies the class globally, which is invisible to anyone reading the original source. Use it for one-off scripts or test fixtures, not for library code.
+
+## Goose typing with ABCs {#sec-protocols-abc}
+
+*Goose typing* (Alex Martelli's name) is duck typing with a stamp of approval — the class explicitly says "I implement this protocol" by inheriting from an ABC. The ABC mechanism gives you two things: abstract methods (which subclasses *must* implement) and concrete mixin methods (which subclasses *get for free*).
+
+```{python}
+import abc
+
+class Tombola(abc.ABC):
+    @abc.abstractmethod
+    def load(self, iterable):
+        """Add items from an iterable."""
+
+    @abc.abstractmethod
+    def pick(self):
+        """Remove an item at random; raise LookupError if empty."""
+
+    def loaded(self):
+        return bool(self.inspect())
+
+    def inspect(self):
+        items = []
+        while True:
+            try:
+                items.append(self.pick())
+            except LookupError:
+                break
+        self.load(items)
+        return tuple(sorted(items))
+
+class BingoCage(Tombola):
+    def __init__(self, items):
+        self._items = list(items)
+        random.shuffle(self._items)
+
+    def load(self, items):
+        self._items.extend(items)
+
+    def pick(self):
+        try:
+            return self._items.pop()
+        except IndexError:
+            raise LookupError("pick from empty BingoCage")
+
+bingo = BingoCage(range(3))
+bingo.loaded(), sorted(bingo.inspect())
+```
+
+`BingoCage` implemented `load` and `pick`. It inherited `loaded` and `inspect` for free. If we'd forgotten one of the abstract methods:
+
+```{python}
+#| error: true
+class Half(Tombola):
+    def load(self, items): pass
+Half()
+```
+
+Trying to instantiate raises `TypeError`. The ABC enforces the contract.
+
+ABCs also support *virtual subclasses* — registering an unrelated class as a subclass without inheritance:
+
+```{python}
+from collections.abc import Sequence
+issubclass(tuple, Sequence)
+```
+
+The standard library has already registered `tuple` and `list` as `Sequence` subclasses.
+
+## Static `Protocol` types {#sec-protocols-protocol}
+
+`typing.Protocol` is the static-checker version of duck typing. You define an interface; any class with matching methods satisfies it — *no inheritance required, no registration*.
+
+```{python}
+from typing import Protocol, Any, runtime_checkable, TypeVar
+from collections.abc import Iterable
+
+@runtime_checkable
+class SupportsLessThan(Protocol):
+    def __lt__(self, other: Any) -> bool: ...
+
+isinstance(1, SupportsLessThan), isinstance("hi", SupportsLessThan)
+```
+
+Use it in annotations to constrain a generic:
+
+```{python}
+LT = TypeVar("LT", bound=SupportsLessThan)
+
+def top(series: Iterable[LT], length: int) -> list[LT]:
+    return sorted(series, reverse=True)[:length]
+
+top([3, 1, 4, 1, 5, 9, 2, 6], 3)
+```
+
+`mypy` checks that every element of `series` has `__lt__`. The decorator `@runtime_checkable` makes `isinstance(x, SupportsLessThan)` work too — without it, the protocol is purely static.
+
+## ABC vs `Protocol`: when to use which {#sec-protocols-choosing}
+
+Both formalize duck typing. The differences are practical:
+
+| | ABC | `Protocol` |
+|---|---|---|
+| Subtyping | nominal (inherit or `register`) | structural (just have the methods) |
+| When checked | runtime via `isinstance` | static via `mypy`, optionally runtime |
+| Partial implementations | yes (mixin methods) | no |
+| Forces explicit dependency | yes | no |
+
+Use a `Protocol` when you want library code to be type-safe but you don't want to force callers to inherit from anything (the `Closeable`, `Iterable`, `SupportsLessThan` style).
+
+Use an ABC when you want runtime enforcement *and* you want to provide partial implementations the subclass can rely on (the `Tombola` style).
+
+```{python}
+class Closeable(Protocol):
+    def close(self) -> None: ...
+
+class ReadableCloseable(Closeable, Protocol):
+    def read(self, n: int = -1) -> str: ...
+```
+
+Protocols compose, just like ABCs.
+
+::: {.callout-tip}
+## Why this matters
+ABCs enforce contracts at runtime via `isinstance` checks. Protocols enforce contracts at static analysis time via `mypy`. Both formalize duck typing. Use `Protocol` for library code that should be type-safe; use ABC when you want runtime enforcement and want to provide partial implementations (mixin methods on the ABC).
+:::
+
+## Exercises {#sec-protocols-exercises}
+
+1. **A duck for `Sized`.** Write a class with only `__len__` and confirm `isinstance(x, collections.abc.Sized)`. What about `Iterable` — what's the minimum?
+
+2. **A new ABC.** Define `Stack(abc.ABC)` with abstract `push`/`pop` methods and a concrete `peek` that returns the top without removing. Implement it with a `list`.
+
+3. **`Protocol` for context managers.** Define a `ContextLike` `Protocol` requiring `__enter__` and `__exit__`. Annotate a function that takes one. Try passing a `contextlib.suppress` — does `mypy` accept it?
+
+4. **`register` instead of inherit.** Use `Sequence.register(YourClass)` to make a class look like a `Sequence` to `isinstance`. Why is this fragile?
+
+5. **When duck typing wins.** Name a case where duck typing (just call the method) is *better* than declaring a `Protocol`. Hint: the cost of declaring the protocol must justify its use.
+
+## Summary {#sec-protocols-summary}
+
+Python's four typing approaches — duck, goose, static, runtime — are not competing; they're a toolkit. Duck typing is the lightest. ABCs add runtime enforcement and shared implementation. `Protocol` adds static enforcement without inheritance. Pick the one that solves your problem at the lowest cost.
+
+Next, @sec-inheritance is the cautionary chapter. Inheritance, especially multiple inheritance, has real costs — and Python gives you the tools to use it carefully.

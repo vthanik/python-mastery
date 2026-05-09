@@ -5,6 +5,178 @@
 Build a proper multi-dimensional `Vector` class by incrementally adding special methods. This chapter demonstrates how protocols (informal interfaces) work in practice.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Implement the *sequence protocol* — `__len__` and `__getitem__` — and get iteration, slicing, and `in` for free.
+2. Make slicing return the same class instead of a raw list.
+3. Use `__getattr__` and `__setattr__` to expose dynamic attributes (`v.x`, `v.y`, `v.z`).
+4. Hash a sequence by reducing its components with XOR.
+5. Use `zip` (and `zip_longest`) for parallel iteration and matrix transposition.
+
+## Protocols and duck typing {#sec-vector-protocol}
+
+Python's *sequence protocol* requires only two methods: `__len__` and `__getitem__`. Anything that has them behaves as a sequence — slicing, iteration, `in` — without inheriting from anything.
+
+```{python}
+import operator
+from array import array
+
+class Vector:
+    typecode = "d"
+
+    def __init__(self, components):
+        self._components = array(self.typecode, components)
+
+    def __iter__(self):
+        return iter(self._components)
+
+    def __repr__(self):
+        components = repr(self._components)
+        components = components[components.find("["):-1]
+        return f"Vector({components})"
+
+    def __len__(self):
+        return len(self._components)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            cls = type(self)
+            return cls(self._components[key])
+        index = operator.index(key)
+        return self._components[index]
+
+v = Vector(range(7))
+v[1], v[-1], len(v)
+```
+
+The clever part is the `__getitem__` slice handling. Without it, `v[1:4]` would return an `array.array` — losing the `Vector` type. With it, slicing returns another `Vector`:
+
+```{python}
+v[1:4]
+```
+
+`operator.index(key)` raises `TypeError` for non-integers (like floats), matching how built-in sequences behave.
+
+## Dynamic attribute access {#sec-vector-getattr}
+
+The first few components of a vector deserve familiar names: `x`, `y`, `z`, `t`. Rather than write four properties, use `__getattr__`:
+
+```{python}
+class VectorXYZT(Vector):
+    shortcut_names = "xyzt"
+
+    def __getattr__(self, name):
+        cls = type(self)
+        if len(name) == 1:
+            pos = cls.shortcut_names.find(name)
+            if 0 <= pos < len(self._components):
+                return self._components[pos]
+        raise AttributeError(f"{cls.__name__!r} object has no attribute {name!r}")
+
+v = VectorXYZT(range(5))
+v.x, v.y, v.z, v.t
+```
+
+`__getattr__` is called only when normal attribute lookup *fails*. So `v.x` first checks the instance dict, then the class — neither has `x` — and only then does `__getattr__` run.
+
+There's a trap. If we don't override `__setattr__`, the user can do this:
+
+```{python}
+v.x = 99
+v.x, v[0]
+```
+
+`v.x = 99` *created* an instance attribute that shadows our `__getattr__`. Now `v.x` and `v[0]` disagree. The fix is to forbid those names:
+
+```{python}
+class VectorXYZT2(VectorXYZT):
+    def __setattr__(self, name, value):
+        cls = type(self)
+        if len(name) == 1:
+            if name in cls.shortcut_names:
+                raise AttributeError(f"readonly attribute {name!r}")
+            elif name.islower():
+                raise AttributeError(f"can't set attributes 'a' to 'z' in {cls.__name__!r}")
+        super().__setattr__(name, value)
+
+w = VectorXYZT2(range(5))
+try:
+    w.x = 99
+except AttributeError as e:
+    print("blocked:", e)
+```
+
+## Hashing a sequence {#sec-vector-hash}
+
+Hashing two components used `hash((self.x, self.y))` — building a tuple. For an N-component vector, the same trick works, but it's instructive to do it manually with a fold:
+
+```{python}
+import functools
+
+class HashableVector(Vector):
+    def __eq__(self, other):
+        return len(self) == len(other) and all(a == b for a, b in zip(self, other))
+
+    def __hash__(self):
+        hashes = (hash(x) for x in self)
+        return functools.reduce(operator.xor, hashes, 0)
+
+v1 = HashableVector([1, 2, 3])
+v2 = HashableVector([1.0, 2.0, 3.0])
+hash(v1) == hash(v2), v1 == v2, len({v1, v2})
+```
+
+`reduce(operator.xor, hashes, 0)` is the hash-combining recipe: XOR is commutative and associative, so the order of components doesn't change the result, but the bit mixing keeps it spread.
+
+::: {.callout-warning}
+## `__eq__` is slow on long sequences
+
+The `all(a == b for ...)` form short-circuits on the first mismatch — good. But for very long sequences, hashing both and comparing the hashes first is faster. Profile before optimizing; correctness first.
+:::
+
+## The awesome `zip` {#sec-vector-zip}
+
+`zip` pairs elements from multiple iterables. It stops at the shortest:
+
+```{python}
+list(zip(range(3), "ABC")), list(zip(range(3), "ABCDE"))
+```
+
+The `D` and `E` were silently dropped — that's the gotcha. `zip(strict=True)` (Python 3.10+) raises if lengths differ; `itertools.zip_longest` fills the gap with a sentinel:
+
+```{python}
+from itertools import zip_longest
+list(zip_longest(range(3), "ABCDE", fillvalue="?"))
+```
+
+A nice idiom: `zip(*matrix)` *transposes* a list of equal-length sequences:
+
+```{python}
+matrix = [(1, 2), (3, 4), (5, 6)]
+list(zip(*matrix))
+```
+
+`*matrix` unpacks `[(1,2), (3,4), (5,6)]` into three positional arguments — `zip((1,2), (3,4), (5,6))` — which then yields the columns.
+
+::: {.callout-tip}
+## Why this matters
+Protocols are informal interfaces defined by convention: the sequence protocol is `__len__` + `__getitem__`. If your class has those, Python treats it as a sequence — no inheritance required. This is duck typing made formal and powerful.
+:::
+
+## Exercises {#sec-vector-exercises}
+
+1. **Slice returns `Vector`.** Verify `type(v[1:4])` is `Vector`, not `array.array`. Why does that matter for chained operations like `v[1:4][0:2]`?
+
+2. **`__getattr__` for indexed names.** Extend `shortcut_names` so that `v.r` returns the magnitude (`abs(v)`) and `v.theta` returns the angle (for 2D vectors). Where should the special-case live?
+
+3. **`zip(strict=True)`.** Replace the `__eq__` body with `len == len and all(zip(self, other, strict=True))`. What happens if you compare two vectors of different length?
+
+4. **Build a transposer.** Write `transpose(matrix)` using only `zip` and `*`. Verify on a non-square matrix.
+
+5. **Hash that ignores order.** Why does XOR-folding produce the *same* hash for `[1, 2, 3]` and `[3, 2, 1]`? When is that a feature; when is it a bug?
+
+## Summary {#sec-vector-summary}
+
+The sequence protocol — `__len__` and `__getitem__` — is the most rewarding contract in Python. Implement it carefully (return the right type for slices, raise the right error for non-integers), pair it with `__getattr__`/`__setattr__` for named components, and your class behaves like the built-ins.
+
+Next, @sec-protocols-abcs steps back and surveys Python's *four* approaches to typing: duck, goose, static, runtime — and shows when to reach for each.

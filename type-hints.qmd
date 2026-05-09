@@ -5,6 +5,227 @@
 Type hints are optional, checked by tools (mypy, pyright), and have zero runtime cost. They are documentation that can be verified. Python's type system is "gradual" — you add hints incrementally.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Add type hints to functions and read what they document.
+2. Use `Optional`, `Union`, and the modern `X | Y` syntax for choices.
+3. Annotate generic collections — `list[int]`, `dict[str, float]`, `tuple[int, ...]`.
+4. Prefer abstract types (`Iterable`, `Sequence`, `Mapping`) for parameters.
+5. Use `TypeVar` to write functions that preserve element types.
+6. Define structural interfaces with `typing.Protocol`.
+
+## Gradual typing in practice {#sec-types-gradual}
+
+A function without hints is still legal. Hints are added when they earn their keep — usually at API boundaries:
+
+```{python}
+def show_count(count: int, word: str) -> str:
+    if count == 1:
+        return f"1 {word}"
+    return f"{count or 'no'} {word}s"
+
+show_count(1, "fish"), show_count(0, "bird"), show_count(3, "cat")
+```
+
+The `: int` and `: str` hint the parameters; `-> str` hints the return type. None of this affects runtime — `mypy` (or `pyright`) reads it; the interpreter ignores it.
+
+For optional parameters, write `X | None` (Python 3.10+) or `Optional[X]`:
+
+```{python}
+def show_count(count: int, singular: str, plural: str | None = None) -> str:
+    if count == 1:
+        return f"1 {singular}"
+    return f"{count or 'no'} {plural or singular + 's'}"
+
+show_count(1, "fox"), show_count(2, "fox"), show_count(2, "child", "children")
+```
+
+## Types are defined by supported operations {#sec-types-duck}
+
+The duck-typing view is that *a type is what a value can do*:
+
+```{python}
+def double(x):
+    return x * 2
+
+double(2), double("ab"), double([1, 2])
+```
+
+`int`, `str`, and `list` all support `*` — and `double` works on all three. The type-system view writes the same idea using `TypeVar`:
+
+```{python}
+from typing import TypeVar
+T = TypeVar("T", int, str, list)
+def double_typed(x: T) -> T:
+    return x * 2
+
+double_typed(2), double_typed("ab")
+```
+
+Now `mypy` knows that `double_typed(2)` returns `int`, not "anything".
+
+## Types you'll annotate with {#sec-types-vocabulary}
+
+The everyday vocabulary:
+
+```{python}
+from typing import Any
+def legacy_parse(text: str) -> Any: ...
+
+def parse(text: str) -> float | None:
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+parse("3.14"), parse("hello")
+```
+
+```{python}
+def normalize_label(label: int | str) -> str:
+    if isinstance(label, int):
+        return str(label)
+    return label
+
+normalize_label(42), normalize_label("forty-two")
+```
+
+For collections, since Python 3.9 you can subscript the built-ins directly — no `from typing import List` needed:
+
+```{python}
+def tokenize(text: str) -> list[str]:
+    return text.upper().split()
+
+tokenize("hello world")
+```
+
+```{python}
+def divmod_pair(a: int, b: int) -> tuple[int, int]:
+    return divmod(a, b)
+
+divmod_pair(17, 5)
+```
+
+`tuple[int, int]` is a fixed-length tuple. `tuple[int, ...]` (with the literal `...`) is a variable-length homogeneous tuple.
+
+For a callable parameter, use `collections.abc.Callable`:
+
+```{python}
+from collections.abc import Callable
+def apply(func: Callable[[int], str], value: int) -> str:
+    return func(value)
+
+apply(str, 42)
+```
+
+## Abstract types beat concrete types {#sec-types-abstract}
+
+For *parameters*, prefer the most abstract type that supports the operations you need. `Iterable` is the most permissive; `Sequence` adds indexing; `Mapping` is the read-only dict shape.
+
+```{python}
+from collections.abc import Sequence, Mapping, Iterable
+
+def column(matrix: Sequence[Sequence[float]], i: int) -> list[float]:
+    return [row[i] for row in matrix]
+
+column([[1, 2], [3, 4], [5, 6]], 0)
+```
+
+```{python}
+def total(items: Iterable[int]) -> int:
+    return sum(items)
+
+total([1, 2, 3]), total(range(4)), total(n*n for n in range(5))
+```
+
+`total` accepts any iterable — `list`, `range`, generator. If the parameter were `list[int]`, the generator wouldn't type-check.
+
+The opposite rule applies to *return types*: be concrete. Returning `list[int]` is more useful than returning `Iterable[int]`, because the caller can rely on indexing and length.
+
+## `TypeVar` and parameterized generics {#sec-types-typevar}
+
+A `TypeVar` lets a function preserve the relationship between input and output types:
+
+```{python}
+from typing import TypeVar
+from collections.abc import Sequence
+
+T = TypeVar("T")
+def first(seq: Sequence[T]) -> T:
+    return seq[0]
+
+first([1, 2, 3]), first(["a", "b"])
+```
+
+`mypy` infers `first([1, 2, 3])` as `int` and `first(["a", "b"])` as `str`. The single function is generic over the element type.
+
+A *bounded* `TypeVar` restricts the choice of types:
+
+```{python}
+from decimal import Decimal
+from fractions import Fraction
+from collections.abc import Iterable
+
+NumberT = TypeVar("NumberT", float, Decimal, Fraction)
+def average(data: Iterable[NumberT]) -> NumberT:
+    items = list(data)
+    return sum(items) / len(items)
+
+average([1.0, 2.0, 3.0])
+```
+
+Now `average` works on any of the three numeric types but not, say, on `str`.
+
+## Static `Protocol` types {#sec-types-protocol}
+
+`typing.Protocol` is the type-system spelling of duck typing. You declare an interface; any class with matching methods *is* compatible — no inheritance required.
+
+```{python}
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Drawable(Protocol):
+    def draw(self) -> None: ...
+
+class Circle:
+    def draw(self) -> None:
+        print("Drawing circle")
+
+class Square:
+    def draw(self) -> None:
+        print("Drawing square")
+
+def render(shape: Drawable) -> None:
+    shape.draw()
+
+render(Circle())
+render(Square())
+isinstance(Circle(), Drawable)
+```
+
+`@runtime_checkable` is the only reason `isinstance` works against a `Protocol`. Without it, the protocol is purely a static-checker contract.
+
+We will return to protocols, ABCs, and the line between them in @sec-protocols-abcs.
+
+::: {.callout-tip}
+## Why this matters
+"Types are defined by supported operations" — this is duck typing expressed as a type system. The `Protocol` class formalizes duck typing: define the interface, and any class that implements those methods satisfies the protocol, without inheriting from anything.
+:::
+
+## Exercises {#sec-types-exercises}
+
+1. **Annotate `tokenize`.** Add type hints to `tokenize` from the chapter so that the input is "anything that can be `.upper().split()`-ed and returns a list of strings." Check with `mypy --strict`.
+
+2. **`Optional` vs `| None`.** Convert a function with `Optional[int]` parameter to use the `int | None` syntax. Are the two equivalent under `mypy`?
+
+3. **A bounded `TypeVar`.** Write `def median(values: Iterable[T]) -> T` where `T` is bounded to `int | float | Decimal`. Make sure passing a list of strings is rejected by the type checker.
+
+4. **A `Protocol` for sized.** Define a `Sized` protocol with a `__len__` method. Annotate `def percent_full(x: Sized, capacity: int) -> float` to compute `len(x) / capacity * 100`.
+
+5. **When `Any` is honest.** Write a function that accepts an arbitrary JSON-decoded value and returns its depth. Annotate the parameter as `Any`. Why is `Any` more honest here than `int | str | list | dict | None`?
+
+## Summary {#sec-types-summary}
+
+Type hints are gradual: you add them where they pay rent. The everyday vocabulary — `list[T]`, `tuple[T, ...]`, `Optional`, `Iterable`, `TypeVar`, `Protocol` — is enough for nearly everything. We'll revisit the harder parts (variance, `TypedDict`, `overload`) in @sec-advanced-typing once classes and protocols are on the table.
+
+Next, @sec-decorators is where first-class functions earn their keep at scale: decorators, closures, and the standard-library decorators that you'll use every day.

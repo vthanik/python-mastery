@@ -5,6 +5,174 @@
 Advanced typing: function overloads, `TypedDict` for structured dicts, variance in generic types, and generic static protocols.
 :::
 
-## In progress {.unnumbered}
+In this chapter you will learn to:
 
-This chapter is a stub.
+1. Declare multiple signatures for one function with `@overload`.
+2. Type a structured dict with `TypedDict` — and choose between it and `@dataclass`.
+3. Reason about variance: when `Container[Sub]` is a `Container[Super]` (covariant), when it isn't (invariant), and when the relationship reverses (contravariant).
+4. Read type hints at runtime with `typing.get_type_hints`.
+
+## Overloaded signatures {#sec-typing-overload}
+
+Some functions have inputs and outputs that depend on each other. `max` is the canonical example: with no `key`, the elements must be `LT`-comparable; with a `key=Callable[[T], LT]`, the elements only need whatever the key produces.
+
+```{python}
+from typing import overload, TypeVar, Any
+from collections.abc import Iterable, Callable
+
+T = TypeVar("T")
+LT = TypeVar("LT")
+
+@overload
+def my_max(__arg1: LT, __arg2: LT, *args: LT, key: None = ...) -> LT: ...
+@overload
+def my_max(__arg1: T, __arg2: T, *args: T, key: Callable[[T], LT]) -> T: ...
+@overload
+def my_max(__iterable: Iterable[LT], *, key: None = ...) -> LT: ...
+@overload
+def my_max(__iterable: Iterable[T], *, key: Callable[[T], LT]) -> T: ...
+
+def my_max(first, *args, key=None):
+    """The actual implementation — no @overload, no annotations needed here."""
+    if args:
+        items = (first,) + args
+    else:
+        items = first
+    if key is None:
+        return max(items) if hasattr(items, "__iter__") else first
+    return max(items, key=key)
+
+my_max([3, 1, 4, 1, 5]), my_max("hello", "world", key=len)
+```
+
+The `@overload` declarations are *only* for the type checker — they have no runtime effect. The actual implementation comes last, undecorated. `mypy` reads the overloads and applies the right one to each call site.
+
+## `TypedDict` for structured dicts {#sec-typing-typeddict}
+
+When you receive a JSON-like dict whose keys you know, `TypedDict` documents the shape:
+
+```{python}
+from typing import TypedDict
+
+class BookDict(TypedDict):
+    isbn: str
+    title: str
+    authors: list[str]
+    pagecount: int
+
+book: BookDict = {
+    "isbn": "0134757599",
+    "title": "Refactoring",
+    "authors": ["Martin Fowler"],
+    "pagecount": 448,
+}
+book["title"]
+```
+
+`mypy` knows `book["title"]` is `str` and `book["pagecount"]` is `int`. At runtime, `book` is just a `dict` — `TypedDict` is a static-only annotation.
+
+| | `TypedDict` | `@dataclass` |
+|---|---|---|
+| Runtime type | `dict` | a real class |
+| `__init__`, `__repr__`, `__eq__` | inherited from `dict` | generated |
+| Mutation | yes (any key) | yes (depends on `frozen`) |
+| Use for | parsed JSON / config | domain entities |
+
+If you need methods, equality, ordering — use a dataclass. If you're modeling an external dict you receive (an API response, a JSON config) — use `TypedDict`.
+
+## Variance {#sec-typing-variance}
+
+Suppose `Dog` is a subclass of `Animal`. Is `list[Dog]` a `list[Animal]`?
+
+The answer is **no**: `list` is *invariant*. Why? Because `list[Animal]` accepts `Cat` (also an `Animal`), but `list[Dog]` does not — appending a `Cat` to what you thought was a `list[Dog]` is a type error.
+
+```python
+def add_cat(animals: list[Animal]) -> None:
+    animals.append(Cat())
+
+dogs: list[Dog] = [Dog()]
+add_cat(dogs)        # mypy correctly REJECTS this
+```
+
+But for *read-only* containers, the relationship holds:
+
+```{python}
+from typing import TypeVar, Generic
+from collections.abc import Iterable, Iterator
+
+T_co = TypeVar("T_co", covariant=True)
+
+class ImmutableBag(Generic[T_co]):
+    def __init__(self, items: Iterable[T_co]) -> None:
+        self._items = tuple(items)
+    def __iter__(self) -> Iterator[T_co]:
+        return iter(self._items)
+```
+
+`ImmutableBag` only *produces* `T_co` — it never accepts one. So `ImmutableBag[Dog]` *is* an `ImmutableBag[Animal]`. That's *covariance*.
+
+The opposite case — *contravariance* — is for things that only *consume* `T`:
+
+```{python}
+T_contra = TypeVar("T_contra", contravariant=True)
+
+class TrashCan(Generic[T_contra]):
+    def drop(self, item: T_contra) -> None: ...
+```
+
+A `TrashCan[Animal]` accepts any animal — including dogs. So a `TrashCan[Animal]` *is* a `TrashCan[Dog]`. The subtype direction reversed.
+
+The rule of thumb:
+
+| Container's role | Variance | TypeVar |
+|---|---|---|
+| Produces `T` only | covariant | `T_co = TypeVar(..., covariant=True)` |
+| Consumes `T` only | contravariant | `T_contra = TypeVar(..., contravariant=True)` |
+| Both | invariant (default) | `T = TypeVar(...)` |
+
+You don't need this most days. You'll need it when you write a generic library and `mypy` rejects what you thought was an obvious assignment.
+
+## Reading hints at runtime {#sec-typing-runtime}
+
+`typing.get_type_hints` reads the `__annotations__` of a function or class and resolves any forward references:
+
+```{python}
+from typing import get_type_hints
+
+class HintedClass:
+    attr: int
+    other: str = "default"
+    def method(self, x: float) -> bool:
+        return True
+
+get_type_hints(HintedClass)
+```
+
+```{python}
+get_type_hints(HintedClass.method)
+```
+
+`__annotations__` is the raw dict — strings if you used `from __future__ import annotations`, real types otherwise. `get_type_hints` is the safer accessor.
+
+::: {.callout-tip}
+## Why this matters
+Variance captures the direction of subtype relationships for generics. Covariance and contravariance are not just academic — they explain why `list[int]` is not a `list[float]` (mutation makes it unsafe), and why read-only containers can be covariant. If you produce `T`, you can be covariant. If you consume `T`, you can be contravariant.
+:::
+
+## Exercises {#sec-typing-exercises}
+
+1. **Overload `to_str`.** Write `to_str` that returns `str` for `int`, `float`, and `bool`. Use `@overload` to document the three signatures.
+
+2. **`TypedDict` vs `dataclass`.** Take the `BookDict` example and reimplement as a `@dataclass`. What changes for the *caller*? For the *type checker*?
+
+3. **Why `list` is invariant.** Sketch a two-sentence argument that `list[Dog]` cannot be a `list[Animal]` even though `Dog` is an `Animal`. Use the `add_cat` example.
+
+4. **Covariant container.** Write `ReadOnlyDict[K, V_co]` that exposes only `__getitem__`, `__contains__`, and iteration. Why does the value type get to be covariant but the key type does not?
+
+5. **Runtime annotations.** Use `get_type_hints` on a function with `from __future__ import annotations` at the top of the module. Explain why the result differs from `__annotations__`.
+
+## Summary {#sec-typing-summary}
+
+`@overload`, `TypedDict`, and variance are the three tools that make Python's static type system *useful at scale*. They turn type hints from inline documentation into a real verifier — one that catches not just typos but design errors.
+
+That closes Part III. Part IV turns to control flow and concurrency: operator overloading, iterators and generators, the `with`/`match`/`else` blocks, threads, processes, and `asyncio`. We start in @sec-operator-overload by giving our classes the same arithmetic that built-in numbers have.
