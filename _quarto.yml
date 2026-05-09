@@ -13,8 +13,6 @@ book:
       Distilled from David M. Beazley's *Python Distilled* (Addison-Wesley 2022) and Luciano Ramalho's *Fluent Python* (2e, O'Reilly Media 2022).
     right: |
       This book was built with <a href="https://quarto.org/">Quarto</a>.
-  cover-image: cover.jpg
-  favicon: cover.jpg
   site-url: https://example.invalid/
   repo-url: https://example.invalid/
   repo-branch: main
