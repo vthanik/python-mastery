@@ -149,14 +149,71 @@ The general pattern: each operator and built-in has a corresponding dunder. Impl
 
 You shipped `Circle` with a plain `radius` attribute. Months later, you discover users have been creating circles with negative radii. You want to add validation — but `circle.radius = 5` is written all over the codebase. Changing it to `circle.set_radius(5)` would break every caller. `@property` is the escape hatch: it lets you replace a plain attribute with a method-backed one, *without changing the calling syntax*.
 
-A quick definition before the code: a **getter** is a method that runs when someone *reads* an attribute (`c.radius`); a **setter** is a method that runs when someone *writes* one (`c.radius = 5`). With a plain attribute Python just stashes the value in the instance's `__dict__`; with `@property`, Python routes every read through your getter and every write through your setter. The calling syntax stays the same — `c.radius` and `c.radius = 5` — but now validation, computation, or logging can sit in between. The hooks fire on the *instance* (`c`, an object built from the class), not on the class `Circle` itself.
+Two terms to know first:
+
+- A **getter** is a method that runs when someone *reads* an attribute (`c.radius`).
+- A **setter** is a method that runs when someone *writes* one (`c.radius = 5`).
+
+With a plain attribute, Python stashes the value in the instance's `__dict__` and reads it back unchanged — no methods involved. With `@property`, Python routes every read through your getter and every write through your setter. The calling syntax stays the same (`c.radius` to read, `c.radius = 5` to write) but now validation, computation, or logging can sit in between. The hooks fire on the *instance* (`c`, an object built from the class), not on the class `Circle` itself. Build the pattern in three small steps.
+
+**Step 1: turn a method into a read-only attribute.** Decorating a method with `@property` lets the caller use it as an attribute — no parentheses needed:
 
 ```{python}
 import math
 
 class Circle:
     def __init__(self, radius):
-        self.radius = radius                # triggers the setter
+        self._radius = radius      # store directly into the underscore name
+
+    @property
+    def radius(self):
+        return self._radius
+
+c = Circle(5)
+c.radius                            # not c.radius() — no parens
+```
+
+- `_radius` (with underscore) is the **storage** — the actual data attribute on the instance. The leading underscore is a Python convention that says "this is internal; use the public form instead."
+- `radius` (no underscore) is a method, but `@property` registers it as a *property* on the class. When the user writes `c.radius`, Python notices the property and calls the method behind your back — that's why you get `5` (the return value) instead of a method object.
+- We get a *read-only* attribute. Try `c.radius = 10` at this point and Python raises `AttributeError` because we haven't given it a way to write.
+
+**Step 2: add a setter to validate writes.** Once you've used `@property`, the name `radius` on the class no longer refers to the original method — it refers to a *property object* that Python created. That object has a `.setter` decorator, used to register the write hook:
+
+```{python}
+class Circle:
+    def __init__(self, radius):
+        self.radius = radius        # goes through the setter — validates here too
+
+    @property
+    def radius(self):
+        return self._radius
+
+    @radius.setter
+    def radius(self, value):
+        if value < 0:
+            raise ValueError(f"radius cannot be negative: {value}")
+        self._radius = value
+
+c = Circle(5)
+c.radius
+```
+
+```{python}
+#| error: true
+c.radius = -1
+```
+
+- `@radius.setter` reads as "use the `setter` decorator method on the property object named `radius`." The `radius` here is the property we created in step 1, not an integer. Python's decorator syntax lets you reuse the name to attach a second method to the same property.
+- The setter receives the value being assigned. It validates first, then stores in `self._radius` — never `self.radius`, which would re-enter the setter and recurse forever.
+- `__init__` now does `self.radius = radius`. That assignment goes through the setter too, so `Circle(-1)` fails immediately instead of letting a bad value into the instance.
+- Try `c.radius = -1` after construction and the same setter rejects it. The calling code never had to learn about validation — it just sees `AttributeError`-like behavior on bad values.
+
+**Step 3: a computed property — read with no storage.** Sometimes the value you expose is *derived* from other state, not stored. Define `@property` with a getter only — there's nothing to write, so omit the setter:
+
+```{python}
+class Circle:
+    def __init__(self, radius):
+        self.radius = radius
 
     @property
     def radius(self):
@@ -169,7 +226,7 @@ class Circle:
         self._radius = value
 
     @property
-    def area(self):                          # computed — no setter
+    def area(self):
         return math.pi * self._radius ** 2
 
 c = Circle(5)
@@ -178,15 +235,12 @@ c = Circle(5)
 
 ```{python}
 #| error: true
-c.radius = -1
+c.area = 50
 ```
 
-Walking through the moving parts:
-
-- The first `radius` method (decorated `@property`) is the **getter** — it's called whenever someone *reads* `c.radius`. We return `self._radius`, the underscore-prefixed "internal" storage.
-- `@radius.setter` registers the **setter** — called on every *assignment* to `c.radius`. It validates first, then stores. Inside the setter we write to `self._radius` (not `self.radius`) — that would be infinite recursion, since `self.radius = x` itself goes through the setter.
-- `area` has no setter, so it's read-only. `c.area = 50` raises `AttributeError`.
-- `__init__` does `self.radius = radius` — that goes through the setter too, validating up front.
+- `area` has a getter and no setter — read-only by construction. The user reads `c.area` like any attribute and gets the freshly-computed value.
+- `c.area = 50` raises `AttributeError` because no setter was defined. That's exactly right: the area is *derived* from the radius, so assigning to it directly would be incoherent.
+- Computed properties keep `area`, `circumference`, `diameter`, and so on always in sync with `radius` — change `radius` once and every derived value updates on next read.
 
 The general pattern: start with a plain attribute. The day you need validation, computation, or logging, add `@property` — and not a single caller has to change. This is one of Python's quietest superpowers. The full machinery (it's all *descriptors*) is in @sec-descriptors.
 
