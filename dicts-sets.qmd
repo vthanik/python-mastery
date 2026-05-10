@@ -31,6 +31,8 @@ country_dial = {country: code for code, country in dial_codes}
 country_dial
 ```
 
+The trick in the comprehension is the variable order: each tuple in `dial_codes` is `(code, country)`, but we unpack it as `for code, country in dial_codes` and then write `{country: code}` — *flipping* the pair so the country becomes the key. The result is a dict mapping country name to dial code, which is the lookup direction you actually want for human-typed input. Same shape works to filter or transform: `{c: code for c, code in dial_codes.items() if code > 60}` keeps only some keys.
+
 `**` unpacks a dict into another dict (or into keyword arguments):
 
 ```{python}
@@ -40,6 +42,8 @@ def dump(**kwargs):
 dump(**{"x": 1}, y=2, **{"z": 3})
 ```
 
+Three pieces: `**{"x": 1}` spreads the dict's pairs as keyword arguments — equivalent to writing `x=1`. `y=2` is a literal keyword. `**{"z": 3}` spreads another dict — equivalent to `z=3`. They all pile into `kwargs`, which the function returns: `{'x': 1, 'y': 2, 'z': 3}`. The same `**` syntax works in *dict literals* — `{**d1, **d2, "extra": 1}` builds a fresh dict by spreading both, with later spreads winning on key collision.
+
 Since Python 3.9, `|` merges dicts and `|=` updates in place — and they handle conflicts the same way `dict.update` does (the right-hand side wins):
 
 ```{python}
@@ -48,10 +52,14 @@ d2 = {"a": 2, "b": 4, "c": 6}
 d1 | d2
 ```
 
+`d1 | d2` returns a *new* dict `{'a': 2, 'b': 4, 'c': 6}` — keys present in both come from `d2` (right wins), keys only in `d1` survive, keys only in `d2` come along. `d1` is unchanged after this expression.
+
 ```{python}
 d1 |= d2
 d1
 ```
+
+`d1 |= d2` is the *augmented* form: same merge, but it mutates `d1` in place. Equivalent to `d1.update(d2)` but reads as a one-liner. Use `|` when you want to keep both originals; use `|=` when overwriting `d1` is what you mean.
 
 ::: {.callout-tip}
 ## Dicts are now ordered
