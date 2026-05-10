@@ -24,18 +24,6 @@ Python's sequence types fall into a small grid. Memorize this grid and the rest 
 | **Mutable** | `list`, `collections.deque` | `bytearray`, `array.array` |
 | **Immutable** | `tuple` | `str`, `bytes` |
 
-```{mermaid}
-flowchart TB
-  subgraph Container["Container — any types, holds references"]
-    CM["Mutable: list, deque"]
-    CI["Immutable: tuple"]
-  end
-  subgraph Flat["Flat — one type, packed values"]
-    FM["Mutable: bytearray, array.array"]
-    FI["Immutable: str, bytes"]
-  end
-```
-
 A *container* sequence holds references to objects of any type — the `list` `[1, "two", 3.0]` is a list of three pointers. A *flat* sequence packs values directly into contiguous memory, so it can only hold one type, but it's smaller and faster.
 
 The mutable/immutable split decides which methods exist. `list.append`, `bytearray.extend`, `deque.appendleft` exist on the mutable types and not the immutable ones — that's the only difference at the API level.
