@@ -156,7 +156,7 @@ Walking through the implementation:
 - `__eq__` first checks that the lengths match — without this, `Vector([1, 2])` and `Vector([1, 2, 3])` would compare equal up to the second component. Then `zip(self, other)` pairs components; `all(a == b for ...)` short-circuits on the first mismatch.
 - `__hash__` builds a *generator expression* of per-component hashes — lazy, so we don't materialize an intermediate list.
 - `functools.reduce(operator.xor, hashes, 0)` folds the generator with XOR, starting from the seed `0`. Each step is `acc = acc ^ hash(component)`.
-- `hash(v1) == hash(v2)` because `1 == 1.0` and `hash(1) == hash(1.0)` — Python's numeric tower keeps these aligned. That's the rule "equal objects must have equal hashes" in action.
+- `hash(v1) == hash(v2)` because `1 == 1.0` and `hash(1) == hash(1.0)` — Python's *numeric tower* (the family of related types `bool ⊂ int ⊂ float ⊂ complex`, defined in the `numbers` module) keeps these aligned. The interpreter explicitly arranges that any two numerically-equal values across the tower hash the same. That's the rule "equal objects must have equal hashes" in action.
 
 The general pattern: `reduce(op, iterable, seed)` is the canonical fold. XOR is the right `op` for hash-combining because it's commutative and associative — order doesn't change the result — and bit-mixing keeps the output well-distributed. The trade-off is that XOR-folding produces the same hash for `[1, 2, 3]` and `[3, 2, 1]`; that's a feature when permutations should compare equal, a bug otherwise.
 
@@ -202,6 +202,103 @@ The general rule: pick `zip` for "pair these and stop at the shortest", `zip(str
 ## Why this matters
 Protocols are informal interfaces defined by convention: the sequence protocol is `__len__` + `__getitem__`. If your class has those, Python treats it as a sequence — no inheritance required. This is duck typing made formal and powerful.
 :::
+
+## Build: a sequence-like `Matrix` class {#sec-vector-build}
+
+Vectors live in one dimension; matrices in two. We'll build a `Matrix` that's a sequence *of rows* — `len(m)` is the row count, `m[0]` is a row, `m[1:3]` is a sub-matrix, `m == n` compares element-by-element, and `m` can be used as a dict key. Every dunder from the chapter earns its place.
+
+**Step 1: `__init__`, `__len__`, `__getitem__` with slice handling.** Rows are stored as immutable tuples so the matrix can be hashable later. `__getitem__` dispatches on `int` vs `slice`, and the slice case returns another `Matrix`:
+
+```{python}
+class Matrix:
+    def __init__(self, rows):
+        self._rows = tuple(tuple(row) for row in rows)
+
+    def __len__(self):
+        return len(self._rows)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return type(self)(self._rows[key])         # slice -> Matrix
+        return self._rows[key]                          # int -> tuple (a row)
+
+m = Matrix([(1, 2, 3), (4, 5, 6), (7, 8, 9)])
+[len(m), m[0], type(m[0:2]).__name__]
+```
+
+`tuple(tuple(row) for row in rows)` does two things at once: copies the input so the matrix isn't aliased to the caller's data (the chapter-18 lesson), and freezes each row into a tuple so the whole structure is immutable and hashable. The `slice` branch returns a *new* `Matrix` (using `type(self)` so subclasses get their own type back), exactly the pattern from the `Vector` example earlier in the chapter.
+
+**Step 2: `__iter__`, `__eq__`, `__repr__`.** Add iteration (so `for row in m:` works), structural equality, and a clean repr:
+
+```{python}
+class Matrix:
+    def __init__(self, rows):
+        self._rows = tuple(tuple(row) for row in rows)
+
+    def __len__(self):
+        return len(self._rows)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return type(self)(self._rows[key])
+        return self._rows[key]
+
+    def __iter__(self):
+        return iter(self._rows)
+
+    def __eq__(self, other):
+        return isinstance(other, Matrix) and self._rows == other._rows
+
+    def __repr__(self):
+        return f"{type(self).__name__}({list(self._rows)!r})"
+
+m = Matrix([(1, 2), (3, 4)])
+n = Matrix([(1, 2), (3, 4)])
+[m == n, list(m), repr(m)]
+```
+
+`__iter__` returning `iter(self._rows)` is the lazy-friendly form — no copy, just a fresh iterator over the row tuples. `__eq__` compares the tuple-of-tuples directly, which delegates equality to the components recursively. `__repr__` uses `type(self).__name__` so subclasses report their own class.
+
+**Step 3: `__hash__` via XOR-fold, plus a `transpose` using `zip(*self)`.** The chapter's hash recipe (reduce with XOR over the components' hashes) generalises one level higher — we hash each row tuple, then XOR-fold those:
+
+```{python}
+import functools, operator
+
+class Matrix:
+    def __init__(self, rows):
+        self._rows = tuple(tuple(row) for row in rows)
+
+    def __len__(self):
+        return len(self._rows)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            return type(self)(self._rows[key])
+        return self._rows[key]
+
+    def __iter__(self):
+        return iter(self._rows)
+
+    def __eq__(self, other):
+        return isinstance(other, Matrix) and self._rows == other._rows
+
+    def __hash__(self):
+        return functools.reduce(operator.xor, (hash(row) for row in self), 0)
+
+    def __repr__(self):
+        return f"{type(self).__name__}({list(self._rows)!r})"
+
+    def transpose(self):
+        return type(self)(zip(*self))
+
+m = Matrix([(1, 2, 3), (4, 5, 6)])
+mt = m.transpose()
+[mt, len({m, Matrix([(1, 2, 3), (4, 5, 6)])})]
+```
+
+`functools.reduce(operator.xor, (hash(row) for row in self), 0)` folds the row hashes with XOR — the chapter's recipe applied at the row level rather than the scalar level. The matrix can now sit in a `set` or be a dict key. `transpose` is the `zip(*self)` trick from the chapter: `*self` unpacks the rows into positional args; `zip` then walks them column-by-column, yielding the transposed rows. Wrapping in `type(self)(...)` keeps the result a `Matrix`.
+
+The build is the chapter applied at one level of recursion: the matrix is a sequence of rows just as the vector was a sequence of components. `__len__`, `__getitem__` (with slice handling), `__iter__`, `__eq__`, `__hash__`, `__repr__`, and `zip(*self)` for transpose — every tool from the chapter, in one fifty-line class.
 
 ## Exercises {#sec-vector-exercises}
 
