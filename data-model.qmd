@@ -81,7 +81,14 @@ Two more powers came in that line. Slicing — `deck[:3]` — works because slic
 Card("Q", "hearts") in deck
 ```
 
-The `in` operator falls back to iteration when `__contains__` isn't defined, so it works too. Sorting works:
+The `in` operator falls back to iteration when `__contains__` isn't defined, so it works too. Sorting works as well, but to sort cards we first need a way to compare them. Cards don't have a built-in order — is the King of hearts greater than the Queen of spades? — so we *define* one. The convention used here is "spades-high": within a rank, suits order spades > hearts > diamonds > clubs; across ranks, A > K > Q > … > 2.
+
+The way to express that to `sorted` is a *key function* — a function that takes one card and returns something `sorted` already knows how to compare (a number). Before the code, the pieces it uses:
+
+- `FrenchDeck.ranks` reads the class attribute we defined in the class body — `["2", "3", …, "J", "Q", "K", "A"]`. Reading `ClassName.attr` from outside the class is how you access shared constants like this.
+- `list.index(value)` is the `list` method that returns the position of `value` — so `FrenchDeck.ranks.index("A")` is `12`. We use the position as the rank's numeric weight.
+- `card.rank` and `card.suit` are the field names from the `Card = namedtuple("Card", ["rank", "suit"])` we built earlier; `card[0]` and `card[1]` would do the same thing.
+- `sorted(iterable, key=fn)` calls `fn` on each element and sorts by the *result* (not the element itself).
 
 ```{python}
 suit_values = dict(spades=3, hearts=2, diamonds=1, clubs=0)
@@ -94,7 +101,9 @@ for card in sorted(deck, key=spades_high)[-3:]:
     print(card)
 ```
 
-Three of the highest cards. We wrote two methods; we got `len`, indexing, slicing, iteration, `in`, `random.choice`, and `sorted`. *That* is the data model.
+`spades_high` collapses each card into a single integer: multiplying the rank by `len(suit_values)` (4) leaves room for the suit weight to break ties without ever crossing into the next rank. The slice `[-3:]` then takes the last three from the sorted list — the three highest cards.
+
+We wrote two methods; we got `len`, indexing, slicing, iteration, `in`, `random.choice`, and `sorted`. *That* is the data model.
 
 ## Emulating numeric types {#sec-data-model-numeric}
 
