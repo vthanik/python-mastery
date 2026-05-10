@@ -18,6 +18,8 @@ Most Python tutorials skip the mental models and dive into syntax. We don't, bec
 
 Every object Python creates carries three pieces of information: its **value** (what it contains), its **type** (what kind of thing it is), and its **identity** (its address in memory). These three together explain almost every "why does this work that way?" question in the language.
 
+To inspect them, Python gives us two built-in functions you can call on any object: `type(x)` returns the class the object belongs to, and `id(x)` returns its identity (a number unique while the object is alive). Together with the value itself, these are the three answers:
+
 ```{python}
 x = 42
 x, type(x), id(x)
@@ -27,7 +29,7 @@ Walking through what we just asked Python to tell us:
 
 - `x` is the **value** — `42` itself.
 - `type(x)` is the **type** — `int`, the class the object belongs to.
-- `id(x)` is the **identity** — a number unique to this object during its lifetime, in CPython the memory address.
+- `id(x)` is the **identity** — a number unique to this object during its lifetime. In CPython (the reference interpreter, written in C, that you almost certainly have installed), `id` returns the object's memory address. Other implementations (PyPy, MicroPython, …) use different schemes, but the *uniqueness while alive* guarantee holds everywhere.
 
 Now the same three questions on two lists that *look* the same:
 
@@ -71,15 +73,15 @@ xs
 
 The general rule: assignment binds names to objects; mutation through any name is visible through every other name pointing at the same object. We revisit this in detail in @sec-references-mutability.
 
-The picture to keep in mind is two name tags tied to one heap object:
+The picture to keep in mind is two name tags tied to one heap object — for the list example just above:
 
 ```{mermaid}
 flowchart LR
-    x((x)) --> obj["42<br/>type: int<br/>id: 0x..."]
-    y((y)) --> obj
+    xs((xs)) --> obj["[1, 2, 3, 4]<br/>type: list<br/>id: 0x..."]
+    ys((ys)) --> obj
 ```
 
-Both `x` and `y` are *labels* — they are not boxes that each hold their own copy of `42`. They point at the same object.
+Both `xs` and `ys` are *labels* — they are not boxes that each hold their own copy of the list. They point at the same object, which is why the `append` through one name was visible through the other.
 
 ## Protocols, not types — the duck-typing rule {#sec-how-python-thinks-duck}
 
@@ -134,6 +136,60 @@ Three mental models — *objects with value/type/identity*, *variables-as-labels
 ## Going deeper
 
 This chapter only sketches identity vs. equality and protocols. The full story arrives later: identity and aliasing in @sec-references-mutability, the data model and special methods in @sec-data-model, and the iterator protocol specifically in @sec-iterators.
+
+## Build: a tiny object inspector {#sec-how-python-thinks-build}
+
+The three properties — value, type, identity — and the duck-typing rule are easier to *feel* with a small program that prints them. We'll build a `describe(x)` function that reports what Python knows about any object, then use it to watch aliasing happen.
+
+**Step 1: report the three properties.** Take any object, return its value, its type name, and its identity:
+
+```{python}
+def describe(x):
+    return {
+        "value": x,
+        "type": type(x).__name__,
+        "id": id(x),
+    }
+
+describe(42)
+```
+
+`type(x).__name__` is the class name as a string (`'int'`); `id(x)` is the identity (a number unique while the object is alive). Together with the value, these three answer "what is this object?" the way the chapter framed it.
+
+**Step 2: ask a protocol question — is it sized?** Some objects answer "how many" (`list`, `str`, `dict`); others don't (`int`). We don't branch on `type(x)`; we *try* `len(x)` and let the protocol decide:
+
+```{python}
+def describe(x):
+    info = {
+        "value": x,
+        "type": type(x).__name__,
+        "id": id(x),
+    }
+    try:
+        info["length"] = len(x)
+    except TypeError:
+        info["length"] = None
+    return info
+
+[describe([1, 2, 3])["length"], describe("hello")["length"], describe(42)["length"]]
+```
+
+Three different types, one function. The list and the string each answer the `len` question; the integer raises `TypeError` and we record `None`. That's duck typing in code — no `isinstance`, no type hierarchy, just "can you do this?"
+
+**Step 3: see aliasing.** With `describe` in hand, the variables-as-labels claim becomes visible. Two names tied to the same object share the same `id`; two separate literals don't:
+
+```{python}
+xs = [1, 2, 3]
+ys = xs
+zs = [1, 2, 3]
+
+[describe(xs)["id"] == describe(ys)["id"],   # same object
+ describe(xs)["id"] == describe(zs)["id"]]   # equal value, different object
+```
+
+`xs` and `ys` are two labels on the same list — ids match. `zs` is a fresh `[1, 2, 3]` literal, a *different* object that happens to be `==` to the others.
+
+The whole inspector is fifteen lines and exercises three of the chapter's four ideas: value/type/identity, duck typing through `len`, and aliasing through `id`. It's also genuinely useful — when a Python program surprises you, dropping `describe(x)` into the call site usually shows why.
 
 ## Exercises {#sec-how-python-thinks-exercises}
 
