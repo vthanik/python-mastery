@@ -153,7 +153,7 @@ from .data.reader import read_csv
 __all__ = ["process", "read_csv"]
 ```
 
-Now consumers can write `from myapp import process, read_csv` without knowing the internal layout.
+Now consumers can write `from myapp import process, read_csv` without knowing the internal layout. The `__all__` list does two things: it documents the *public* names of the package, and it controls what `from myapp import *` would actually import — only the names listed in `__all__` come along. (Real code shouldn't use `import *`, but `__all__` is still the conventional declaration of what a package considers public.)
 
 ## Project layout {#sec-mod-layout}
 
@@ -243,6 +243,70 @@ The import system is what turns a folder of `.py` files into a *library*. Get th
 ## Further reading
 Beazley, *Python Distilled* §8 is the canonical operational reference for the import system: module caching, the import path, package initialization, namespace control, and circular-import edge cases. Its 18 sections cover deployment topics this chapter only sketches.
 :::
+
+## Build: a tiny package, on disk and live {#sec-mod-build}
+
+Reading about `__init__.py` and `sys.path` is one thing; *seeing* them turn three files into an importable namespace is another. We'll lay out a tiny `geom` package in a temp directory, import from it, and then refactor the package's public surface with `__init__.py`.
+
+**Step 1: create the package layout on disk.** Use `pathlib.Path` (from chapter 8) to write three files: a marker `__init__.py` plus two submodules:
+
+```{python}
+import tempfile
+from pathlib import Path
+
+root = Path(tempfile.mkdtemp())
+pkg = root / "geom"
+pkg.mkdir()
+
+(pkg / "__init__.py").write_text("")          # marker — empty for now
+(pkg / "circle.py").write_text(
+    "import math\n"
+    "def area(r): return math.pi * r ** 2\n"
+)
+(pkg / "rectangle.py").write_text(
+    "def area(w, h): return w * h\n"
+)
+
+sorted(p.name for p in pkg.iterdir())
+```
+
+A package is just a directory with `__init__.py` plus normal `.py` files. The `__init__.py` can be empty — its presence alone is the marker that says "this directory is a package."
+
+**Step 2: put the package on `sys.path` and import.** Python only finds modules that live on its search path. Inserting `root` (the temp directory *containing* `geom`) makes `geom` importable:
+
+```{python}
+import sys
+sys.path.insert(0, str(root))
+
+import geom.circle
+import geom.rectangle
+
+[geom.circle.area(5), geom.rectangle.area(3, 4)]
+```
+
+`sys.path.insert(0, str(root))` puts our temp directory at the front of the search list — Python finds `geom` there before checking elsewhere. `import geom.circle` does the three-step dance from earlier in the chapter: find `geom/circle.py` on `sys.path`, run it once (caching it in `sys.modules`), and bind `geom.circle` as a name. The two submodules expose unrelated `area` functions; the package prefix keeps them apart.
+
+**Step 3: flatten the public API with `__init__.py`.** Asking callers to type `geom.rectangle.area(3, 4)` is fine until you have a dozen submodules. Rewrite `__init__.py` to re-export the names you want to be the public surface:
+
+```{python}
+import importlib
+
+(pkg / "__init__.py").write_text(
+    "from .circle import area as circle_area\n"
+    "from .rectangle import area as rectangle_area\n"
+    '__all__ = ["circle_area", "rectangle_area"]\n'
+)
+
+import geom
+importlib.reload(geom)
+[geom.circle_area(5), geom.rectangle_area(3, 4), geom.__all__]
+```
+
+`from .circle import area as circle_area` is the *relative* import we covered earlier — `.circle` means "the `circle` module in this same package." We rename `area` to `circle_area` and `rectangle_area` so both can live at the top level without colliding. `__all__` declares them as the public names.
+
+`importlib.reload(geom)` is the cell-friendly cousin of "restart the interpreter" — Python had already cached the empty `__init__.py` from step 2, so without `reload` the new contents wouldn't take effect. In a fresh process you'd never need this; here it lets us iterate without restarting.
+
+The build makes every operational concept from the chapter visible at once: the package marker, `sys.path`, the run-once cache, relative imports, `__init__.py` as the API surface, and `__all__` as the public declaration. Same recipe scales unchanged from this 3-file demo to a 100-file project.
 
 ## Exercises {#sec-mod-exercises}
 
