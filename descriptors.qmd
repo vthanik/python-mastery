@@ -248,6 +248,119 @@ For library authors: `typing.dataclass_transform` (PEP 681, 3.11) tells type-che
 Descriptors are Python's mechanism for customizing attribute access at the class level. `@property`, `@classmethod`, `@staticmethod`, and function objects themselves are all implemented as descriptors. When you understand descriptors, you understand how Python's object system works at the deepest level.
 :::
 
+## Build: a typed-and-bounded `Field` descriptor family {#sec-desc-build}
+
+Real ORM-style descriptors usually layer two checks: the value must be the right *type*, and it must satisfy a *constraint* (range, length, pattern). We'll build that as a small descriptor family — a `TypedField` base for the type check, and `IntField`/`StrField` subclasses for the constraints.
+
+**Step 1: a `TypedField` base with `__set_name__` and a type guard.** All the protocol plumbing lives here:
+
+```{python}
+class TypedField:
+    def __init__(self, type_):
+        self.type_ = type_
+
+    def __set_name__(self, owner, name):
+        self.public_name = name
+        self.private_name = f"_{name}"
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self                             # access via the class — return self
+        return getattr(instance, self.private_name)
+
+    def __set__(self, instance, value):
+        if not isinstance(value, self.type_):
+            raise TypeError(
+                f"{self.public_name} must be {self.type_.__name__}, "
+                f"got {type(value).__name__}"
+            )
+        setattr(instance, self.private_name, value)
+
+class Box:
+    label = TypedField(str)
+    weight = TypedField(int)
+
+    def __init__(self, label, weight):
+        self.label = label
+        self.weight = weight
+
+Box("crate", 5).__dict__
+```
+
+```{python}
+#| error: true
+Box("crate", "five")                                # weight must be int
+```
+
+`__set_name__(self, owner, name)` is called automatically when the class body completes; it records `public_name` (`weight`) and `private_name` (`_weight`) — separate names for the *descriptor identity* and the *storage slot*. The split is what avoids infinite recursion: storing under a different key means `__set__` doesn't intercept its own write.
+
+**Step 2: subclasses that *augment* the parent's check.** `IntField` accepts optional `min` and `max`; `StrField` accepts optional length bounds. Each calls `super().__set__` first (the type check) and then adds its own constraint:
+
+```{python}
+class IntField(TypedField):
+    def __init__(self, *, min=None, max=None):
+        super().__init__(int)
+        self.min = min
+        self.max = max
+
+    def __set__(self, instance, value):
+        super().__set__(instance, value)            # type check first
+        if self.min is not None and value < self.min:
+            raise ValueError(f"{self.public_name} must be >= {self.min}")
+        if self.max is not None and value > self.max:
+            raise ValueError(f"{self.public_name} must be <= {self.max}")
+
+class StrField(TypedField):
+    def __init__(self, *, min_length=0, max_length=None):
+        super().__init__(str)
+        self.min_length = min_length
+        self.max_length = max_length
+
+    def __set__(self, instance, value):
+        super().__set__(instance, value)
+        if len(value) < self.min_length:
+            raise ValueError(
+                f"{self.public_name} must be at least {self.min_length} chars"
+            )
+        if self.max_length is not None and len(value) > self.max_length:
+            raise ValueError(
+                f"{self.public_name} must be at most {self.max_length} chars"
+            )
+```
+
+The two-stage pattern is the payoff of the base class: type checks live in `TypedField.__set__`; range and length checks live in the subclass `__set__` and call `super()` to run the type check first. A bad type (`age = "old"`) fails before the range check is reached; a bad value (`age = -3`) passes the type check, then fails the range check with a focused message.
+
+**Step 3: combine on one class.** A `User` with a name and an age, each with its own constraints — the validation lives in the descriptors, not in `__init__`:
+
+```{python}
+class User:
+    name = StrField(min_length=1, max_length=50)
+    age = IntField(min=0, max=150)
+
+    def __init__(self, name, age):
+        self.name = name                            # goes through StrField.__set__
+        self.age = age                              # goes through IntField.__set__
+
+    def __repr__(self):
+        return f"User(name={self.name!r}, age={self.age})"
+
+User("Alice", 30)
+```
+
+```{python}
+#| error: true
+User("", 30)                                        # too short
+```
+
+```{python}
+#| error: true
+User("Alice", 200)                                  # too high
+```
+
+Each assignment in `__init__` runs the descriptor's `__set__`. The error messages name the field (`name must be at least 1 chars`, `age must be <= 150`) — that's why `__set_name__` recorded `public_name`. With ten fields, the class body would be ten declarative lines, each of which is enforced both at construction and on every later assignment.
+
+The build is the chapter applied at full strength: a base descriptor with `__set_name__` and the storage protocol (Step 1), subclasses that compose constraints via `super().__set__` (Step 2), and a model class whose validation is entirely declarative (Step 3). This is the same shape the standard ORM and validation libraries (SQLAlchemy, Pydantic, Django models) use under the hood — minus the metaclass tricks that let them generate the field declarations from type hints.
+
 ## Exercises {#sec-desc-exercises}
 
 1. **`__delete__`.** Extend `Quantity` to support `del`, raising an error if the descriptor is required. Test with `del raisins.weight`.
