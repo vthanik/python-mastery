@@ -58,15 +58,21 @@ lewis = charles
 lewis is charles, id(lewis) == id(charles)
 ```
 
+`lewis = charles` makes `lewis` a *second name* for the dict, not a copy. So both questions return `True`: `lewis is charles` because they point at the same object, and `id(lewis) == id(charles)` because identical objects have the same identity number. The two checks are redundant on purpose — `is` is just a built-in shortcut for "do these have equal `id`?"
+
 ```{python}
 lewis["balance"] = 950
 charles
 ```
 
+We mutated *one* dict through the `lewis` name; reading `charles` (the *other* name on that one dict) shows the new key. Output: `{'name': 'Charles L. Dodgson', 'born': 1832, 'balance': 950}`. Aliasing made visible — same object, two labels, mutation through either is visible through both.
+
 ```{python}
 alex = {"name": "Charles L. Dodgson", "born": 1832, "balance": 950}
 alex == charles, alex is charles
 ```
+
+`alex` is built from a fresh dict literal — *different* object, but the *same contents* as `charles` after the mutation above. So `alex == charles` is `True` (value equality holds — both dicts have the same keys with the same values), while `alex is charles` is `False` (distinct objects in memory). That's the equality-vs-identity split made concrete.
 
 `alex == charles` (same value) but `alex is not charles` (different objects in memory).
 
@@ -86,10 +92,14 @@ t2 = (1, 2, [30, 40])
 t1 == t2, t1 is t2
 ```
 
+Both tuples have the same shape — `1, 2, list-with-30-40` — so `t1 == t2` is `True` (recursive equality across each slot). They were built from separate literals, so they're distinct objects: `t1 is t2` is `False`. So far so normal.
+
 ```{python}
 t1[-1].append(99)
 t1, t1 == t2
 ```
+
+`t1[-1]` is the list inside `t1` — `[30, 40]`. We *mutate that list* via `.append(99)`. The tuple `t1` itself was not modified (its three references are unchanged — slot 0 is still `1`, slot 1 still `2`, slot 2 still points at the same list); but the *list* it holds is now `[30, 40, 99]`. So `t1` shows `(1, 2, [30, 40, 99])`, and `t1 == t2` flips to `False` because slot 2 now differs. The tuple is "immutable" in the sense that *its references* can't be reassigned — but it can't stop the *referenced objects* from mutating.
 
 The tuple `t1` did not change in any sense Python checks at the tuple level — but the list inside it grew, so `t1 == t2` flipped to `False`. This is why `(1, 2, [30, 40])` is *not* hashable: the equality of the tuple depends on a value that can change.
 
