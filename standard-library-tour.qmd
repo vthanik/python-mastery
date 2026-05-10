@@ -94,7 +94,7 @@ for x in [1, 2, 3, 4, 5]:
 
 Three-line sliding window, no manual bookkeeping.
 
-**`namedtuple`** — a tuple with named fields:
+**`namedtuple`** — a factory for small, immutable record types. A plain tuple `(3, 4)` is anonymous (which one is `x`?). A `dict` gives names but is mutable and any typo at access time fails silently. `namedtuple` sits in between: each instance is *still a tuple* — immutable, hashable, indexable, unpacks the same way — but the fields also have names:
 
 ```{python}
 Point = namedtuple("Point", ["x", "y"])
@@ -102,7 +102,9 @@ p = Point(3, 4)
 [p.x, p.y, p[0]]
 ```
 
-For modern code, prefer `typing.NamedTuple` (gives you type hints and methods) or `@dataclass`. The full data-class comparison is in @sec-dataclasses.
+Notice both forms of access work: `p.x` (by name) *and* `p[0]` (by position). Because instances are tuples, they work everywhere a tuple does — destructuring (`x, y = p`), `match` patterns, dict keys.
+
+You'll meet `namedtuple` constantly when reading other people's code: many stdlib functions return them (`os.stat`, `time.localtime`, `urllib.parse.urlparse`). For *new* code that wants type hints or extra methods, prefer `typing.NamedTuple` (a typed namedtuple) or `@dataclass(frozen=True)`. The full comparison is in @sec-dataclasses.
 
 ## `itertools` {#sec-stdlib-itertools}
 
