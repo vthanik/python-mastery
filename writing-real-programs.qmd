@@ -116,7 +116,16 @@ def get_items(count: int, price: float) -> list[dict]:
 - `list[dict]` is the parameterised form (Python 3.9+) — a list of dicts. Older code wrote `List[Dict]` from the `typing` module; the lowercase forms are the modern syntax.
 - At runtime these annotations are stored on the function (in `__annotations__`) but never enforced — `greet(123)` still runs, the type checker just flags it.
 
-Use the abstract types from `collections.abc` for *parameter* hints — `Iterable`, `Mapping`, `Callable`, `Sequence`. They accept any conforming type (a plain dict, a `defaultdict`, a custom class) without locking the caller into one concrete container:
+Annotating a parameter as `dict` is often *too narrow*. A function that only reads a few values from a mapping doesn't actually need a `dict` — it needs *anything that behaves like one*. The standard library already has names for these "behaves like" categories, in the `collections.abc` module:
+
+| Abstract type | What it means | Things that satisfy it |
+|---|---|---|
+| `Iterable[T]` | "you can `for` over it" | `list`, `tuple`, `set`, `dict`, generators, files |
+| `Sequence[T]` | "indexable and has a length" | `list`, `tuple`, `str`, `bytes` |
+| `Mapping[K, V]` | "supports `m[k]` lookup, `.keys()`, `.values()`" | `dict`, `defaultdict`, `ChainMap` |
+| `Callable[[A, B], R]` | "you can call it" | functions, lambdas, classes, anything with `__call__` |
+
+Each one is a *protocol*: "I promise to use only the operations this type guarantees." Using them as parameter hints lets the caller pass any conforming type without locking them into one concrete container:
 
 ```{python}
 from collections.abc import Mapping
@@ -127,8 +136,8 @@ def total_price(prices: Mapping[str, float]) -> float:
 total_price({"apple": 1.0, "pear": 0.5})
 ```
 
-- `Mapping[str, float]` is the abstract "anything you can do dict-style lookup on with string keys and float values" — a plain `dict` qualifies, but so does a `defaultdict`, a `ChainMap`, or any custom class implementing the mapping protocol.
-- The annotation is a contract: "I'll only call `.values()` and other read-only mapping operations" — narrower than `dict`, more flexible for callers.
+- `Mapping[str, float]` says: "give me anything supporting dict-style lookup with string keys and float values." A plain `dict` qualifies, but so does a `defaultdict`, a `ChainMap`, or any custom class implementing the mapping protocol.
+- The annotation is a contract in the other direction too: "I'll only call `.values()` and other read-only mapping operations" — narrower than `dict` (which would also allow `__setitem__`, `.pop()`, etc.), more flexible for callers.
 
 The general rule: hint *parameters* with abstract types (`Iterable`, `Mapping`, `Sequence`) and *returns* with concrete ones (`list[int]`) — accept broadly, commit narrowly.
 
@@ -198,13 +207,19 @@ The deep treatment of type hints — `Protocol`, generics, variance, `TypeVar` �
 
 ## Testing with pytest {#sec-real-testing}
 
-The fastest way to be confident your code works is to run it on known inputs. `pytest` makes that ergonomic.
+A *test* is a tiny program that calls your code with known inputs and checks the result is what you expect. `pytest` is the test runner: you put your tests in a file named `test_*.py`, run `pytest` from the terminal, and it reports which ones passed and which ones failed.
+
+The minimum you need to know:
+
+- A test is a function whose name starts with `test_`. pytest discovers them automatically.
+- The test fails if any `assert` inside it is false, or if it raises an unexpected exception.
+- Useful flags: `-v` (verbose), `-x` (stop at first failure), `-k expr` (only run tests matching `expr`), `--lf` (rerun last failures).
+
+**Step 1: write a test as a plain function with `assert`.**
 
 ```python
 # test_calculator.py
-import pytest
-from calculator import add, divide, Calculator
-
+from calculator import add, divide
 
 def test_add_positive():
     assert add(2, 3) == 5
@@ -212,12 +227,27 @@ def test_add_positive():
 def test_add_floats():
     import math
     assert math.isclose(add(0.1, 0.2), 0.3)
+```
+
+Two functions, two `assert`s. Run `pytest` and you'll see `2 passed`. If `add(2, 3)` returned `6`, you'd see a failure with the line and the actual value.
+
+When you expect a *call to fail*, wrap it in `pytest.raises`:
+
+```python
+import pytest
 
 def test_divide_by_zero():
     with pytest.raises(ValueError, match="cannot divide"):
         divide(10, 0)
+```
 
-# Many cases with one function:
+This passes if `divide(10, 0)` raises `ValueError` with a message matching `"cannot divide"`. It fails if no exception is raised, or a different one is.
+
+**Step 2: `@pytest.mark.parametrize` — the same test for many inputs.**
+
+You'll often want to run the same logic over a table of inputs. Without `parametrize`, you'd write five near-identical functions:
+
+```python
 @pytest.mark.parametrize("a, b, expected", [
     (2, 3, 5),
     (-1, 1, 0),
@@ -225,8 +255,17 @@ def test_divide_by_zero():
 ])
 def test_add_cases(a, b, expected):
     assert add(a, b) == expected
+```
 
-# Fixture: shared setup
+`@pytest.mark.parametrize` is a decorator that takes two arguments: a string naming the parameters (`"a, b, expected"`), and a list of tuples — one per case. pytest generates one test per tuple, so the report shows three separate tests with three separate pass/fail lines. Add a row, get a new test for free.
+
+**Step 3: `@pytest.fixture` — reusable setup.**
+
+When several tests need the same starting state — a configured object, a temp directory, a database connection — you don't want to repeat the setup in every test body. A *fixture* is a function that produces that value:
+
+```python
+from calculator import Calculator
+
 @pytest.fixture
 def calc():
     return Calculator(initial=100)
@@ -234,9 +273,18 @@ def calc():
 def test_calc_add(calc):
     calc.add(50)
     assert calc.total == 150
+
+def test_calc_reset(calc):
+    calc.reset()
+    assert calc.total == 0
 ```
 
-Run it: `pytest`. Useful flags: `-v` (verbose), `-x` (stop at first failure), `-k expr` (run tests matching `expr`), `--lf` (rerun last failures).
+Two pieces of magic happen here:
+
+- `@pytest.fixture` registers `calc` with pytest as a fixture.
+- When a test function declares a parameter named `calc`, pytest calls the `calc()` fixture, takes its return value, and passes it in. Each test gets a *fresh* `Calculator(initial=100)` — no shared state between tests.
+
+This is dependency injection by parameter name. Tests that don't need the fixture simply don't list the parameter.
 
 The pattern: **one assertion concept per test**. The test name is the documentation.
 
