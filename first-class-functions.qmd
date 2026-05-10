@@ -62,9 +62,13 @@ sorted(fruits, key=len)
 list(map(factorial, range(6)))
 ```
 
+`map(fn, iterable)` returns a *lazy* iterator that calls `fn` on each element. `list(...)` materialises it: `[factorial(0), factorial(1), ..., factorial(5)] == [1, 1, 2, 6, 24, 120]`. The function and the iterable each get to be lazy — useful with very large inputs.
+
 ```{python}
 list(filter(lambda n: n % 2, range(10)))
 ```
+
+`filter(pred, iterable)` keeps only the elements where `pred(x)` is truthy. `n % 2` is `1` for odd numbers (truthy) and `0` for even (falsy), so the result is `[1, 3, 5, 7, 9]` — every odd number in `range(10)`.
 
 Comprehensions usually read better than `map`/`filter`:
 
@@ -72,9 +76,13 @@ Comprehensions usually read better than `map`/`filter`:
 [factorial(n) for n in range(6)]
 ```
 
+Same output as `list(map(factorial, range(6)))`, with the function call written out explicitly. Reads as "the list of `factorial(n)` for each `n` in `range(6)`."
+
 ```{python}
 [n for n in range(10) if n % 2]
 ```
+
+Same output as `list(filter(lambda n: n % 2, range(10)))`. The `if n % 2` is the comprehension filter; the *expression* before `for` is what's kept (here, just `n`). Reads as "the list of `n` for each `n` in `range(10)` if `n` is odd."
 
 `functools.reduce` is the cumulative-sum form:
 
@@ -84,7 +92,7 @@ from operator import add
 reduce(add, range(100))
 ```
 
-For sums specifically, prefer `sum(range(100))` — `reduce` shines for non-trivial accumulators.
+`reduce(op, iterable)` *folds* the iterable left-to-right with the binary operator. Step by step: `add(0, 1)` is `1`; `add(1, 2)` is `3`; `add(3, 3)` is `6`; `…`; the final accumulator after 100 elements is the sum `0 + 1 + ... + 99 = 4950`. Optional third argument is the initial value (default: the first element). For sums specifically, prefer `sum(range(100))` — `reduce` shines for non-trivial accumulators (`reduce(operator.mul, ...)` for products, `reduce(max, ...)` for the running maximum).
 
 ## Anonymous functions {#sec-functions-lambda}
 
