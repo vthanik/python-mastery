@@ -65,7 +65,7 @@ for tshirt in (f"{c} {s}" for c in colors for s in sizes):
     print(tshirt)
 ```
 
-The genexp form is what you reach for when the intermediate list is large or when only one pass is needed. Almost every Python constructor accepts an iterable, so a genexp can flow straight into one. As an example: `array.array` is a flat sequence type from the standard library that packs a single numeric type into contiguous memory — leaner and faster than a `list` for large numeric data (we cover it properly in @sec-sequences-when-not-list). The first argument `"I"` is a *type code* — `"I"` means unsigned 32-bit int:
+The genexp form is what you reach for when the intermediate list is large or when only one pass is needed. Almost every Python constructor accepts an iterable, so a genexp can flow straight into one. As an example: `array.array` is a flat sequence type from the standard library that packs a single numeric type into contiguous memory — leaner and faster than a `list` for large numeric data (we cover it properly in @sec-sequences-alternatives). The first argument `"I"` is a *type code* — `"I"` means unsigned 32-bit int:
 
 ```{python}
 import array
