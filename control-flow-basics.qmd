@@ -50,6 +50,8 @@ parity = "even" if n % 2 == 0 else "odd"
 parity
 ```
 
+Reading right-to-left in Python idiom: "this is `'even'` *if* `n % 2 == 0`, else `'odd'`." The order is unusual — the *value* comes first, the *condition* in the middle, the *fallback* at the end. The full shape is `<value-if-true> if <condition> else <value-if-false>`, and the whole thing is an *expression* (it returns a value), so it can sit on the right-hand side of an assignment, inside an f-string, in a list comprehension. For `n = 7`, `n % 2` is `1` (odd), so the condition is false and the result is `"odd"`. Reach for the ternary when both branches are short; if either branch needs more than a small expression, an `if`/`else` statement reads better.
+
 ## `for` over any iterable {#sec-cf-for}
 
 In C or Java you'd write `for (int i = 0; i < items.length; i++) { items[i] ... }`. Python's `for` is different — it does *not* iterate by index, it iterates over the items themselves. You almost never need an index at all.
