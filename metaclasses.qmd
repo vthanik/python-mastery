@@ -248,6 +248,95 @@ Reach for the simplest tool that solves the problem.
 Python is a language with a consistent, uniform data model. Functions are objects. Classes are objects. Metaclasses are classes. Everything is subject to the same rules: attribute access, the descriptor protocol, the iterator protocol. The "magic" is not magic — it's a carefully designed system where the same machinery applies at every level. When you see a built-in like `len()` or `for` or `with`, you are seeing the data model at work. Implement the right special methods and your code becomes part of the language itself.
 :::
 
+## Build: a self-registering `Plugin` system with class kwargs and dispatch {#sec-meta-build}
+
+The canonical use-case for `__init_subclass__`: auto-register every subclass into a central registry, with a per-subclass keyword argument to control the registration key. We'll build the base, the dispatch, and finally an alternative metaclass version that catches subclasses *without* a shared base — to make the choice between the two tools concrete.
+
+**Step 1: a `Plugin` base whose `__init_subclass__` auto-registers.** Class-keyword arguments are the modern way to parametrise subclass declarations — they show up as keyword arguments to `__init_subclass__`:
+
+```{python}
+class Plugin:
+    registry: dict[str, type["Plugin"]] = {}
+
+    def __init_subclass__(cls, *, name: str | None = None, **kwargs):
+        super().__init_subclass__(**kwargs)
+        key = name or cls.__name__.lower()
+        Plugin.registry[key] = cls
+
+    def run(self, **kwargs):
+        raise NotImplementedError(f"{type(self).__name__} must implement run()")
+
+class Greeter(Plugin, name="hello"):
+    def run(self, who: str = "world") -> str:
+        return f"Hello, {who}!"
+
+class Echoer(Plugin, name="echo"):
+    def run(self, text: str) -> str:
+        return text
+
+class ShoutPlugin(Plugin):                            # default key from cls.__name__
+    def run(self, text: str) -> str:
+        return text.upper() + "!"
+
+list(Plugin.registry)
+```
+
+`class Greeter(Plugin, name="hello"):` passes `name="hello"` as a class keyword. Python forwards it to `__init_subclass__` along with whatever other keywords were given. The `or cls.__name__.lower()` fallback handles the no-keyword case (`ShoutPlugin` → `"shoutplugin"`). `super().__init_subclass__(**kwargs)` is the discipline — forward unknown keywords up the chain so you don't break a deeper hook. After the cell, `Plugin.registry` contains all three classes — no decorator on each one, no manual `register()` calls.
+
+**Step 2: dispatch by name with error handling.** A small `run(name, **kwargs)` wrapper that looks up the class, instantiates it, and forwards the keyword arguments to its `run` method:
+
+```{python}
+def run(name: str, **kwargs):
+    if name not in Plugin.registry:
+        raise KeyError(
+            f"unknown plugin {name!r}; available: {sorted(Plugin.registry)}"
+        )
+    plugin = Plugin.registry[name]()
+    return plugin.run(**kwargs)
+
+[run("hello"), run("hello", who="Alice"), run("echo", text="ping"),
+ run("shoutplugin", text="ok")]
+```
+
+```{python}
+#| error: true
+run("missing")
+```
+
+`Plugin.registry[name]()` looks up the class, calls it (instantiation), and the resulting instance's `.run(**kwargs)` does the work. The error path includes the available names — small touch, big payoff for usability. With the `__init_subclass__` registration in place, adding a new plugin is *one* class declaration with no other glue.
+
+**Step 3: a metaclass alternative for plugins that can't share a base.** `Plugin` requires every plugin to inherit from it. If you're managing classes from third-party libraries that already have their own bases, a metaclass works through the `metaclass=` keyword without needing the base relationship:
+
+```{python}
+class PluginMeta(type):
+    registry: dict[str, type] = {}
+
+    def __new__(mcs, name, bases, namespace, *, name_=None, **kwargs):
+        cls = super().__new__(mcs, name, bases, namespace, **kwargs)
+        cls._name = name_ or name.lower()
+        PluginMeta.registry[cls._name] = cls
+        return cls
+
+    def __init__(cls, name, bases, namespace, *, name_=None, **kwargs):
+        super().__init__(name, bases, namespace, **kwargs)
+
+class FastDict(dict, metaclass=PluginMeta, name_="fast"):
+    def run(self):
+        return "I am a dict-based plugin"
+
+class FastList(list, metaclass=PluginMeta, name_="bulk"):
+    def run(self):
+        return "I am a list-based plugin"
+
+[type(FastDict).__name__, list(PluginMeta.registry)]
+```
+
+`PluginMeta(type)` is a metaclass — its instances are classes. `__new__` runs at class-creation time and registers the new class. The two plugins inherit from `dict` and `list` respectively — *no shared base*; the only thing they have in common is `metaclass=PluginMeta`. The class keyword `name_=` (note the trailing underscore — `name` is also `__new__`'s positional arg, so we rename to avoid collision) flows to the metaclass call. `type(FastDict)` is `PluginMeta`, confirming the metaclass relationship.
+
+Notice the trade-off: the metaclass version reaches further (any base) but pays in complexity (extra `__new__`/`__init__` boilerplate, the keyword-name collision quirk). For everything that *can* share a base, `__init_subclass__` from Step 1 is cleaner. The metaclass earns its place only when the shared-base requirement is the binding constraint.
+
+The build closes the book: `__init_subclass__` for the common registration case (Steps 1–2), and a metaclass for the "no shared base" case (Step 3). Both implement the same conceptual operation — register every new class — but at different layers of the data model. The deeper tool waits for the deeper need.
+
 ## Exercises {#sec-meta-exercises}
 
 1. **Build a class with `type`.** Use `type("Point", (object,), {...})` to create a `Point` class with `x`, `y` attributes and an `__init__`. Compare with the equivalent `class` statement.
