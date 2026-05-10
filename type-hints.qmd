@@ -119,6 +119,8 @@ def tokenize(text: str) -> list[str]:
 tokenize("hello world")
 ```
 
+`text: str` annotates the input as a string; `-> list[str]` annotates the return as "a list whose elements are strings." The body uppercases the input and splits on whitespace, producing `['HELLO', 'WORLD']` — a `list` of `str`, exactly as advertised.
+
 ```{python}
 from collections.abc import Iterable
 
@@ -128,12 +130,16 @@ def word_lengths(words: Iterable[str]) -> dict[str, int]:
 word_lengths(["hi", "hello"])
 ```
 
+`Iterable[str]` is intentionally permissive: a list works, a tuple works, a generator works — anything you can `for`-over whose elements are strings. `dict[str, int]` is the return: a dict whose keys are strings and values are ints. The body is a dict comprehension `{w: len(w) for w in words}` — for each word, map it to its length. Output: `{'hi': 2, 'hello': 5}`.
+
 ```{python}
 def divmod_pair(a: int, b: int) -> tuple[int, int]:
     return divmod(a, b)
 
 divmod_pair(17, 5)
 ```
+
+`tuple[int, int]` annotates a *fixed-length, two-element* tuple where both slots are ints. `divmod(17, 5)` returns the pair `(quotient, remainder)` — `(3, 2)` here, because `17 = 3 * 5 + 2`. The annotation tells the type checker that callers can safely unpack into two integer-typed names: `q, r = divmod_pair(17, 5)` will see `q: int, r: int`.
 
 `tuple[int, int]` is a fixed-length tuple. `tuple[int, ...]` (with the literal `...`) is a variable-length homogeneous tuple.
 
