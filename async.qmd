@@ -309,6 +309,83 @@ The general pattern: never call a blocking function directly from a coroutine. H
 `asyncio` is not faster than threads for a single operation — it's better for **many** concurrent operations in one process. Where threads need OS scheduling and memory per thread (MB), `asyncio` handles thousands of concurrent connections with one thread and bytes per coroutine. The `await` keyword is the cooperative yield point where the event loop takes back control.
 :::
 
+## Build: a throttled, deadline-bounded fetcher with `TaskGroup` {#sec-async-build}
+
+Every real async program has the same shape: fan many I/O calls out concurrently, throttle the count so we don't overwhelm the upstream, and put a deadline on each call so a single slow target can't stall the batch. We'll layer those three pieces — `TaskGroup`, `Semaphore`, `asyncio.timeout` — onto a simulated fetcher.
+
+**Step 1: a `TaskGroup` fan-out with structured error handling.** `TaskGroup` is the modern replacement for `gather`. If any task raises, the others are cancelled and the failures arrive in an `ExceptionGroup`:
+
+```{python}
+import asyncio
+
+async def fetch(url):
+    await asyncio.sleep(0.05)
+    if url == "boom":
+        raise RuntimeError(f"upstream rejected {url!r}")
+    return f"<{url}>"
+
+async def main():
+    urls = ["a", "b", "c"]
+    results = []
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(fetch(u)) for u in urls]
+    return [t.result() for t in tasks]
+
+await main()
+```
+
+`async with asyncio.TaskGroup() as tg:` opens a structured-concurrency block. Each `tg.create_task(coro)` schedules a coroutine; the block doesn't exit until *every* owned task settles. Because no task raised here, all three return cleanly and `t.result()` is safe to call after the block.
+
+**Step 2: throttle with a `Semaphore`.** The fetcher above runs every URL concurrently — fine for three URLs, dangerous for a thousand against a real API. `asyncio.Semaphore(N)` gates the work region so at most `N` coroutines run inside the critical section at once:
+
+```{python}
+import time
+
+async def fetch(url, sem):
+    async with sem:                      # acquire on entry, release on exit
+        await asyncio.sleep(0.05)
+        return f"<{url}>"
+
+async def main():
+    sem = asyncio.Semaphore(2)           # at most 2 concurrent fetches
+    urls = [f"u{i}" for i in range(6)]
+    t0 = time.perf_counter()
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(fetch(u, sem)) for u in urls]
+    elapsed = time.perf_counter() - t0
+    return [t.result() for t in tasks], round(elapsed, 2)
+
+await main()
+```
+
+`async with sem:` is the cooperative gate — when the count is at zero, the next entry *awaits* until someone leaves. Six tasks at 0.05 s each, two at a time, take roughly 3 × 0.05 ≈ 0.15 s. Without the semaphore, all six would sleep concurrently and finish in 0.05 s; with `Semaphore(1)` they'd serialise to 0.30 s. The semaphore is the choke point.
+
+**Step 3: per-task deadline with `asyncio.timeout`.** Even with a semaphore, one stuck upstream can pin a slot. `asyncio.timeout(secs)` puts a deadline around a region of awaits — anything that exceeds it raises `TimeoutError` and the slot is released:
+
+```{python}
+async def fetch(url, sem, deadline):
+    try:
+        async with sem:
+            async with asyncio.timeout(deadline):
+                await asyncio.sleep(0.5 if url == "slow" else 0.05)
+                return f"<{url}>"
+    except TimeoutError:
+        return f"<TIMEOUT {url}>"
+
+async def main():
+    sem = asyncio.Semaphore(3)
+    urls = ["a", "b", "slow", "c", "d"]
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(fetch(u, sem, deadline=0.1)) for u in urls]
+    return [t.result() for t in tasks]
+
+await main()
+```
+
+`asyncio.timeout(0.1)` arms a 100-ms deadline on the inner block. The "slow" URL would sleep 0.5 s — past the deadline — so the timeout cancels its `await` and raises `TimeoutError`, which the local `try/except` catches and converts to a sentinel value. Every other URL completes normally. Crucially: the semaphore is released when the inner block exits (whether via success or `TimeoutError`), so the slow task doesn't permanently block a slot.
+
+The build is the chapter at full strength: `TaskGroup` for structured fan-out (Step 1), `Semaphore` for cooperative throttling (Step 2), `asyncio.timeout` for per-task deadlines that release shared resources on failure (Step 3). All three combine cleanly because each is an `async with` block — the same composition style as plain `with`.
+
 ## Exercises {#sec-async-exercises}
 
 1. **`gather` order.** Submit three coroutines with sleep durations 0.3, 0.1, 0.2. Verify `gather` returns results in submission order. Verify `as_completed` does *not*.
