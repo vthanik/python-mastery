@@ -40,6 +40,8 @@ codes = [ord(symbol) for symbol in symbols]
 codes
 ```
 
+`ord(c)` is a Python built-in that takes a one-character string and returns its **Unicode code point** — the integer that uniquely identifies that character (`ord("$")` is `36`, `ord("€")` is `8364`). Its inverse is `chr(n)`. Code points are the topic of @sec-unicode; here we just use `ord` to get a number from each symbol.
+
 The list comprehension reads almost as English: "for every symbol in symbols, give me its `ord`." The output is a `list`. Filter with `if`:
 
 ```{python}
@@ -273,7 +275,7 @@ floats = array.array("d", (random.random() for _ in range(10)))
 floats
 ```
 
-For ten million floats, this uses about a quarter of the memory a `list` of `float` would.
+The first argument (`"d"`) is the **type code** — a single character that picks the C type each slot holds. The common ones: `"b"`/`"B"` (signed/unsigned byte), `"h"`/`"H"` (short, 2 bytes), `"i"`/`"I"` (int, 4 bytes), `"l"`/`"L"` (long, 4 or 8), `"f"`/`"d"` (float/double, 4/8 bytes). All elements of one array share that type — that's the price of contiguous storage. For ten million floats, this uses about a quarter of the memory a `list` of `float` would.
 
 **`collections.deque` for double-ended queues.** Constant-time append and pop on *both* ends, and an optional `maxlen`:
 
@@ -309,6 +311,58 @@ The general rule: a `memoryview` is the cheap way to look at the same bytes thro
 ## Why this matters
 Python's sequence uniformity is not an accident — it's the data model at work. Implement `__len__` and `__getitem__` and your class gains slicing, iteration, `reversed()`, and the `in` operator for free.
 :::
+
+## Build: a flexible scoreboard parser {#sec-sequences-build}
+
+A small problem that uses every tool from the chapter: read a list of lines like `"Alice,95"` or `"Bob,87,senior,promoted"`, normalise each to `{name, score, tags}`, and rank the top two. Comprehensions to parse, `*rest` unpacking and `match`/`case` to classify shape, `sorted` + slice to rank.
+
+**Step 1: turn each line into a list of fields.** Split on the comma, lowercase nothing, leave types as strings for now:
+
+```{python}
+raw = """\
+Alice,95
+Bob,87,senior
+Carol,92,junior
+Dave,80,junior,intern
+"""
+
+rows = [line.split(",") for line in raw.strip().splitlines()]
+rows
+```
+
+A list comprehension reads "for every line in the splitlines, give me the comma-split list." The result is a list of variable-length lists of strings — exactly the messy data pattern `match`/`case` was designed for.
+
+**Step 2: classify each row's shape with `match`/`case`.** The valid shapes are 2, 3, or 4 fields. Use a sequence pattern that captures `name`, `score`, and the variable-length tail with `*tags`:
+
+```{python}
+def normalise(row):
+    match row:
+        case [name, score]:
+            return {"name": name, "score": int(score), "tags": []}
+        case [name, score, *tags]:
+            return {"name": name, "score": int(score), "tags": list(tags)}
+        case _:
+            return None
+
+records = [r for r in (normalise(row) for row in rows) if r is not None]
+records
+```
+
+Two patterns cover every well-formed row. `[name, score]` matches the two-field case exactly; `[name, score, *tags]` matches three-or-more, collecting the tail into a list (this is where `*rest` from the unpacking section earns its place inside `match`). The wildcard `case _:` returns `None` for malformed rows; the comprehension filter `if r is not None` drops them. Notice we also pulled the `int(score)` conversion *into* the patterns so callers see typed records.
+
+**Step 3: rank the top two.** `sorted` plus a `key` plus a slice — all three from the chapter:
+
+```{python}
+def top(records, n):
+    by_score = sorted(records, key=lambda r: r["score"], reverse=True)
+    return by_score[:n]                             # slice the head off
+
+top(records, 2)
+```
+
+`sorted(..., key=lambda r: r["score"], reverse=True)` returns a *new* list (it doesn't mutate `records` — the `sort` vs `sorted` distinction). The slice `[:n]` takes the first `n` — the highest scores, since we sorted descending. With `n` larger than `len(records)` the slice quietly returns the whole list, which is the right behaviour: no off-by-one to worry about.
+
+The build threads the chapter together: a list comprehension splits the input (sequences as values), `match`/`case` patterns destructure each row by *shape* with `*rest` for the tail, and `sorted` + a slice rank the result. Same recipe scales unchanged to a 100,000-line file — the comprehension and slice are eager, but you'd swap them for a generator + `heapq.nlargest` and the rest of the code is unchanged.
 
 ## Exercises {#sec-sequences-exercises}
 
