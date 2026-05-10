@@ -179,6 +179,79 @@ Each `is_prime` call runs in its own process; they truly run in parallel on mult
 `executor.map()` = familiar `map()` API but concurrent. `executor.submit()` + `as_completed()` = more control — handles errors per item, processes results as they complete. The switch from `ThreadPoolExecutor` to `ProcessPoolExecutor` is often one word in the source code — same API, totally different machinery.
 :::
 
+## Build: a thread-pool fanout with per-task progress and error handling {#sec-exec-build}
+
+The chapter showed the two `concurrent.futures` shapes — `executor.map` for ordered results, `submit` + `as_completed` for as-completed results. We'll combine them into one running build that downloads a list of URLs, reports progress as each finishes, and isolates per-task failures so one bad URL doesn't take down the batch.
+
+**Step 1: a simulated fetch and the `executor.map` baseline.** `time.sleep` simulates I/O; one URL deliberately raises so we can see the failure mode of `map`:
+
+```{python}
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
+
+def fetch(url):
+    time.sleep(0.1)
+    if url == "bad":
+        raise ValueError(f"failed to fetch {url!r}")
+    return f"<contents of {url}>"
+
+urls = ["alpha", "beta", "gamma", "delta"]
+
+with ThreadPoolExecutor(max_workers=4) as ex:
+    results = list(ex.map(fetch, urls))
+results
+```
+
+`ex.map(fetch, urls)` schedules the four calls on the pool and returns an iterator that yields results *in submission order*. `list(...)` drains it inside the `with` block — `executor.map` is lazy, so leaving the block before draining would let the pool shut down with results un-collected.
+
+**Step 2: `submit` + `as_completed` for live progress.** When tasks have different durations and you want to report progress *as each finishes* (not in submission order), `submit` is the tool:
+
+```{python}
+durations = {"alpha": 0.3, "beta": 0.1, "gamma": 0.2, "delta": 0.4}
+
+def fetch_timed(url):
+    time.sleep(durations.get(url, 0.1))
+    return f"<contents of {url}>"
+
+events = []
+with ThreadPoolExecutor(max_workers=4) as ex:
+    futures = {ex.submit(fetch_timed, url): url for url in durations}
+    for fut in as_completed(futures):
+        url = futures[fut]
+        events.append((url, fut.result()))
+events
+```
+
+`futures = {ex.submit(...): url for url in ...}` maps each scheduled `Future` back to the URL that produced it — futures are anonymous, so we tag them in a dict. `as_completed(futures)` yields each future *the moment it finishes*; `beta` (0.1s) finishes first, `alpha` (0.3s) before `delta` (0.4s). The `events` list captures the actual completion order.
+
+**Step 3: per-task error isolation — bad URLs don't kill the batch.** With `executor.map` from Step 1, the first exception aborts iteration. With `submit` + `as_completed` plus a per-task `try/except`, every other task still runs:
+
+```{python}
+def fetch_or_fail(url):
+    time.sleep(0.05)
+    if url.startswith("!"):
+        raise RuntimeError(f"bad url: {url!r}")
+    return f"<{url}>"
+
+mixed = ["one", "!boom", "two", "!nope", "three"]
+
+ok, errors = [], []
+with ThreadPoolExecutor(max_workers=4) as ex:
+    futures = {ex.submit(fetch_or_fail, url): url for url in mixed}
+    for fut in as_completed(futures):
+        url = futures[fut]
+        try:
+            ok.append((url, fut.result()))
+        except Exception as exc:
+            errors.append((url, str(exc)))
+
+[ok, errors]
+```
+
+`fut.result()` re-raises the task's exception when called — that's what makes the per-task `try/except` work. `ok` collects successes; `errors` collects failures with their messages. The bad URLs are isolated; the good ones complete. With `executor.map` instead, the first `!boom` would abort the iteration and `two`/`three`/`!nope` would never be reported.
+
+The build is the chapter's two shapes side by side: `executor.map` for "I want results in order, fail loudly" (Step 1), `submit` + `as_completed` for "I want progress as it happens" (Step 2), and the same pattern with per-task `try/except fut.result()` for "isolate failures, complete the rest" (Step 3). Switching the pool to `ProcessPoolExecutor` would parallelise CPU work the same way, with the pickling caveat from earlier in the chapter.
+
 ## Exercises {#sec-exec-exercises}
 
 1. **Threads vs. processes.** Time `is_prime` over a list with `ThreadPoolExecutor` and with `ProcessPoolExecutor`. Predict and verify the difference.
