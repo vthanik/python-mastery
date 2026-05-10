@@ -53,7 +53,7 @@ for line in iter(fp.readline, "\n"):
 
 Walking through what happens:
 
-- `io.StringIO(...)` gives us a file-like object backed by a string — handy for testing without touching disk.
+- `io.StringIO(...)` gives us an in-memory file-like object backed by a string — same `.read()`, `.readline()`, `.write()` API as a real file, but with no filesystem touch. The `bytes` counterpart is `io.BytesIO`. Handy for testing and for passing "a file" to code that expects one when you have only a string in hand.
 - `iter(fp.readline, "\n")` builds an iterator. Each `next()` calls `fp.readline()`; when that call returns the sentinel `"\n"` (an empty-content line, just a newline), the iterator stops.
 - The `for` loop drives that iterator and prints each line. The blank line and everything after it are skipped — the sentinel matched.
 
@@ -284,6 +284,73 @@ Generators can also *receive* values via `gen.send(x)` — a generator-based for
 ## Why this matters
 Every Python `for` loop is secretly: `it = iter(obj); next(it)` in a loop. Every generator function is a factory for iterator objects. `yield from` connects generators into pipelines, forwarding values and exceptions transparently. This is the foundation that `async`/`await` builds upon.
 :::
+
+## Build: a generator-based ETL pipeline {#sec-iter-build}
+
+The most natural use of generators in real code: an *ETL* pipeline (extract, transform, load) where each stage is its own generator and the stages compose by chaining iterables. Memory stays constant — only one record exists in flight at any moment.
+
+**Step 1: an extractor that yields raw records.** Skip blank lines and comments; yield the rest:
+
+```{python}
+def extract(text):
+    for line in text.strip().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        yield line
+
+raw = """
+# header — skipped
+Alice,95
+Bob,45
+
+Carol,72
+"""
+
+list(extract(raw))
+```
+
+`for line in ... .splitlines()` reads the multi-line string lazily-ish. `continue` skips the unwanted lines; `yield line` produces the rest. The function is a generator because of `yield` — calling `extract(raw)` returns a generator object, not a list.
+
+**Step 2: parse and filter — generators chained as iterables.** Each stage takes the previous generator and yields the next-stage values. `parse` produces dicts; `passing` filters by score:
+
+```{python}
+def parse(lines):
+    for line in lines:
+        name, raw_score = line.split(",")
+        yield {"name": name.strip(), "score": int(raw_score)}
+
+def passing(records, threshold=60):
+    for r in records:
+        if r["score"] >= threshold:
+            yield r
+
+list(passing(parse(extract(raw))))
+```
+
+`passing(parse(extract(raw)))` is a *pipeline* — three generators stacked. The innermost runs lazily; each `next()` on the outer pulls one record through every stage. Memory stays at one record because the previous stages don't *materialise* — they just yield on demand. Reading `extract -> parse -> passing` left-to-right is the dataflow direction; reading the call right-to-left gives the same order in code.
+
+**Step 3: batch using `yield from` for the trailing remainder.** A `batch(records, n)` generator yields lists of up to `n` records — useful for sending records in chunks to a database or HTTP API. The trailing partial chunk needs special handling:
+
+```{python}
+def batch(records, n):
+    chunk = []
+    for r in records:
+        chunk.append(r)
+        if len(chunk) == n:
+            yield chunk
+            chunk = []
+    if chunk:                           # final partial chunk, if any
+        yield chunk
+
+raw_many = "\n".join(f"User{i},{i*10}" for i in range(7))
+pipeline = batch(passing(parse(extract(raw_many)), threshold=20), n=3)
+list(pipeline)
+```
+
+The generator accumulates records into `chunk`. When `chunk` reaches size `n`, it yields the list and starts a fresh one. After the loop, the trailing `if chunk: yield chunk` handles the leftover (3, 7 → two chunks of 3 plus one of 1). The final pipeline `batch(passing(parse(extract(...))))` is four lazy stages stacked; calling `list(pipeline)` is what actually pulls every record through.
+
+The build is the chapter's lesson made concrete: each `yield`-using function is a generator that participates as an iterable in the next stage's `for` loop. The whole pipeline computes lazily — memory is one record (or one chunk) at a time, no matter how big the source. This is why generator pipelines scale to millions of records on a laptop where a list-based version would crash.
 
 ## Exercises {#sec-iter-exercises}
 
