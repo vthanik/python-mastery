@@ -114,6 +114,8 @@ def add_item_buggy(item, target=[]):
 add_item_buggy("a"), add_item_buggy("b")
 ```
 
+The output `(['a'], ['a', 'b'])` is the bug made visible. The second call did *not* start with a fresh empty list — `target=[]` was evaluated *once* when the `def` was processed, and that one list is shared across every call that doesn't supply its own `target`. The first call appended `'a'`; the second call saw a list that already contained `'a'` and appended `'b'`. Both return values are the *same* list — calling `add_item_buggy(...)` a third time would show `['a', 'b', 'next_thing']`. State leaks between unrelated calls.
+
 The fix is the `None` sentinel:
 
 ```{python}
@@ -125,6 +127,8 @@ def add_item(item, target=None):
 
 add_item("a"), add_item("b")
 ```
+
+The output `(['a'], ['b'])` is what callers expected the first time. `target=None` is safe to share because `None` is immutable. Inside the body, `if target is None: target = []` builds a *fresh* `[]` per call — so two callers get two different lists. The `if target is None:` (not `if not target:`) is intentional: a caller passing an *intentionally* empty list `[]` should be honoured, not replaced with a new one. The sentinel-plus-fresh-allocation is the universal idiom for any mutable default.
 :::
 
 ## Returning multiple values {#sec-fn-return}
