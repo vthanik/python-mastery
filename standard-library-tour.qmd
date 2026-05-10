@@ -309,6 +309,12 @@ Formatting and parsing use `strftime` / `strptime`:
 ]
 ```
 
+Three different conversions, two directions:
+
+- `now.strftime(fmt)` — *string-format-time*: turn a `datetime` into a string. The format codes are POSIX-style: `%Y` is the four-digit year, `%m` is two-digit month, `%d` two-digit day, `%H:%M:%S` is hour:minute:second on 24-hour. Other useful codes: `%A` weekday name, `%B` month name, `%j` day of year. The cell renders something like `'2026-05-10 12:34:56'`.
+- `datetime.strptime(text, fmt)` — *string-parse-time*: the inverse direction. Read a string against a format and produce a `datetime`. Useful for legacy or non-ISO formats. Naive (no timezone) unless your format contains `%z`.
+- `datetime.fromisoformat(text)` — the modern parser for the ISO-8601 format `YYYY-MM-DDTHH:MM:SS`. Faster and more permissive than `strptime("%Y-%m-%dT%H:%M:%S")`, and round-trips with `.isoformat()`. Reach for this whenever the input *is* ISO-8601 (which it should be, for any new code or API).
+
 For anything time-zone-sensitive, always include `tzinfo`. Use `timezone.utc` for UTC; for named zones, use `zoneinfo.ZoneInfo` (Python 3.9+) — backed by the system's IANA database, so it handles DST correctly:
 
 ```{python}
