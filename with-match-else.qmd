@@ -210,6 +210,122 @@ The general pattern: keep `try` minimal (just the call that might fail), put the
 The `with` statement is Python's universal resource management tool. `@contextmanager` turns a generator into a context manager with `try/yield` as the pivot point. The `else` clause on loops and `try` blocks expresses "success path" logic cleanly — without extra flags.
 :::
 
+## Build: a `transaction` context manager — class form and generator form {#sec-with-build}
+
+Database-style transactions are the textbook context-manager case: take a snapshot on entry, commit on a clean exit, roll back on an exception. We'll write it twice — once with `__enter__` / `__exit__`, once with `@contextmanager` — so the two forms can be compared side by side.
+
+**Step 1: a tiny in-memory store and a class-form transaction.** The store keeps the data in a dict and snapshots itself on `begin()`. The context manager calls `begin` on entry and `commit` or `rollback` on exit:
+
+```{python}
+class Store:
+    def __init__(self) -> None:
+        self.records: dict[int, str] = {}
+        self._snapshot: dict[int, str] | None = None
+
+    def begin(self) -> None:
+        self._snapshot = dict(self.records)
+
+    def commit(self) -> None:
+        self._snapshot = None
+
+    def rollback(self) -> None:
+        if self._snapshot is not None:
+            self.records = self._snapshot
+            self._snapshot = None
+
+    def __setitem__(self, k: int, v: str) -> None:
+        self.records[k] = v
+
+class Transaction:
+    def __init__(self, store: Store) -> None:
+        self.store = store
+
+    def __enter__(self) -> Store:
+        self.store.begin()
+        return self.store
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            self.store.commit()
+        else:
+            self.store.rollback()
+        return False                    # never suppress; let exceptions propagate
+
+s = Store()
+with Transaction(s) as tx:
+    tx[1] = "Alice"
+    tx[2] = "Bob"
+s.records
+```
+
+`__enter__` returns the store so `as tx` binds it. `__exit__` receives `(exc_type, exc_val, exc_tb)` — `None` triplet on a clean exit, the exception details on failure. Returning `False` (or omitting `return`) tells Python "I didn't handle this; let it propagate" — exactly what a transaction should do for unexpected errors.
+
+```{python}
+#| error: true
+s = Store()
+s[0] = "before"                         # outside the transaction
+with Transaction(s) as tx:
+    tx[1] = "uncommitted"
+    raise RuntimeError("something failed")
+```
+
+```{python}
+s.records                               # rollback restored the pre-transaction state
+```
+
+The exception propagated past `__exit__`, but only after `rollback` ran — `tx[1] = "uncommitted"` was undone. The pre-transaction `s[0] = "before"` is still there because it was outside the `with` block.
+
+**Step 2: the same context manager via `@contextmanager`.** A generator function with one `yield` collapses the class form to half the code:
+
+```{python}
+import contextlib
+
+@contextlib.contextmanager
+def transaction(store: Store):
+    store.begin()
+    try:
+        yield store
+        store.commit()
+    except Exception:
+        store.rollback()
+        raise
+
+s = Store()
+with transaction(s) as tx:
+    tx[1] = "Alice"
+s.records
+```
+
+Setup before `yield`; teardown wrapped in `try/except`. `yield store` is where the `with` block runs — pause point. On clean exit the generator resumes and runs `commit`. On exception, control jumps to `except`, which rolls back and *re-raises* (the bare `raise`) so the caller still sees the error. The class form's three methods are now one function with one `try/except`.
+
+**Step 3: pair the context manager with `try/except/else/finally` on the *call site*.** The transaction handles its own commit/rollback; the *caller* often wants to log success vs failure separately. `try/except/else` on top of the `with` is the clean shape:
+
+```{python}
+def apply_changes(store: Store, changes: dict[int, str]) -> str:
+    try:
+        with transaction(store) as tx:
+            for k, v in changes.items():
+                if v == "FAIL":
+                    raise ValueError(f"cannot store FAIL for key {k}")
+                tx[k] = v
+    except ValueError as e:
+        return f"rolled back: {e}"
+    else:
+        return f"committed {len(changes)} change(s)"
+    finally:
+        # always runs — close handles, release locks, log timing
+        pass
+
+s = Store()
+[apply_changes(s, {1: "Alice", 2: "Bob"}),
+ apply_changes(s, {3: "Carol", 4: "FAIL"}),
+ s.records]
+```
+
+`try` is the small region that might raise (the whole `with` block, where commit/rollback happens). `except ValueError` catches the failure path — and crucially, the `with` already rolled back before this line runs. `else` runs only on the *success* path, after the transaction committed cleanly. `finally` runs in both cases — placeholder here for the kind of unconditional cleanup the chapter mentioned. Each block has one job.
+
+The build threads three of the chapter's tools together: `__enter__`/`__exit__` for the class-form context manager (Step 1), `@contextmanager` plus `try/except/raise` for the generator form (Step 2), and `try/except/else/finally` on the call site to separate success-path logic from rollback handling (Step 3).
+
 ## Exercises {#sec-with-exercises}
 
 1. **A logging CM.** Write a context manager `log_block(name)` that prints `"enter <name>"` on entry, `"exit <name>"` on exit, and `"raised <exc_type>"` if an exception passed through.
