@@ -434,11 +434,15 @@ That chain is the **MRO** (method resolution order). You can inspect it directly
 [c.__name__ for c in GuideDog.__mro__]
 ```
 
+The output `['GuideDog', 'Dog', 'Animal', 'object']` is the *exact* lookup order Python walks for any attribute access on a `GuideDog` instance. Notice `object` at the end — every class in Python ultimately inherits from `object`, which is why every instance has `__repr__`, `__hash__`, `__eq__` (the default identity ones) for free. The list comprehension `[c.__name__ for c in GuideDog.__mro__]` just turns the tuple of class objects into their names for readable output.
+
 `isinstance` uses the same chain — an object "is-a" any class in its MRO:
 
 ```{python}
 [isinstance(g, GuideDog), isinstance(g, Dog), isinstance(g, Animal)]
 ```
+
+All three return `True`. `g` is a `GuideDog`, but a `GuideDog` *is-a* `Dog` (because `Dog` is in `GuideDog`'s MRO), and *is-a* `Animal` (same reason). This is what "subtype" means at runtime: `isinstance(x, T)` is true exactly when `T` is in `type(x).__mro__`. It's also why subclass instances pass type checks intended for the parent — exactly the polymorphism point.
 
 The full descriptor and MRO story is in @sec-data-model and @sec-inheritance.
 
