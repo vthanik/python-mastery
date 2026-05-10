@@ -254,7 +254,7 @@ Walking through what each piece does:
 - The `for cheese in catalog` loop registers each cheese in `stock` keyed by its kind. While `catalog` is alive, the cheeses are alive, so all three keys appear.
 - `del catalog` removes the strong references in the list. But the loop variable `cheese` is still bound to the last cheese (`"Brie"`) — Python doesn't clear it when the loop ends.
 - `del cheese` removes that last strong reference. Now nothing keeps any of the cheeses alive *except* the weak entries in `stock`, which don't count.
-- `gc.collect()` forces the cycle detector to run; afterwards `stock` is empty.
+- `gc.collect()` forces Python's *cyclic garbage collector* to run a pass immediately. CPython's primary cleanup mechanism is reference counting (an object is freed the moment its count hits zero), but reference counting alone can't free *cycles* (`a.b = b; b.a = a`); the cyclic GC catches those, normally on its own schedule. We call `gc.collect()` here to make the cleanup happen *now* so the next cell sees the result, not at some unpredictable later moment.
 
 The general rule: caches and registries that *must not* extend object lifetime use `WeakValueDictionary` — entries clean themselves up as soon as the underlying objects are no longer needed elsewhere.
 
@@ -282,6 +282,80 @@ The first answer can be `True` or `False`. The second is always `True`. That's t
 ## Why this matters
 Variables are labels, not boxes. Assignment creates a new label for an existing object — it does not copy the object. This is why you must explicitly `copy()` or `deepcopy()` when you need independence. And it's why mutable default arguments are a trap that never fails to catch beginners.
 :::
+
+## Build: a leak-free `Cart` class {#sec-references-build}
+
+A shopping cart looks trivial — items, quantities, a total — until aliasing turns one customer's cart into a phantom that mutates whenever any other customer adds something. We'll build it three times: hit the trap, fix it with the `None` sentinel, then handle nested mutables with `deepcopy`.
+
+**Step 1: the trap — mutable default argument.** The same shape as `HauntedBus` from earlier in the chapter, made concrete:
+
+```{python}
+class CartBuggy:
+    def __init__(self, items=[]):              # the trap
+        self.items = items
+
+    def add(self, item):
+        self.items.append(item)
+
+a = CartBuggy()
+a.add("apple")
+b = CartBuggy()                                 # fresh customer, supposedly
+a.items, b.items
+```
+
+`b` was meant to be empty — but the `items=[]` default is evaluated *once* at `def` time, and every `CartBuggy()` call without an explicit `items` shares it. When `a.add("apple")` mutates that shared list, `b.items` sees the same `"apple"` it never asked for. This is the bug the chapter has been warning about, applied to a real-feeling class.
+
+**Step 2: fix with `None` sentinel and defensive copy.** Two changes: default to `None`, and copy whatever the caller passes so callers can't mutate `self.items` from the outside:
+
+```{python}
+class Cart:
+    def __init__(self, items=None):
+        self.items = [] if items is None else list(items)
+
+    def add(self, item):
+        self.items.append(item)
+
+a = Cart()
+a.add("apple")
+b = Cart()                                      # really fresh now
+[a.items, b.items]
+```
+
+`items=None` is safe to share because `None` is immutable. The body builds a *fresh* `[]` per instance when the caller didn't supply one, and `list(items)` makes a shallow copy when they did. After this, `a` and `b` cannot share state.
+
+```{python}
+caller_list = ["banana"]
+c = Cart(caller_list)
+caller_list.append("contraband")               # caller mutates their list
+c.items                                          # cart is unaffected
+```
+
+The `list(items)` copy in `__init__` is what makes the second step robust. Without it, the caller's list and `c.items` would be aliases.
+
+**Step 3: handle nested mutables with `deepcopy`.** Now suppose each *item* is a dict like `{"name": "apple", "qty": 1}`. A shallow copy of the items list copies the outer list — but the dicts inside are still shared:
+
+```{python}
+import copy
+
+class CartV2:
+    def __init__(self, items=None):
+        self.items = [] if items is None else list(items)        # shallow
+
+    def snapshot(self):
+        """Return an independent copy — safe even if items are mutable."""
+        new = CartV2()
+        new.items = copy.deepcopy(self.items)
+        return new
+
+c1 = CartV2([{"name": "apple", "qty": 1}, {"name": "pear", "qty": 2}])
+c2 = c1.snapshot()
+c2.items[0]["qty"] = 99                         # mutate the snapshot
+c1.items[0]["qty"], c2.items[0]["qty"]
+```
+
+`copy.deepcopy` recurses into the items, copying every nested dict — so `c2`'s `qty=99` mutation doesn't reach `c1`. The shallow copy in `__init__` is the right default (cheap, and most callers don't mutate inner dicts); `snapshot()` opts into the deep version when independence at every level is needed.
+
+The build threads the chapter's three lessons through one running class: the mutable-default trap (Step 1), the sentinel-plus-defensive-copy fix (Step 2), and the `deepcopy` escape hatch when references nest (Step 3). Once you've internalised which level of independence each step provides, "why did my data get corrupted?" stops being a recurring question.
 
 ## Exercises {#sec-references-exercises}
 
