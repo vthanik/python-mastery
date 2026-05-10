@@ -45,14 +45,23 @@ xs
 
 The general rule: list mutation methods return `None`. Never write `xs = xs.append(4)` — you'll lose your list and bind `xs` to `None`.
 
+Removal has three primitives, each with a different semantic:
+
 ```{python}
 xs.pop(), xs.pop(0)
 ```
+
+- `xs.pop()` (no argument) removes and *returns* the last element — the right tool for stack-style usage.
+- `xs.pop(0)` removes and returns the *first* element — useful but slow for large lists, because every other element has to shift down. For frequent front-end pops, use `collections.deque` (chapter 11) which makes that O(1).
+- The cell shows both calls in one tuple expression, so you see both popped values: the last one first (whatever was on the right end), then the first one (`0`).
 
 ```{python}
 xs.remove(3)
 xs
 ```
+
+- `xs.remove(value)` removes the *first* occurrence of `value` by equality (`==`), not by index. Raises `ValueError` if `value` is absent.
+- Useful when you have the value, not the position. If you have the position, `del xs[i]` is faster (no scan).
 
 Sorting comes in two flavors — in-place (modifies the original) vs. returning a new list (leaves the original alone). Pick based on whether you still need the unsorted version:
 
@@ -88,6 +97,8 @@ b = a
 b.append(4)
 a
 ```
+
+The output `[1, 2, 3, 4]` — for *both* `a` and `b` — is the aliasing demo: `b = a` doesn't copy the list, it makes `b` a second name for the same object. `b.append(4)` mutates that one list; reading `a` shows the mutation because there's only one list to read. The fix when you want a separate copy is `b = a.copy()` (or the equivalent `b = list(a)`); for nested data, use `copy.deepcopy`.
 
 ## Tuples {#sec-coll-tuples}
 
@@ -125,6 +136,8 @@ Tuples can be dict keys (lists cannot, because they're mutable and *unhashable*)
 locations = {(40.7, -74.0): "New York", (51.5, -0.1): "London"}
 locations[(40.7, -74.0)]
 ```
+
+The dict has two entries; each *key* is a 2-tuple of latitude and longitude. Looking up `(40.7, -74.0)` returns `"New York"` — and the lookup works because Python first hashes the tuple (which it can, because tuples-of-floats are hashable), uses that hash to find the bucket, and then does a `==` check against the candidate keys. Trying `[40.7, -74.0]` (a list) as a key would raise `TypeError: unhashable type: 'list'` — that's the rule the previous paragraph just stated, made concrete.
 
 ## Dictionaries {#sec-coll-dicts}
 
