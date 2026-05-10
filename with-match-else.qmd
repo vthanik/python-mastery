@@ -121,6 +121,13 @@ with contextlib.redirect_stdout(buf):
 buf.getvalue()
 ```
 
+Walking through the redirect:
+
+- `io.StringIO()` builds an in-memory writable buffer — same `.write()` interface as a real file, but the bytes go into RAM.
+- `contextlib.redirect_stdout(buf)` is the context manager: on entry, it replaces `sys.stdout` with `buf`; on exit, it puts the original `sys.stdout` back. Even if the body raises.
+- Inside the `with`, `print("captured!")` *writes to `buf`* instead of the terminal. The output you'd normally see is swallowed.
+- After the block, `buf.getvalue()` returns the accumulated text — `'captured!\n'`. Useful for testing functions that print, or for capturing third-party output that doesn't expose a clean API.
+
 `contextlib.ExitStack` lets you stack a *dynamic* number of context managers — useful when the count isn't known at write time:
 
 ```{python}
