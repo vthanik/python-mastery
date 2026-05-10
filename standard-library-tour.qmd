@@ -118,17 +118,23 @@ import itertools
 list(itertools.chain([1, 2], [3, 4], [5, 6]))
 ```
 
+`chain(a, b, c, ...)` walks each input in turn and yields its elements one by one — never materialising any intermediate list. For three lists it produces `[1, 2, 3, 4, 5, 6]`. The lazy form pays off when the inputs are large or themselves lazy: `chain(open("a.log"), open("b.log"))` streams two files as one stream of lines, no concatenation cost. There's also `chain.from_iterable(iter_of_iters)` for "flatten one level" when you have a list of lists already.
+
 **`islice`** — take a slice from any iterable (lazily):
 
 ```{python}
 list(itertools.islice(range(100), 5))
 ```
 
+`islice(iterable, stop)` is `iterable[:stop]` for things that *can't* be subscripted — generators, iterators, file objects, infinite sequences. The cell yields `[0, 1, 2, 3, 4]`, the same as `list(range(100))[:5]` would, but without building a 100-element list first. Three-argument form: `islice(it, start, stop)`; four-argument: `islice(it, start, stop, step)`.
+
 **`cycle`** — repeat forever (combine with `islice` to stop):
 
 ```{python}
 list(itertools.islice(itertools.cycle(["red", "green", "blue"]), 7))
 ```
+
+`cycle(iterable)` yields the elements over and over — `red, green, blue, red, green, blue, red, ...` forever. By itself it would never terminate; combined with `islice` it gives you "the next *N* values, wrapping around." Useful for round-robin assignment, alternating colours in a chart, repeating a fallback list. The cell takes the first 7, producing `['red', 'green', 'blue', 'red', 'green', 'blue', 'red']` — two full cycles plus the first colour again.
 
 **`groupby`** — group *consecutive* equal items. The trap: it does not pre-sort the input, so unsorted data gives you one group per run, not one per distinct value. Two cells make the rule visible.
 
@@ -160,6 +166,8 @@ The general rule: `groupby` is the SQL-style group-by, but **you sort first**, a
 list(itertools.accumulate([1, 2, 3, 4, 5]))
 ```
 
+The default operator is `+`, so the output is `[1, 3, 6, 10, 15]` — each element is the sum of all previous ones. Element 0 is just `1` (the first input); element 1 is `1 + 2 = 3`; element 2 is `3 + 3 = 6`; and so on. This is what spreadsheets call a "running total." Pass a different operator to fold differently — `itertools.accumulate(xs, operator.mul)` gives a running product, `itertools.accumulate(xs, max)` gives the running maximum.
+
 **`combinations`, `permutations`, `product`** — combinatorial generators:
 
 ```{python}
@@ -169,6 +177,14 @@ list(itertools.accumulate([1, 2, 3, 4, 5]))
     list(itertools.product("AB", range(2))),
 ]
 ```
+
+Three different combinatorial questions:
+
+- `combinations("ABCD", 2)` yields *unordered* pairs without repetition: `('A','B'), ('A','C'), ('A','D'), ('B','C'), ('B','D'), ('C','D')` — six pairs. "Unordered" means `('A','B')` and `('B','A')` count as the same pair, so only one is yielded. C(4, 2) = 6.
+- `permutations("ABC", 2)` yields *ordered* pairs without repetition: `('A','B'), ('A','C'), ('B','A'), ('B','C'), ('C','A'), ('C','B')` — six pairs (we slice the first three). Order matters, so `('A','B')` and `('B','A')` are both included. P(3, 2) = 6.
+- `product("AB", range(2))` is the *cartesian product*: every combination from each iterable, with order and repetition. `('A',0), ('A',1), ('B',0), ('B',1)` — four tuples. The same as a nested for-loop.
+
+Use `combinations` when "choose 2 of these" matters (poker hands, lottery tickets); `permutations` when "in what order" matters (rankings, password attempts); `product` when iterating over a grid of independent choices (color × size, country × year).
 
 ## `functools` {#sec-stdlib-functools}
 
