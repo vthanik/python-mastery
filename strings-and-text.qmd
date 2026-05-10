@@ -132,6 +132,12 @@ The general rule: the separator string is the receiver, the iterable of strings 
 ]
 ```
 
+Three subtly different `split` shapes worth knowing:
+
+- `"a,b,c".split(",")` returns `['a', 'b', 'c']` — splits on the *exact* separator, even if it appears multiple times in a row (`"a,,b".split(",")` is `['a', '', 'b']`, with an empty string in the middle).
+- `"  spaces   between   ".split()` (no argument) is the *whitespace-aware* form: it collapses consecutive runs of any whitespace (spaces, tabs, newlines) and ignores leading/trailing whitespace entirely, so the result is `['spaces', 'between']` — no empty strings. This is the form you want for parsing words out of text.
+- `"line1\nline2\nline3".splitlines()` is the line-aware split — splits on `\n`, `\r\n`, `\r`, and other line terminators, and *omits* the trailing empty string that `.split("\n")` would leave on a string ending with a newline. The right choice for reading file contents into a list of lines.
+
 The rule: **never** use `+=` in a loop to build a string. Each `+=` allocates a new string. Use `.join(list_of_pieces)` instead.
 
 ## String methods {#sec-strings-methods}
@@ -169,6 +175,13 @@ The general rule: every method that "modifies" a string actually returns a new o
 ]
 ```
 
+Four useful variations on the basic methods:
+
+- `"  hello  ".strip()` — no argument, strips *whitespace*. Produces `'hello'`.
+- `"xxhelloxx".strip("x")` — a one-char argument is a *set* of characters to strip from both ends. Not a substring: `"abxabc".strip("ab")` is `"xabc"`, because `strip` keeps removing any of `a`/`b` until it hits a character not in the set (`x`). To strip a specific *substring*, use `removeprefix`/`removesuffix` (Python 3.9+) instead.
+- `"abc".count("a")` — counts non-overlapping occurrences. Returns `1` here (one `a` in `"abc"`).
+- `"abc".replace("a", "A").replace("b", "B")` — chained calls each return a *new* string; the second `.replace` operates on the result of the first. Output: `"ABc"`. Chaining is fine for two or three; for many substitutions, build a translation table with `str.maketrans` plus `s.translate`.
+
 ## Escape sequences {#sec-strings-escape}
 
 Inside a non-raw string, `\` introduces an escape:
@@ -182,7 +195,14 @@ Inside a non-raw string, `\` introduces an escape:
 ]
 ```
 
-A raw string disables this — useful for paths, regex, and any string with many backslashes.
+Each item shows the four escapes you'll meet daily:
+
+- `"line1\nline2"` — `\n` is a *single* character, the newline (ASCII code point 10). The literal in source is two characters `\` and `n`; Python turns that into one character at parse time.
+- `"tab\there"` — `\t` is the tab character (code point 9). Same idea: two source characters become one runtime character.
+- `"quote: \"hi\""` — `\"` lets you put a double-quote inside a double-quoted string. The alternative is to use single quotes around the whole string (`'quote: "hi"'`) and avoid the escape entirely.
+- `"backslash: \\"` — to put a literal backslash in the string, you write `\\`. One backslash to escape, one as the actual character. So the runtime string ends with one backslash, not two.
+
+Other escapes worth knowing: `\xHH` for a byte (or code point in a `str`) by hex, `\uXXXX` for a Unicode code point, `\0` for the null character. A raw string (`r"..."`) disables *all* of this — `\n` stays two characters — useful for paths, regex, and any string with many backslashes.
 
 ::: {.callout-tip}
 ## Why this matters
