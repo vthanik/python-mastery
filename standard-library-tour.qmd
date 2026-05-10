@@ -241,9 +241,11 @@ import operator
  functools.reduce(operator.mul, [1, 2, 3, 4, 5])]
 ```
 
+The `operator` module provides function versions of every Python operator — `operator.add(a, b)` *is* `a + b`, `operator.mul(a, b)` *is* `a * b`, `operator.itemgetter(0)` returns a callable equivalent to `lambda x: x[0]`. They're useful exactly here: where a higher-order function (`reduce`, `map`, `sorted(..., key=...)`) needs a function value rather than an inline operator.
+
 **`wraps`** — preserve a function's name and docstring inside a decorator. We saw this in @sec-functions-basics; the deep treatment is @sec-decorators.
 
-A side note on the `statistics` module: for plain numerical means, `statistics.fmean` (Python 3.8+) is faster than `statistics.mean` because it converts to `float` up front instead of preserving exact `Fraction` arithmetic. Reach for `mean` only when you need exactness across `Decimal` or `Fraction` data:
+The `statistics` module (used by `cached_property` above) provides the small set of descriptive-stats functions you'd otherwise compute by hand: `mean`, `median`, `mode`, `stdev`, `variance`, plus the histogram-style `quantiles`. For plain numerical means, `statistics.fmean` (Python 3.8+) is faster than `statistics.mean` because it converts to `float` up front instead of preserving exact `Fraction` arithmetic. Reach for `mean` only when you need exactness across `Decimal` or `Fraction` data:
 
 ```{python}
 import statistics
@@ -354,6 +356,80 @@ The standard library is the largest, best-tested Python codebase in existence. K
 ## Further reading
 Beazley, *Python Distilled* §9–10 surveys the rest of the standard library — `socket`, `select`, `asyncio`, `threading`, `tempfile`, `struct`, `urllib`, `xml`, `inspect`, and more — with example-driven notes that complement this chapter's tour.
 :::
+
+## Build: a tiny log-line analyzer {#sec-stdlib-build}
+
+A canonical "I just need to grok these logs" task: parse some lines, count status codes, and break it down by date. Five stdlib modules earn a slot — `re` for parsing, `collections.Counter` and `defaultdict` for tallies, `itertools.groupby` for the per-day breakdown, and `datetime` for date validation.
+
+**Step 1: parse each line with a named-group regex.** A real-world log line has fields the program needs as separate values; `re` with named groups gives them to you as a dict:
+
+```{python}
+import re
+
+LINE = re.compile(
+    r"(?P<date>\d{4}-\d{2}-\d{2}) "
+    r"(?P<time>\d{2}:\d{2}:\d{2}) "
+    r"(?P<level>\w+) "
+    r"(?P<status>\d+) "
+    r"(?P<path>\S+)"
+)
+
+raw = """\
+2024-01-15 10:30:01 ERROR 500 /api/users
+2024-01-15 10:30:05 INFO 200 /api/products
+2024-01-15 10:31:02 ERROR 404 /api/users
+2024-01-16 09:15:00 ERROR 500 /api/orders
+2024-01-16 09:15:30 ERROR 500 /api/users
+"""
+
+events = [LINE.match(line).groupdict() for line in raw.strip().splitlines()]
+events[0]
+```
+
+`(?P<name>...)` defines a *named* capture group; after a successful match, `m.groupdict()` returns a dict keyed by those names — much friendlier than `m.group(1)`, `m.group(2)`, etc. Compiling the pattern once at module level (`re.compile(...)`) avoids re-compiling it for every line.
+
+**Step 2: tally status codes (Counter) and group request paths by status (defaultdict).** Two of the chapter's `collections` types, applied to the parsed events:
+
+```{python}
+from collections import Counter, defaultdict
+
+status_counts = Counter(int(e["status"]) for e in events)
+
+paths_by_status = defaultdict(list)
+for e in events:
+    paths_by_status[int(e["status"])].append(e["path"])
+
+[status_counts.most_common(),
+ dict(paths_by_status)]
+```
+
+`Counter(int(e["status"]) for e in events)` walks the events with a generator expression — no intermediate list — and tallies. `paths_by_status` is a `defaultdict(list)` so each status code's list of paths is auto-created on first access.
+
+**Step 3: per-day breakdown using `itertools.groupby` and `datetime` for validation.** `groupby` needs the input sorted by the same key — that was the trap from earlier in the chapter. We sort by date, then group, and along the way validate that each date is a real calendar date:
+
+```{python}
+import itertools
+from datetime import date
+
+def by_date(event):
+    return event["date"]
+
+events_sorted = sorted(events, key=by_date)
+
+per_day = {}
+for day, group in itertools.groupby(events_sorted, key=by_date):
+    parsed = date.fromisoformat(day)         # raises ValueError on a bad date
+    rows = list(group)
+    per_day[parsed.isoformat()] = {
+        "n": len(rows),
+        "errors": sum(1 for r in rows if r["level"] == "ERROR"),
+    }
+per_day
+```
+
+`itertools.groupby(events_sorted, key=by_date)` yields `(day, group_iterator)` pairs whenever the key changes. `list(group)` materialises the iterator before we move on — the same rule we hit in the `groupby` section. `date.fromisoformat` validates that `"2024-01-15"` is a real date (a typo like `"2024-13-15"` would raise `ValueError`); we don't actually use `parsed` further, but it lets the loop fail loudly on bad input rather than silently letting a typo through.
+
+The build threads five modules through one pipeline: `re` for the parse, `Counter` for the rank-by-frequency tally, `defaultdict` for the grouped lists, `itertools.groupby` for the SQL-style per-day breakdown, and `datetime` for shape-validation. None of it is more than ten lines of code per step — and all five modules read like the prose description of what we're doing.
 
 ## Exercises {#sec-stdlib-exercises}
 
