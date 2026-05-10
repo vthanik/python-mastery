@@ -293,6 +293,71 @@ The general rule: `case ClassName(field=pattern, ...)` matches an instance of th
 A data class with zero methods is a code smell — it's a dumb data container that forces callers to know its internals. Either add the methods that belong with the data, or use a tuple/dict and be explicit about its structure. A class earns its existence by encapsulating both data **and** behavior.
 :::
 
+## Build: a validated, frozen `Config` with environment dispatch {#sec-dataclasses-build}
+
+Configuration objects show up in every program — and they hit every dataclass feature we've covered: validation, immutability for safety, `replace` for variants, and pattern matching for environment-specific behaviour.
+
+**Step 1: a frozen dataclass with `__post_init__` validation.** Lock down the fields, validate them at construction, slot the instance for memory efficiency:
+
+```{python}
+from dataclasses import dataclass, replace
+
+@dataclass(frozen=True, slots=True)
+class Config:
+    env: str
+    host: str
+    port: int = 5432
+    tls: bool = False
+
+    def __post_init__(self):
+        if self.env not in {"dev", "staging", "prod"}:
+            raise ValueError(f"unknown env: {self.env!r}")
+        if not 1 <= self.port <= 65535:
+            raise ValueError(f"port out of range: {self.port}")
+
+dev = Config(env="dev", host="localhost")
+dev
+```
+
+`frozen=True` rejects any post-construction mutation, so the validation in `__post_init__` is the *only* time the values can be wrong — once a `Config` exists, it's known-good. `slots=True` skips the per-instance `__dict__`. The `__post_init__` runs after the generated `__init__` finishes assigning fields, so we can read `self.env` and `self.port` to validate them; raising `ValueError` aborts construction.
+
+```{python}
+#| error: true
+Config(env="prod", host="db.example.com", port=70000)   # invalid port
+```
+
+**Step 2: derive variants with `dataclasses.replace`.** A frozen instance can't be mutated — the canonical "make a tweaked copy" function is `replace`:
+
+```{python}
+prod = replace(dev, env="prod", host="db.prod.example.com", tls=True)
+staging = replace(prod, env="staging", host="db.staging.example.com")
+
+[dev, prod, staging]
+```
+
+`replace(dev, env="prod", ...)` reads every field of `dev`, overrides the named ones, and runs the constructor again — so `__post_init__` *re-validates* the new instance. `staging` derives from `prod` rather than from scratch, picking up `tls=True` for free; that's the value-object pattern in motion.
+
+**Step 3: dispatch by environment with `match`/`case`.** Class patterns let you branch on field values without touching the dataclass code:
+
+```{python}
+def connect_url(cfg):
+    match cfg:
+        case Config(env="prod", host=h, port=p, tls=True):
+            return f"https://{h}:{p}/?strict=true"
+        case Config(env="staging", host=h, port=p):
+            return f"https://{h}:{p}/"
+        case Config(env="dev", host=h, port=p):
+            return f"http://{h}:{p}/"
+        case _:
+            raise ValueError(f"no URL handler for {cfg!r}")
+
+[connect_url(dev), connect_url(staging), connect_url(prod)]
+```
+
+`case Config(env="prod", host=h, port=p, tls=True):` matches when the value *is-a* `Config` and the named fields equal the literals (`env="prod"`, `tls=True`). Bare names (`h`, `p`) capture; literal values (`"prod"`, `True`) constrain. Top-to-bottom evaluation gives prod-specific handling first, with staging and dev fallbacks. Adding a fourth environment is one more `case` clause, no `if`/`elif` chain.
+
+The build is the chapter in motion: `frozen=True` + `slots=True` for an immutable, lightweight value object, `__post_init__` for invariant validation, `replace` for derived variants, and `match`/`case` class patterns for dispatch — all on the same fifteen-line dataclass.
+
 ## Exercises {#sec-dataclasses-exercises}
 
 1. **Defaults trap.** Write a `Bag` dataclass with a `contents: list = []` default. Create two `Bag` instances and add to one. Predict and explain what happens. Then fix it with `field(default_factory=list)`.
