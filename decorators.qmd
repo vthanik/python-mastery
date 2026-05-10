@@ -377,6 +377,92 @@ So `@clock("{name}: {elapsed:.4f}s")` desugars to `snooze = clock("{name}: {elap
 A closure is a function that remembers the enclosing scope's variables even after the enclosing function has returned. A decorator is a function that takes a function and returns a (modified) function. These are not tricks — they are direct consequences of functions being objects and Python having lexical scoping.
 :::
 
+## Build: a stackable `@validated(predicate)` decorator {#sec-decorators-build}
+
+A production function often guards its first argument against several invariants — "must be positive", "must be a string", "must be in the allowed set". One common pattern is a chain of `if not …: raise ValueError(...)` lines at the top of every function. A parameterised decorator turns those into named, reusable, *stackable* checks.
+
+**Step 1: a parameterised factory that takes a predicate.** Three levels of nesting — factory, decorator, wrapper — exactly the shape from the chapter:
+
+```{python}
+import functools
+
+def validated(predicate, message="invalid"):
+    def decorate(func):
+        @functools.wraps(func)
+        def wrapper(value, *args, **kwargs):
+            if not predicate(value):
+                raise ValueError(f"{message}: {value!r}")
+            return func(value, *args, **kwargs)
+        return wrapper
+    return decorate
+
+@validated(lambda x: x > 0, message="must be positive")
+def square(n):
+    return n * n
+
+square(5)
+```
+
+`validated(predicate, message)` evaluates first and returns the actual decorator `decorate`. `decorate` wraps `square` in `wrapper`, which checks `predicate(value)` before delegating. `predicate` and `message` are captured by closure — `wrapper` reads them from the enclosing scopes.
+
+```{python}
+#| error: true
+square(-3)
+```
+
+The wrapper raises `ValueError` *before* calling `square`, so the function body never sees a negative input. `@functools.wraps(func)` keeps `square.__name__ == "square"` and the docstring intact for `help()` and tracebacks.
+
+**Step 2: stack multiple validators.** Decorators compose — each `@validated` adds another wrapper layer. Stacking order matters: the *bottom* decorator wraps first, so its check runs *last*:
+
+```{python}
+@validated(lambda x: isinstance(x, int), message="must be int")
+@validated(lambda x: x > 0, message="must be positive")
+def square(n):
+    return n * n
+
+square(5)
+```
+
+```{python}
+#| error: true
+square(-3)
+```
+
+```{python}
+#| error: true
+square(3.14)
+```
+
+Reading bottom-to-top: `@validated(positive)` wraps `square` first, producing `wrapper_positive`. Then `@validated(int)` wraps *that*, producing `wrapper_int`. At call time the layers run top-to-bottom: `square(3.14)` enters `wrapper_int`, fails the int check, raises before the positive wrapper or the original ever runs. `square(-3)` passes the int check, then fails the positive check.
+
+**Step 3: a small library of named validators.** The whole point of factoring this out is reuse. Build the predicates as named values, not anonymous lambdas:
+
+```{python}
+is_int      = validated(lambda x: isinstance(x, int), message="must be int")
+is_positive = validated(lambda x: x > 0,             message="must be positive")
+in_range    = lambda lo, hi: validated(
+    lambda x: lo <= x <= hi,
+    message=f"must be in [{lo}, {hi}]",
+)
+
+@is_int
+@is_positive
+@in_range(1, 100)
+def percentile(n):
+    return f"the {n}th percentile"
+
+[percentile(50), percentile(1)]
+```
+
+```{python}
+#| error: true
+percentile(150)
+```
+
+`is_int` and `is_positive` are *concrete* decorators — `validated(...)` already evaluated, ready to apply. `in_range(lo, hi)` is a *fourth* level of nesting: a function that *returns* a decorator factory call. So `@in_range(1, 100)` calls `in_range(1, 100)` (returns the decorator), which wraps the function. Each layer reads its captured config from its own closure — no shared state, no global registry, no class needed.
+
+The build threads everything from the chapter through one running pattern: closures (predicates and messages captured by the wrapper), parameterised decorators (factory → decorator → wrapper), `@functools.wraps` for metadata preservation, and the inside-out reading order of stacked decorators.
+
 ## Exercises {#sec-decorators-exercises}
 
 1. **Order of decorators.** What's the difference between `@a @b def f` and `@b @a def f`? Try a `clock` and a `cache` decorator, both ways. Which call shows the timing?
