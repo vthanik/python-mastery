@@ -24,9 +24,9 @@ jobs:
 
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
-        with:
-          # To install LaTeX to build PDF book
-          tinytex: true
+        # tinytex is only needed for PDF output; this book renders HTML
+        # only (see format: in _quarto.yml). Re-enable with `tinytex: true`
+        # if a `format: pdf` block is added there.
 
       - name: Set up Python
         uses: actions/setup-python@v5
