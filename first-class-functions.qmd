@@ -394,7 +394,6 @@ slug = (
     .then(str.strip)
     .then(str.lower)
     .then(methodcaller("replace", " ", "-"))
-    .then(partial(str.removeprefix, prefix=""))   # no-op, included for shape
 )
 [slug("  Hello World  "), slug("PYTHON Rules")]
 
