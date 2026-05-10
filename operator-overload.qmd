@@ -205,6 +205,89 @@ The general pattern: write the two most natural comparisons (`__eq__` and one of
 The key insight: return `NotImplemented`, don't raise `TypeError`. Returning `NotImplemented` tells Python to try the reflected method. If you raise, Python can't recover — it propagates the error immediately, even if the other operand could have handled it.
 :::
 
+## Build: a `TimeSpan` value class with full arithmetic {#sec-operator-build}
+
+Time durations are a classic operator-overload target: you want `span1 + span2`, `2 * span`, `-span`, comparisons, and use as a dict key. We'll build it three steps deep — same-type addition first, then scalar multiplication with reflected support, then ordering via `@total_ordering`.
+
+**Step 1: addition, subtraction, negation — same type only.** Each operator returns a *new* `TimeSpan`; `NotImplemented` is the sentinel for "I can't handle this operand":
+
+```{python}
+class TimeSpan:
+    def __init__(self, seconds: float) -> None:
+        self.seconds = float(seconds)
+
+    def __repr__(self) -> str:
+        return f"TimeSpan({self.seconds!r})"
+
+    def __add__(self, other):
+        if isinstance(other, TimeSpan):
+            return TimeSpan(self.seconds + other.seconds)
+        return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, TimeSpan):
+            return TimeSpan(self.seconds - other.seconds)
+        return NotImplemented
+
+    def __neg__(self):
+        return TimeSpan(-self.seconds)
+
+a = TimeSpan(60)            # one minute
+b = TimeSpan(30)            # half a minute
+[a + b, a - b, -a]
+```
+
+`isinstance(other, TimeSpan)` gates each operator: same-type pair, do the math; otherwise `return NotImplemented` so Python can try the reflected method on the other operand. The unary `__neg__` only takes `self` and produces a fresh instance — never mutates.
+
+**Step 2: scalar multiplication with `__rmul__`.** `2 * span` should equal `span * 2`. Define `__mul__` for the left case and `__rmul__` for the reflected:
+
+```{python}
+class TimeSpan(TimeSpan):
+    def __mul__(self, factor):
+        if isinstance(factor, (int, float)):
+            return TimeSpan(self.seconds * factor)
+        return NotImplemented
+
+    def __rmul__(self, factor):
+        return self * factor                         # commutative — delegate
+
+s = TimeSpan(10)
+[s * 3, 3 * s, s * 1.5, s * True]
+```
+
+`s * 3` calls `s.__mul__(3)` → matches `(int, float)` → returns `TimeSpan(30)`. `3 * s` calls `int.__mul__(s)` → returns `NotImplemented` → Python falls through to `s.__rmul__(3)` → delegates to `s * 3`. `s * "ten"` would return `NotImplemented` (`isinstance` check fails) and Python would raise `TypeError`. `s * True` works because `bool` is a subclass of `int`.
+
+**Step 3: comparison + hashing for use in sets, with `@total_ordering`.** Two anchor methods (`__eq__` and `__lt__`) plus the decorator give us all six comparisons. `__hash__` makes `TimeSpan` usable as a dict key:
+
+```{python}
+from functools import total_ordering
+
+@total_ordering
+class TimeSpan(TimeSpan):
+    def __eq__(self, other):
+        if isinstance(other, TimeSpan):
+            return self.seconds == other.seconds
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, TimeSpan):
+            return self.seconds < other.seconds
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(self.seconds)
+
+durations = sorted([TimeSpan(45), TimeSpan(10), TimeSpan(120)])
+[durations,
+ TimeSpan(60) <= TimeSpan(60),                  # synthesised by @total_ordering
+ TimeSpan(60) >  TimeSpan(30),                  # synthesised
+ len({TimeSpan(60), TimeSpan(60.0)})]           # dedup via __hash__ + __eq__
+```
+
+`@total_ordering` reads the class, sees `__eq__` and `__lt__`, and synthesises `__le__`, `__gt__`, `__ge__`, `__ne__` in terms of those two. `sorted([...])` works directly — no `key=` needed. `__hash__` returning `hash(self.seconds)` agrees with `__eq__` (same seconds → equal → same hash), so the set deduplicates `TimeSpan(60)` and `TimeSpan(60.0)`.
+
+The build threads the chapter together: `NotImplemented` (not raise) for unsupported operands (Step 1), `__rmul__` for reflected scalar arithmetic (Step 2), `@total_ordering` for the full comparison set with two anchor methods (Step 3), plus `__hash__` paired with `__eq__` for use in collections. About forty lines of code for a value class that participates in arithmetic, comparison, and set/dict membership exactly like a built-in number.
+
 ## Exercises {#sec-operator-exercises}
 
 1. **`__sub__`.** Implement `__sub__` and `__rsub__` for `Vector`. Test `v1 - v2` and `[1, 2, 3] - v2`.
