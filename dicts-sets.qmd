@@ -126,14 +126,33 @@ dict(index)
 
 The factory (`list`) is called every time a missing key is accessed. The price: the default is created on *any* access, including a read for a key that doesn't exist — so `index["never_seen"]` would silently insert an empty list.
 
-**`__missing__`** is the lowest-level hook. Subclass `dict` and Python will call `__missing__(key)` when a key isn't found via `d[key]`:
+**`__missing__`** is the lowest-level hook. The flow it slots into is worth understanding before any code:
+
+When you write `d[key]`, Python calls `d.__getitem__(key)`. If the key is in the dict, its value is returned. If it isn't, Python checks whether the *class* defines a `__missing__` method — if it does, it calls `__missing__(key)` and returns that result; if it doesn't, you get a `KeyError`.
+
+So `__missing__` is your hook to *compute* a value from the key on a miss. Unlike `defaultdict`, the result doesn't have to be a fixed factory call — it can be anything.
+
+**Step 1: the simplest possible example.** A dict where every missing key returns `0`:
+
+```{python}
+class ZeroDict(dict):
+    def __missing__(self, key):
+        return 0
+
+z = ZeroDict({"a": 1})
+[z["a"], z["b"]]
+```
+
+`z["a"]` finds `1` directly. `z["b"]` doesn't find anything, so Python calls `z.__missing__("b")`, which returns `0`. That's the entire mechanism.
+
+**Step 2: a real use case — normalising key types.** Suppose you load config from JSON, where every key comes back as a string (`"2"`), but somewhere else in your code you index with an int (`d[2]`). Rather than make every caller remember to stringify, encode the rule in the dict itself: if `d[2]` misses, retry with `d["2"]`.
 
 ```{python}
 class StrKeyDict(dict):
     def __missing__(self, key):
         if isinstance(key, str):
-            raise KeyError(key)
-        return self[str(key)]
+            raise KeyError(key)             # already a string and still missing — give up
+        return self[str(key)]               # otherwise try the stringified key
 
     def get(self, key, default=None):
         try:
@@ -148,16 +167,13 @@ d = StrKeyDict([("2", "two"), ("4", "four")])
 d[2]
 ```
 
-Walking through what each piece does:
+What each addition does:
 
-- `class StrKeyDict(dict):` makes `StrKeyDict` inherit everything from `dict`. We only override what we want to change.
-- `__missing__(self, key)` is the dunder Python's `dict.__getitem__` calls when a key isn't found. If we raise `KeyError`, the lookup fails normally; if we return a value, that becomes the result of `d[key]`.
-- The check `if isinstance(key, str): raise KeyError(key)` prevents infinite recursion. If we get here with a string and that string isn't in the dict, give up — otherwise `self[str(key)]` would just call `__missing__` again.
-- `return self[str(key)]` is the trick: take the non-string key, stringify it, and try the lookup again. So `d[2]` becomes `d["2"]`, which finds `"two"`.
-- `get` is overridden because the inherited `dict.get` does *not* go through `__missing__` — it has its own fast path. We re-implement it via `try/except` so it picks up the new behavior.
-- `__contains__` is the dunder for `key in d`. Same reason: the inherited version checks the literal key only; we want both the original and its string form to count.
+- **The `isinstance(key, str)` guard prevents infinite recursion.** If `__missing__` is called with a *string*, that string has already been searched for and not found — retrying via `self[str(key)]` would call `__missing__` again with the same string, forever. Raising `KeyError` ends the lookup the normal way.
+- **`return self[str(key)]` is the retry.** A non-string key like `2` gets stringified to `"2"` and looked up again. This second lookup goes through `__getitem__` *again* — but now with a string, so the guard above will stop the recursion if `"2"` is also missing.
+- **`get` and `__contains__` are overridden because the inherited versions bypass `__missing__`.** `dict.get` and `key in d` have their own fast paths in C — they check the underlying hash table directly, never calling `__getitem__` and so never reaching `__missing__`. If you want consistent behavior across `d[k]`, `d.get(k)`, and `k in d`, you have to override all three.
 
-The general rule: `__missing__` is the right hook for "I want `d[key]` to do something custom on a miss" — but it only catches `d[key]`, not `d.get` or `key in d`, so override those if you need consistent behavior across all three.
+The general rule: `__missing__` is the right hook for "I want `d[key]` to do something custom on a miss" — but it only catches `d[key]`, not `d.get` or `key in d`, so override those too when you need consistent behaviour across all three.
 
 ## Variations of `dict` {#sec-dicts-variations}
 
