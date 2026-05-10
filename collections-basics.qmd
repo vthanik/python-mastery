@@ -119,7 +119,7 @@ first, *rest = (1, 2, 3, 4, 5)
 
 The general rule: any tuple (or list) can be unpacked into matching names; `*name` greedily collects the leftovers as a list. The full unpacking treatment is in @sec-sequences.
 
-Tuples can be dict keys (lists cannot, because they're mutable and unhashable):
+Tuples can be dict keys (lists cannot, because they're mutable and *unhashable*). A **hashable** object is one whose value can be reduced to a fixed integer summary (the *hash*) — that integer is what lets a `dict` or `set` find the slot for the key in O(1). Mutable objects like lists are deliberately unhashable: if their hash could change after insertion, lookups would silently fail. Tuples (with hashable contents) are hashable, hence valid keys:
 
 ```{python}
 locations = {(40.7, -74.0): "New York", (51.5, -0.1): "London"}
@@ -140,7 +140,7 @@ person["name"], person.get("missing"), person.get("missing", "N/A")
 - `person.get("missing")` returns `None` instead of raising — useful when absence is expected.
 - `person.get("missing", "N/A")` returns `"N/A"` as the fallback — a default of your choosing.
 
-The general rule: `d[key]` is loud (raises on miss); `d.get(key, default)` is quiet (returns the default). Modify with assignment, `del`, or `.pop`:
+The general rule: `d[key]` is loud (raises on miss); `d.get(key, default)` is quiet (returns the default). Modify with assignment (sets/updates), the `del` *statement* (removes a key — `del d[k]` is built-in syntax, not a method call), or `.pop(key)` (removes and returns the value):
 
 ```{python}
 person["city"] = "London"
@@ -245,7 +245,12 @@ evens = [x for x in range(20) if x % 2 == 0]
 [squares, evens]
 ```
 
-- `[x ** 2 for x in range(10)]` reads "the list of `x ** 2` for each `x` in `range(10)`" — equivalent to a 4-line `for` loop with `.append(x ** 2)`.
+- `[x ** 2 for x in range(10)]` reads "the list of `x ** 2` for each `x` in `range(10)`" — equivalent to the four-line loop:
+  ```python
+  squares = []
+  for x in range(10):
+      squares.append(x ** 2)
+  ```
 - The general shape is `[expression for variable in iterable]` — the expression in front, the source loop behind.
 - `[x for x in range(20) if x % 2 == 0]` adds an `if` filter — only items satisfying the condition reach the output.
 
@@ -307,6 +312,55 @@ The choice of collection drives the *complexity* of your code. `x in some_list` 
 ## Going deeper
 
 The full treatment of sequences (lists, tuples, slicing, comprehensions, the sequence protocol) is @sec-sequences. The full treatment of dicts and sets — hashing, ordering, performance — is @sec-dicts-sets. Generator expressions and the iterator protocol they ride on are in @sec-iterators.
+
+## Build: a tiny text analyzer {#sec-coll-build}
+
+A common starter problem in data work: given some text, report how many words there are, how many of those are unique, what the most common are, and which appeared exactly once. Every collection in this chapter — `list`, `dict`, `set`, `Counter` — earns a slot.
+
+**Step 1: tokenize and count.** Lower-case the text, strip simple punctuation, split on whitespace, and feed the resulting list into `Counter`:
+
+```{python}
+from collections import Counter
+
+text = """The quick brown fox jumps over the lazy dog.
+The dog sleeps. The fox watches."""
+
+words = text.lower().replace(".", "").split()
+freq = Counter(words)
+freq.most_common(3)
+```
+
+`text.lower()` returns a new string with every letter lower-cased (so "The" and "the" merge); `.replace(".", "")` strips periods so "dog." and "dog" merge too; `.split()` (no argument) splits on any whitespace including the embedded newline. `Counter(words)` walks the list once and returns a dict-subclass mapping each word to its count. `.most_common(3)` returns the three highest counts as `(word, count)` tuples — sorted descending.
+
+**Step 2: pull out the once-only words.** A *hapax legomenon* (a word that appears exactly once) is interesting in linguistics and search-quality work. We can build it as a set comprehension over the Counter, since `Counter` is also a dict so `.items()` yields pairs:
+
+```{python}
+hapax = {word for word, count in freq.items() if count == 1}
+unique_words = set(words)
+[len(unique_words), len(hapax)]
+```
+
+`set(words)` is the simplest deduplication — turning the word list into a set drops duplicates in one step. The set comprehension `{word for word, count in freq.items() if count == 1}` filters Counter's pairs and keeps only the words whose count is `1`.
+
+**Step 3: assemble a report.** Wrap everything in a function that returns a single dict — the kind of structure you'd render as JSON or pass to a template:
+
+```{python}
+def analyze(text):
+    words = text.lower().replace(".", "").split()
+    freq = Counter(words)
+    return {
+        "total_words": len(words),
+        "unique_words": len(set(words)),
+        "top3": freq.most_common(3),
+        "hapax": sorted({w for w, c in freq.items() if c == 1}),
+    }
+
+analyze(text)
+```
+
+`sorted(set)` returns a *list* — sets aren't ordered, but the report's reader probably expects deterministic output. Wrapping the set in `sorted` is the idiomatic conversion.
+
+The build exercises every collection from the chapter: `list` (tokens), `dict` (the report), `set` (deduplication and one-shot words), `tuple` (Counter's `(word, count)` pairs), and a comprehension in each variety we covered.
 
 ## Exercises {#sec-coll-exercises}
 
