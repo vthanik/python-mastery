@@ -329,6 +329,8 @@ slow_sum(1_000_000)
 
 - `timer` is an ordinary function whose argument is *another* function.
 - Inside, it defines a local function `wrapper` that does the timing around `func(n)` and returns the original result.
+- `time.perf_counter()` returns a float — the count of seconds from a fixed (but arbitrary) reference point. Two readings subtracted give an elapsed wall-clock duration with sub-microsecond resolution; it's the right primitive for "how long did this take?" timing.
+- `func.__name__` reads the wrapped function's *name attribute* — every function has a `__name__` (a string) and a `__doc__` (the docstring), among other introspection attributes.
 - `timer` returns `wrapper`. So `slow_sum = timer(slow_sum)` rebinds the name `slow_sum` to the wrapped version — the original is now captured inside the closure.
 - Calling `slow_sum(1_000_000)` actually calls `wrapper(1_000_000)`, which times the call and prints the elapsed seconds.
 
@@ -424,6 +426,62 @@ This chapter scratches the surface of every concept it touches. The deep dives:
 - **First-class functions, callables, and higher-order patterns** — @sec-first-class-functions.
 - **Decorators in depth, including parameterized decorators** — @sec-decorators.
 - **Generators, the iterator protocol, and lazy pipelines** — @sec-iterators.
+
+## Build: memoizing recursion, then replacing it with a generator {#sec-fn-build}
+
+Fibonacci is the canonical small problem for "first-class functions in motion": one definition tries to compute it recursively (and dies for medium inputs), a decorator rescues it by caching, and a generator sidesteps the recursion entirely. Three steps, three concepts.
+
+**Step 1: the naive recursive version.** Direct from the math definition `fib(n) = fib(n-1) + fib(n-2)`:
+
+```{python}
+def fib(n):
+    return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+[fib(0), fib(1), fib(10), fib(20)]
+```
+
+`fib(20)` is fine. `fib(35)` is already slow — the recursion recomputes the same subproblems exponentially many times. We *could* rewrite the function. We *will* leave the function alone and decorate it.
+
+**Step 2: a memoizing decorator built from a closure.** Every call with the same arguments should be looked up, not recomputed. The cache lives in the closure of the decorator:
+
+```{python}
+import functools
+
+def memo(func):
+    cache = {}                                # closure cell
+    @functools.wraps(func)
+    def wrapper(*args):
+        if args not in cache:
+            cache[args] = func(*args)
+        return cache[args]
+    return wrapper
+
+@memo
+def fib(n):
+    return n if n < 2 else fib(n - 1) + fib(n - 2)
+
+fib(100)
+```
+
+`cache` is a dict captured by `wrapper` — the closure pattern from the chapter. The key is `args` (a tuple, which is hashable, so it works as a dict key — see @sec-coll-tuples). Re-binding `fib` via `@memo` means the *recursive calls inside `fib`* also go through the wrapped version, which is what makes memoisation effective: every subproblem is solved once. `fib(100)` returns instantly.
+
+**Step 3: a generator that doesn't need the recursion at all.** Both fibs above compute *one* number per call. If you actually want a *stream* of Fibonacci numbers (the first 10, the first that's above a million, etc.), `yield` turns the iterative formulation into an infinite sequence:
+
+```{python}
+from itertools import islice
+
+def fib_stream():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+list(islice(fib_stream(), 10))
+```
+
+`fib_stream` is an *infinite* generator — the `while True` never exits — but `next` only computes one term at a time, so the loop is harmless. `itertools.islice(gen, 10)` takes the first 10 values, the way `[:10]` would on a list (we cover `itertools` in @sec-stdlib-itertools).
+
+Three answers to the same question. `memo` shows what a decorator buys you: the original recursive `fib` is unchanged, and the cache lives entirely in the decorator's closure. `fib_stream` shows what a generator buys you: lazy production, infinite sequence, no recursion at all. Choosing between them is the kind of design judgment first-class functions enable.
 
 ## Exercises {#sec-fn-exercises}
 
