@@ -364,6 +364,97 @@ File I/O is the boundary where most real-world bugs live: missing files, wrong e
 
 The `with` statement and the protocol behind it are in @sec-with-match-else. Iterators (which is how a file object iterates *line by line*) are in @sec-iterators. The `pathlib.Path` API is built on the descriptor and protocol patterns covered in @sec-pythonic-objects and @sec-protocols-abcs.
 
+## Build: a CSV-to-JSON converter CLI {#sec-io-build}
+
+The most common one-shot script in data work: read a CSV, convert it to JSON. We'll grow it from a function into a real command-line tool, exercising `pathlib`, `csv`, `json`, `argparse`, and `logging` in three steps.
+
+**Step 1: a function that returns records.** Open the CSV with `DictReader`, return a list of dicts. CSV reads everything as strings; we'll convert anything that *looks* numeric to `int` or `float`:
+
+```{python}
+import csv
+
+src = work / "people.csv"
+src.write_text("name,age,score\nAlice,30,95.5\nBob,25,87.0\n", encoding="utf-8")
+
+def coerce(value):
+    """Try int, then float, else leave as a string."""
+    for typ in (int, float):
+        try:
+            return typ(value)
+        except ValueError:
+            continue
+    return value
+
+def csv_to_records(path):
+    with open(path, encoding="utf-8", newline="") as f:
+        return [
+            {k: coerce(v) for k, v in row.items()}
+            for row in csv.DictReader(f)
+        ]
+
+csv_to_records(src)
+```
+
+`coerce` is the typical "soft" type-cast — try `int`, fall back to `float`, fall back to leaving it alone. The dict comprehension `{k: coerce(v) for k, v in row.items()}` rebuilds each row with values converted. `csv.DictReader` already gives us dicts keyed by header names; we just remap the values.
+
+**Step 2: write the records to JSON.** `pathlib.Path.write_text` plus `json.dumps` is the one-liner version:
+
+```{python}
+import json
+
+def records_to_json(records, path):
+    path.write_text(json.dumps(records, indent=2), encoding="utf-8")
+
+dst = work / "people.json"
+records_to_json(csv_to_records(src), dst)
+print(dst.read_text(encoding="utf-8"))
+```
+
+Using `dumps` + `write_text` (rather than `json.dump` with an open file) is fine for files small enough to fit in memory; for very large outputs you'd stream with `dump(obj, f)` and a `with open` block. Both are in this chapter.
+
+**Step 3: a CLI wrapper with `argparse` and `logging`.** A real script needs: a positional input path, an optional output path, a `--verbose` flag, and useful error messages. Argparse converts the strings to `Path` for us; logging gives us the silence knob:
+
+```{python}
+import argparse
+import logging
+
+logger = logging.getLogger("csv2json")
+
+def build_parser():
+    p = argparse.ArgumentParser(description="Convert a CSV file to JSON.")
+    p.add_argument("input", type=Path, help="input CSV file")
+    p.add_argument("-o", "--output", type=Path,
+                   help="output JSON file (default: <input>.json)")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="emit DEBUG-level logs")
+    return p
+
+def main(argv):
+    args = build_parser().parse_args(argv)
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s",
+        force=True,
+    )
+    output = args.output or args.input.with_suffix(".json")
+    logger.debug("reading %s", args.input)
+    try:
+        records = csv_to_records(args.input)
+    except FileNotFoundError:
+        logger.error("input file not found: %s", args.input)
+        return 1
+    records_to_json(records, output)
+    logger.info("wrote %d records to %s", len(records), output)
+    return 0
+
+# Demo: run as if invoked from the shell
+main([str(src), "-v"])
+```
+
+Three new pieces beyond what we've already built. `args.input.with_suffix(".json")` is a `Path` method that swaps the extension — the natural default output name. `logger.debug("reading %s", args.input)` uses `%`-style placeholders rather than an f-string: logging defers the formatting until *after* the level threshold is checked, so `DEBUG` lines don't pay any string-formatting cost when the level is `INFO`. And `main` returns an exit code (`0`/`1`) so a real entry point would `sys.exit(main(sys.argv[1:]))`.
+
+The build is the entire chapter in motion: `pathlib` for paths and extension swapping, `csv.DictReader` for parsing, `json.dumps` + `write_text` for output, `argparse` for CLI, `logging` for diagnostics, `with` (inside `csv_to_records`) for resource lifecycle, and a `try`/`except FileNotFoundError` for graceful failure. Replace `print` with `logger.info`, ship it.
+
 ## Exercises {#sec-io-exercises}
 
 1. **CSV → JSON.** Write a script that reads a CSV file and writes the same data as JSON. Use `csv.DictReader` and `json.dump(..., indent=2)`.
