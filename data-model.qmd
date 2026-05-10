@@ -237,6 +237,90 @@ This is the design principle of the data model in miniature. Built-ins and custo
 The Python data model is a framework contract. Implement the right special methods and your objects behave like built-ins — they work with `for` loops, slicing, `random.choice()`, `len()`, `bool()`, `abs()`, and the rest of the language, without inheriting from anything.
 :::
 
+## Build: a `Polynomial` class that feels built-in {#sec-data-model-build}
+
+`FrenchDeck` showed the *sequence* side of the data model; `Vector` showed the *numeric* side. A polynomial sits in both — it's a sequence of coefficients *and* a thing you can add. We'll build it in three steps and watch the dunders compose.
+
+**Step 1: shape and printable form.** Store coefficients as a list — `Polynomial(1, 2, 3)` is `1 + 2x + 3x²`. Implement `__repr__` so the REPL prints something honest:
+
+```{python}
+class Polynomial:
+    def __init__(self, *coeffs):
+        self.coeffs = list(coeffs)
+
+    def __repr__(self):
+        terms = ", ".join(repr(c) for c in self.coeffs)
+        return f"Polynomial({terms})"
+
+p = Polynomial(1, 2, 3)
+p
+```
+
+`*coeffs` (chapter 6) collects the variable-length argument list into a tuple, which we copy into a list. The `__repr__` reconstructs the call expression — the convention from the chapter's `__repr__` callout.
+
+**Step 2: implement the sequence side.** Three dunders make `len(p)`, `p[i]`, and equality work — and iteration falls out *for free* because Python's iterator protocol falls back to repeated `__getitem__` (the same trick `FrenchDeck` used):
+
+```{python}
+class Polynomial:
+    def __init__(self, *coeffs):
+        self.coeffs = list(coeffs)
+
+    def __repr__(self):
+        return f"Polynomial({', '.join(repr(c) for c in self.coeffs)})"
+
+    def __len__(self):
+        return len(self.coeffs)
+
+    def __getitem__(self, i):
+        return self.coeffs[i]
+
+    def __eq__(self, other):
+        return isinstance(other, Polynomial) and self.coeffs == other.coeffs
+
+p = Polynomial(1, 2, 3)
+[len(p), p[0], list(p), p == Polynomial(1, 2, 3), p == Polynomial(1, 2)]
+```
+
+`list(p)` works without an explicit `__iter__` — Python notices `__getitem__` is defined and walks `0`, `1`, `2`, … until `IndexError`, exactly as it did with `FrenchDeck`. `p[0]` is the constant term; `p == Polynomial(1, 2)` is `False` because the lists differ.
+
+**Step 3: implement the numeric side.** `__add__` defines `p1 + p2` (returning a new polynomial). `__call__` makes the instance itself callable, so `p(2)` evaluates the polynomial at `x = 2`:
+
+```{python}
+class Polynomial:
+    def __init__(self, *coeffs):
+        self.coeffs = list(coeffs)
+
+    def __repr__(self):
+        return f"Polynomial({', '.join(repr(c) for c in self.coeffs)})"
+
+    def __len__(self):
+        return len(self.coeffs)
+
+    def __getitem__(self, i):
+        return self.coeffs[i]
+
+    def __eq__(self, other):
+        return isinstance(other, Polynomial) and self.coeffs == other.coeffs
+
+    def __add__(self, other):
+        size = max(len(self), len(other))
+        a = self.coeffs + [0] * (size - len(self.coeffs))
+        b = other.coeffs + [0] * (size - len(other.coeffs))
+        return Polynomial(*(x + y for x, y in zip(a, b)))
+
+    def __call__(self, x):
+        return sum(c * x**i for i, c in enumerate(self.coeffs))
+
+p = Polynomial(1, 2, 3)         # 1 + 2x + 3x^2
+q = Polynomial(0, 1)            # x
+r = p + q                       # 1 + 3x + 3x^2
+[r, r(2), p(0), p(1)]
+```
+
+`__add__` pads the shorter coefficient list with zeros so the two have matching length, then adds element-by-element with `zip`. `__call__` evaluates `Σ cᵢ · xⁱ` with `enumerate` for the powers — implementing it makes the *instance* itself look like a function, so `p(2)` works as if `p` were a regular function.
+
+The build is the chapter in motion: two dunders give us `len`, indexing, equality, and iteration; two more give us arithmetic and callability. The class stops being a wrapper and starts being a built-in-shaped thing.
+
 ## Exercises {#sec-data-model-exercises}
 
 1. **A two-card hand.** Subclass `FrenchDeck` (or write a new class) called `Hand` that holds exactly two cards and supports `len`, indexing, and iteration. What's the smallest set of dunders you need?
