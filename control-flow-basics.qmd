@@ -181,7 +181,9 @@ for line in lines:
 scores
 ```
 
-Without the walrus you'd run the regex twice, or assign on a separate line first. The same pattern collapses a `while` loop that processes input until exhausted:
+Reading the regex piece by piece: `re.match(pattern, line)` tries to match `pattern` against the *start* of `line`. The pattern `r"score: (\d+)"` looks for the literal text `score: ` followed by one or more digits, with the parentheses defining a *capturing group* — once the match succeeds, `m.group(1)` returns whatever the first parenthesised subpattern captured (here the digit string). On a non-match `re.match` returns `None`, which is falsy, so the `if` skips that line. The walrus saves the regex call: without it, you'd either assign on a separate line first or run the regex twice (once to test, once to extract).
+
+The same pattern collapses a `while` loop that processes input until exhausted:
 
 ```{python}
 chunks = iter(["one\n", "two\n", "three\n", ""])
@@ -191,7 +193,7 @@ while (chunk := next(chunks)):
 out
 ```
 
-The condition reads "while the next chunk, bound to `chunk`, is truthy." Don't reach for `:=` everywhere — it's earned its place when it removes a duplicate call.
+Two built-ins are at work here. `iter(iterable)` turns *any* iterable (list, tuple, file, …) into an *iterator* — an object that remembers its position. `next(iterator)` advances by one element and returns it. The walrus binds that result to `chunk` and the `while` condition checks its truthiness — when the iterator yields `""` (the empty string, which is falsy), the loop exits before trying to do anything with it. Don't reach for `:=` everywhere — it's earned its place when it removes a duplicate call.
 
 ## A note on the `match` statement {#sec-cf-match}
 
@@ -228,6 +230,62 @@ The Pythonic loop iterates *items*, not *indices*. `enumerate` and `zip` cover t
 ## Going deeper
 
 The mechanism that lets `for` work on any iterable — the **iterator protocol** — is one of the central topics of the book. The deep treatment, including `iter()`, `next()`, `__iter__`, and `__next__`, is @sec-iterators. Pattern matching is in @sec-with-match-else.
+
+## Build: a class report card {#sec-cf-build}
+
+Given a list of (name, score) records, we'll print a ranked roster with letter grades and a class average. Every construct from the chapter — `if`/`elif`, `for`, `enumerate`, `zip`, `continue`, ternary — earns its place.
+
+**Step 1: a letter-grade function.** A clean three-way (well, five-way) `elif` chain:
+
+```{python}
+def letter(score):
+    if score >= 90:
+        return "A"
+    elif score >= 80:
+        return "B"
+    elif score >= 70:
+        return "C"
+    elif score >= 60:
+        return "D"
+    else:
+        return "F"
+
+[letter(s) for s in (95, 82, 71, 60, 45)]
+```
+
+The `elif` chain is checked top-to-bottom; the *first* condition that matches wins. Order matters: `score >= 70` is only reached if `score >= 90` and `score >= 80` were both false, so we know `score < 80` here without writing it.
+
+**Step 2: a ranked roster.** Sort the students from highest score to lowest, then print rank, name, score, grade. `enumerate(start=1)` gives 1-based ranks; an f-string formats the columns:
+
+```{python}
+students = [("Alice", 95), ("Bob", 72), ("Carol", 88),
+            ("Dave", 0), ("Eve", 60)]
+
+ranked = sorted(students, key=lambda pair: pair[1], reverse=True)
+for rank, (name, score) in enumerate(ranked, start=1):
+    print(f"{rank:>2}. {name:<8} {score:>3}  {letter(score)}")
+```
+
+`sorted(..., key=..., reverse=True)` sorts by the score (the second element of each tuple); `lambda pair: pair[1]` is a tiny throwaway function — we'll cover it properly in @sec-functions-basics. The loop variable `(name, score)` *destructures* the tuple inside `enumerate`'s pair, so the rank, name, and score fall into the right slots in one step.
+
+**Step 3: average score, skipping the absent.** A score of `0` here means "didn't sit the exam" — we want to exclude those from the class average. `continue` is exactly the tool:
+
+```{python}
+total = 0
+counted = 0
+for name, score in students:
+    if score == 0:
+        continue
+    total += score
+    counted += 1
+
+average = total / counted if counted else 0
+print(f"Class average: {average:.1f}  (n={counted})")
+```
+
+`continue` jumps to the next iteration without running the rest of the body — the absent students don't contribute to `total` or `counted`. The ternary expression `total / counted if counted else 0` guards against division-by-zero with a one-line conditional: if `counted` is truthy (non-zero), divide; otherwise return `0`.
+
+The build is one screen of code that exercises every construct in the chapter — `if`/`elif`, `for`, `enumerate`, `zip`-style pair destructuring, `continue`, the ternary, and the truthiness rule on `counted`.
 
 ## Exercises {#sec-cf-exercises}
 
