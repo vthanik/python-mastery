@@ -41,6 +41,8 @@ moscow = Coordinate(55.756, 37.617)
 moscow.lat, moscow == Coordinate(55.756, 37.617)
 ```
 
+`namedtuple("Coordinate", ["lat", "lon"])` is a *factory call*: it builds and returns a new class object whose name is `"Coordinate"` and whose fields are `lat` and `lon`. We assign it to `Coordinate` so we can use it. `moscow.lat` reads the `lat` field by name (`55.756`); the `==` comparison succeeds because two `Coordinate` instances with the same field values are equal — `namedtuple` generates `__eq__` for you, comparing field-by-field. The cell's output is `(55.756, True)`.
+
 Defaults are right-aligned, in the same way default arguments are:
 
 ```{python}
@@ -48,12 +50,16 @@ Coordinate = namedtuple("Coordinate", ["lat", "lon", "reference"], defaults=["WG
 Coordinate(55.756, 37.617)
 ```
 
+`defaults=["WGS84"]` supplies one default — and Python attaches it to the *rightmost* field, `reference`. Constructing with two arguments fills `lat` and `lon`; `reference` falls back to `"WGS84"`. The output is `Coordinate(lat=55.756, lon=37.617, reference='WGS84')`. To default *two* fields, you'd pass `defaults=[default_for_second_to_last, default_for_last]` — Python lines them up from the right.
+
 Because a named tuple *is* a tuple, you can unpack it positionally:
 
 ```{python}
 lat, lon, ref = Coordinate(55.756, 37.617)
 lat, ref
 ```
+
+Three names on the left, three slots in the tuple on the right — Python unpacks element-by-element. `lat` gets `55.756`, `lon` gets `37.617`, `ref` gets `"WGS84"` (from the default). The cell prints `(55.756, 'WGS84')`. This is *exactly* the unpacking from the tuples chapter — namedtuples didn't introduce a new mechanism; they just added attribute access on top of the same tuple shape.
 
 Two helpers worth remembering — both bridge between named-tuples and "regular" Python data shapes:
 
