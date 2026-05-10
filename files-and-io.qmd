@@ -240,7 +240,7 @@ print("warning!", file=sys.stderr)  # → stderr
 
 ### Parsing command-line arguments with `argparse` {#sec-io-argparse}
 
-Start from first principles. When a user runs `python myscript.py data.json -v`, what does Python actually hand to your program? Just a list of strings — `sys.argv`:
+When a user runs `python myscript.py data.json -v`, what does Python actually hand to your program? Just a list of strings — `sys.argv`:
 
 ```{python}
 # If the user had run: python myscript.py data.json -v

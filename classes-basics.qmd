@@ -291,7 +291,7 @@ bob = Person.from_birth_date("Bob", "1985-03-15")
 [bob.name, bob.birth_year]
 ```
 
-Read this from first principles, one step at a time:
+Read this one step at a time:
 
 1. `@classmethod` tells Python "when this method is called, pass the class itself as the first argument." So writing `Person.from_birth_date("Bob", "1985-03-15")` is really `Person.from_birth_date(Person, "Bob", "1985-03-15")` — Python inserts `Person` as the first argument silently. Inside the body, `cls` is bound to `Person`. `cls` is just a parameter name, the way `self` is — the convention is `cls` because it points to the *class*, not an instance.
 2. `cls(name, year)` is therefore literally `Person(name, year)` — the normal constructor call, going through `__init__` like any other. `from_birth_date` parses the ISO string into a year, then constructs via `cls`.
