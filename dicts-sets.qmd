@@ -199,7 +199,7 @@ pylookup = ChainMap(locals(), globals(), vars(builtins))
 pylookup["print"] is print
 ```
 
-The Python interpreter itself uses something like this for name resolution: locals, then globals, then builtins.
+Three new pieces in that snippet. `builtins` is the module that holds the always-available names like `print`, `len`, `range`, `int` — usually you never need to import it because those names are visible everywhere, but the *module* still exists and you can introspect it. `vars(obj)` returns the `__dict__` of any object that has one, so `vars(builtins)` is the dict of every built-in name. `locals()` and `globals()` are built-in functions returning the dicts for the current local and module-level scopes. The `ChainMap` then layers them in lookup order — locals, then globals, then builtins — which is exactly the LEGB rule from chapter 6 written as data.
 
 **`Counter`** is a multiset. It maps each element to its count:
 
@@ -306,6 +306,77 @@ flowchart TD
 ```
 
 Hash collisions resolve via *open addressing* — the implementation probes nearby slots until it finds the key or an empty slot. The amortized cost stays `O(1)` because the load factor is kept low by resizing.
+
+## Build: a tiny inverted index with boolean search {#sec-dicts-build}
+
+An *inverted index* maps each word to the set of documents that contain it. It's the heart of every text-search engine. Building one is the canonical workout for `defaultdict(set)` and the set-algebra operators.
+
+**Step 1: build the index.** Tokenise each document and accumulate a `defaultdict(set)` mapping word → set of doc ids:
+
+```{python}
+from collections import defaultdict
+
+docs = {
+    1: "the quick brown fox",
+    2: "lazy dog sleeps",
+    3: "quick brown dog",
+    4: "fox watches dog",
+}
+
+def build_index(docs):
+    index = defaultdict(set)
+    for doc_id, text in docs.items():
+        for word in text.lower().split():
+            index[word].add(doc_id)
+    return dict(index)
+
+index = build_index(docs)
+{w: index[w] for w in ("quick", "dog", "fox")}
+```
+
+`defaultdict(set)` does the "create-an-empty-set-on-missing-key" dance from earlier in the chapter — without it, every `index[word]` access on a new word would need an `if` guard. `.add(doc_id)` mutates the set in place; duplicates collapse for free. We convert to a plain `dict` at the end purely so the display is clean.
+
+**Step 2: a single-word query.** Look up the word, return the set of document ids — or an empty set if the word never appeared:
+
+```{python}
+def find(index, word):
+    return index.get(word.lower(), set())
+
+[find(index, "DOG"), find(index, "absent")]
+```
+
+`dict.get(word, set())` is the safe-access idiom from the chapter. The default has to be a *fresh* empty set on each miss, not a shared module-level one — `set()` re-evaluates on each call, so callers can't accidentally mutate the default. (This is the mutable-default trap from chapter 6, applied to `dict.get`.)
+
+**Step 3: boolean queries with set algebra.** AND-queries are *intersection*; OR-queries are *union*; NOT-queries (relative to a known universe) are *difference*. The set operators map directly onto search semantics:
+
+```{python}
+def search(index, query):
+    """query: ('AND'|'OR', word1, word2)"""
+    op, *words = query
+    sets = [find(index, w) for w in words]
+    match op:
+        case "AND":
+            result = sets[0]
+            for s in sets[1:]:
+                result = result & s
+        case "OR":
+            result = set()
+            for s in sets:
+                result = result | s
+        case _:
+            raise ValueError(f"unknown op: {op!r}")
+    return result
+
+[
+    search(index, ("AND", "quick", "dog")),    # both words
+    search(index, ("OR",  "fox",   "lazy")),   # either word
+    search(index, ("AND", "quick", "lazy")),   # neither doc has both
+]
+```
+
+`a & b` is *intersection* — the docs in *both* `a` and `b` (the AND case). `a | b` is *union* — the docs in *either* (the OR case). The `match`/`case` block uses a literal pattern on `op` to dispatch; `op, *words = query` is the `*rest` unpacking from chapter 14. The whole search engine is fifteen lines.
+
+The build threads the chapter's tools through one self-contained problem: `defaultdict(set)` for accumulation, `dict.get` with a mutable-safe default for safe lookups, `match`/`case` on a literal for dispatch, and the set-algebra operators for the actual search semantics.
 
 ## Exercises {#sec-dicts-exercises}
 
