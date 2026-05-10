@@ -16,7 +16,7 @@ In this chapter you will learn to:
 
 ## The `str` / `bytes` boundary {#sec-unicode-boundary}
 
-A `str` is a sequence of *code points* — abstract numbers like `U+0041` for `A`. A `bytes` is a sequence of 8-bit integers. The two never mix.
+A `str` is a sequence of *code points* — abstract numbers like `U+0041` for `A`. (`U+XXXX` is the standard Unicode notation: a four- to six-digit hexadecimal index into the Unicode database. So `U+0041` is decimal 65, the letter `A`; `U+00E9` is `é`; `U+1F600` is `😀`.) A `bytes` is a sequence of 8-bit integers. The two never mix.
 
 ```{python}
 s = "café"
@@ -80,6 +80,8 @@ Decoding is the harder direction because *any* sequence of bytes can be misinter
 octets = b"Montr\xe9al"
 octets.decode("utf-8")
 ```
+
+The `b"..."` prefix is the **bytes literal** — Python builds a `bytes` object from the literal text. Inside, `\xHH` is an *escape sequence* for a single byte with that two-hex-digit value: `\xe9` is the byte `0xE9` (decimal 233). So `b"Montr\xe9al"` is eight bytes: `M`, `o`, `n`, `t`, `r`, `\xe9`, `a`, `l` — the same way `"hello\n"` is six characters with the `\n` an escape for newline.
 
 ```{python}
 octets.decode("iso8859-1")
@@ -219,6 +221,53 @@ unicodedata.numeric("⅔"), unicodedata.digit("3")
 ## Why this matters
 The Unicode sandwich: decode bytes on input → work with `str` throughout → encode to bytes on output. Never mix `str` and `bytes`. Never rely on default encodings. Always pass `encoding="utf-8"` explicitly.
 :::
+
+## Build: a tiny ASCII slugifier {#sec-unicode-build}
+
+A *slug* is the URL-safe version of a title — `"São Paulo Year-In-Review"` becomes `"sao-paulo-year-in-review"`. Building one is the canonical workout for the chapter's tools: NFKD normalisation to peel accents off as combining marks, code-point filtering to drop the marks, casefold for case-insensitive collapse, and a regex to handle whitespace.
+
+**Step 1: peel diacritics off via NFKD + filter combining marks.** The trick: NFKD decomposes `é` into `e` + `\u0301` (combining acute), and `unicodedata.combining(c)` is non-zero exactly for those marks. Drop them and you're left with the base letters:
+
+```{python}
+import unicodedata
+
+def strip_accents(text):
+    nfd = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in nfd if not unicodedata.combining(c))
+
+[strip_accents("café"), strip_accents("São Paulo"), strip_accents("naïve")]
+```
+
+`unicodedata.combining(c)` returns the *combining class* of a character — an integer that's `0` for ordinary letters and non-zero for combining marks like the acute, diaeresis, tilde. The generator expression keeps only the non-marks, then `"".join(...)` reassembles a string. That's the heart of every "ASCII-fold" implementation you'll meet.
+
+**Step 2: case-fold and collapse whitespace.** Casefold (rather than `.lower()`) so German `ß` becomes `ss`, then a regex collapses runs of whitespace and any non-ASCII residue:
+
+```{python}
+import re
+
+def slugify(text):
+    text = strip_accents(text).casefold()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+[slugify("São Paulo"), slugify("Naïve  café résumé"), slugify("Hello,  World!")]
+```
+
+`re.sub(r"[^a-z0-9]+", "-", text)` replaces every run of *non-*alphanumerics with a single hyphen — spaces, punctuation, and any leftover non-ASCII characters that survived `strip_accents` (some scripts have no plain-ASCII fold). `.strip("-")` removes any leading or trailing hyphens.
+
+**Step 3: a round trip through the Unicode sandwich.** Real slugifiers run at the I/O boundary — a title comes in as bytes from a database, the slug goes back out as bytes to a URL. Decode → process in `str` → encode is the chapter's main rule:
+
+```{python}
+def slugify_bytes(raw, encoding="utf-8"):
+    text = raw.decode(encoding)         # bytes -> str at the boundary
+    return slugify(text).encode("ascii")
+
+slugify_bytes("São Paulo".encode("utf-8"))
+```
+
+`.decode(encoding)` opens the sandwich; `slugify(...)` works entirely in `str`; `.encode("ascii")` closes it. Because the slug only contains `a–z`, `0–9`, and `-`, encoding to `ascii` is safe — the ASCII alphabet is a strict subset of every common encoding, so the resulting bytes are interchangeable.
+
+The build exercises everything: NFKD normalisation (`unicodedata.normalize`), combining-mark filtering (`unicodedata.combining`), `casefold` for case-insensitive collapse, regex over a `str`, and `decode`/`encode` framing the whole thing as a Unicode sandwich.
 
 ## Exercises {#sec-unicode-exercises}
 
