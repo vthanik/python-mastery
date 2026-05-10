@@ -99,6 +99,8 @@ def parse(text: str) -> float | None:
 parse("3.14"), parse("hello")
 ```
 
+`Any` is the type-system escape hatch — "don't check this." A value annotated as `Any` is compatible with every other type, in both directions: a checker neither flags assigning it to anything nor flags assigning anything to it. Use it where you genuinely don't know — JSON decoding, plug-in interfaces, legacy code being incrementally typed — and prefer a more specific type everywhere else.
+
 ```{python}
 def normalize_label(label: int | str) -> str:
     if isinstance(label, int):
@@ -306,6 +308,77 @@ The general pattern: `Protocol` is duck typing made checkable. You write the sha
 ## Why this matters
 "Types are defined by supported operations" — this is duck typing expressed as a type system. The `Protocol` class formalizes duck typing: define the interface, and any class that implements those methods satisfies the protocol, without inheriting from anything.
 :::
+
+## Build: a typed `Repository[ModelT]` over any record {#sec-types-build}
+
+A *repository* is the standard "store and look up records by id" abstraction. Building a generic one is the canonical workout for `Protocol`, `TypeVar` with a `bound=`, and the modern PEP 695 generic syntax.
+
+**Step 1: a `Protocol` for "has an `id`."** Any record we want to store must expose an integer `id`. A `Protocol` says exactly that without forcing the model classes to inherit anything:
+
+```{python}
+from typing import Protocol
+
+class HasId(Protocol):
+    id: int
+
+# Any class with an `id: int` is a HasId — no inheritance needed.
+from dataclasses import dataclass
+
+@dataclass
+class User:
+    id: int
+    name: str
+
+@dataclass
+class Order:
+    id: int
+    total: float
+
+User(1, "Alice"), Order(101, 99.99)
+```
+
+`HasId` declares an *attribute* (not a method) protocol. Any class with an `id: int` slot is a `HasId` — `User` and `Order` qualify without ever importing `HasId`. That's structural typing applied to fields rather than methods.
+
+**Step 2: a generic `Repository` parameterised over the model type.** The PEP 695 `[ModelT: HasId]` syntax declares a type parameter scoped to the class — `ModelT` must be `HasId`-compatible:
+
+```{python}
+class Repository[ModelT: HasId]:
+    def __init__(self) -> None:
+        self._store: dict[int, ModelT] = {}
+
+    def save(self, item: ModelT) -> ModelT:
+        self._store[item.id] = item
+        return item
+
+    def get(self, id: int) -> ModelT | None:
+        return self._store.get(id)
+
+    def all(self) -> list[ModelT]:
+        return list(self._store.values())
+
+users: Repository[User] = Repository()
+users.save(User(1, "Alice"))
+users.save(User(2, "Bob"))
+[users.get(1), users.get(99), users.all()]
+```
+
+`[ModelT: HasId]` reads "a type parameter `ModelT` bounded by `HasId`." Inside the class, every `ModelT` annotation refers to the *same* type — so `save` returns whatever `ModelT` is, and `get` returns `ModelT | None`. A type checker treats `users.save(User(1, "Alice"))` as `User`-typed without us writing `User` twice, and `users.save(Order(...))` would be flagged as a type error.
+
+**Step 3: separate repositories for separate models — no code duplication.** The same generic class produces fully-typed `Repository[User]`, `Repository[Order]`, etc., each with its own storage:
+
+```{python}
+orders: Repository[Order] = Repository()
+orders.save(Order(101, 99.99))
+orders.save(Order(102, 49.50))
+
+[users.all(), orders.all(),
+ # Type-level check: users and orders are separate dicts
+ users.get(101) is None]
+```
+
+`users` and `orders` are *separate* `Repository` instances with *different* element types — `mypy` would flag `users.save(Order(...))` as `Order` is incompatible with `User`. The `_store` dicts are independent (no cross-contamination), and `users.get(101)` returns `None` because that id was only saved on `orders`.
+
+The build threads the chapter's three biggest ideas through one concrete example: a `Protocol` to describe the shape of the model (Step 1), a `TypeVar` (via the modern `[ModelT: HasId]` syntax) so the same class works for any conforming model (Step 2), and the structural-typing payoff that you get strong, model-specific types without any inheritance from a base class (Step 3).
 
 ## Exercises {#sec-types-exercises}
 
