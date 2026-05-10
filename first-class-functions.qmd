@@ -340,6 +340,79 @@ Now `nfc(s)` is a one-argument function with `"NFC"` baked in. Cleaner at the ca
 Functions are objects — they have attributes (`__name__`, `__doc__`, `__annotations__`, `__defaults__`), they can be passed around and stored, and they can be called with `__call__`. This is not a special trick — it's Python's fundamental design.
 :::
 
+## Build: a callable `Pipeline` of transformations {#sec-functions-build}
+
+Most data-cleaning code is a sequence of one-argument transformations: strip, lower-case, replace, parse. Three or four of them in a row is fine; ten of them is a Russian doll of nested calls. We'll build a `Pipeline` class whose *instances are callable* and stages are first-class functions — the chapter's tools applied to themselves.
+
+**Step 1: a callable class that chains stages.** Store a list of one-argument functions; `__call__` feeds the input through them left-to-right:
+
+```{python}
+class Pipeline:
+    def __init__(self, stages=None):
+        self.stages = list(stages) if stages else []
+
+    def __call__(self, x):
+        for stage in self.stages:
+            x = stage(x)
+        return x
+
+shout = Pipeline([str.strip, str.upper])
+shout("  hello  ")
+```
+
+`__call__` makes a `Pipeline` instance behave like a function: `shout("...")` is sugar for `shout.__call__("...")`. The stages are stored as *function objects* — `str.strip` and `str.upper` are unbound methods you can pass around exactly like any other callable.
+
+**Step 2: a fluent `.then` for extension.** Return a *new* `Pipeline` rather than mutating `self.stages` — value semantics keep callers safe from aliasing surprises (the lesson from chapter 18):
+
+```{python}
+class Pipeline:
+    def __init__(self, stages=None):
+        self.stages = list(stages) if stages else []
+
+    def __call__(self, x):
+        for stage in self.stages:
+            x = stage(x)
+        return x
+
+    def then(self, fn):
+        return Pipeline([*self.stages, fn])
+
+trim_lower = Pipeline().then(str.strip).then(str.lower)
+[trim_lower("  Hello "), trim_lower("WORLD")]
+```
+
+`then` builds a new list (`[*self.stages, fn]`) and wraps it in a new `Pipeline`. The original is unchanged — you can fork off variants without disturbing what's already in use. The empty-default `Pipeline()` plus chained `.then` reads almost like the textual description of the transformation.
+
+**Step 3: build pipelines from `operator` and `partial`.** Real stages often need parameters (a separator, a regex, a replacement). `partial` and `methodcaller` express those without ever writing a `lambda`:
+
+```{python}
+from operator import methodcaller, itemgetter
+from functools import partial
+
+slug = (
+    Pipeline()
+    .then(str.strip)
+    .then(str.lower)
+    .then(methodcaller("replace", " ", "-"))
+    .then(partial(str.removeprefix, prefix=""))   # no-op, included for shape
+)
+[slug("  Hello World  "), slug("PYTHON Rules")]
+
+# A pipeline over records: extract field, then transform it
+records = [{"name": "  Alice  ", "score": 95}, {"name": "BOB", "score": 87}]
+clean_name = (
+    Pipeline()
+    .then(itemgetter("name"))     # dict -> str
+    .then(str.strip)
+    .then(str.title)
+)
+[clean_name(r) for r in records]
+```
+
+`methodcaller("replace", " ", "-")` returns a one-argument callable that invokes `s.replace(" ", "-")` on whatever it gets — exactly the right shape for a pipeline stage. `itemgetter("name")` projects the `name` field out of a dict; the rest of the pipeline operates on the extracted string. None of the stages is a lambda — the chapter's `operator` and `functools.partial` tools say what's happening more clearly.
+
+The build threads the chapter's ideas through one example: `__call__` to make instances callable, value semantics in `.then` to avoid aliasing, and `methodcaller`/`itemgetter`/`partial` so each stage is named after what it does rather than written as a one-line lambda.
+
 ## Exercises {#sec-functions-exercises}
 
 1. **Sort by reversed word.** Without `lambda`, sort `fruits` by reversed word using `operator.itemgetter` or a small `def`. Compare readability.
