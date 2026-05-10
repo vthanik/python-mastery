@@ -228,7 +228,7 @@ print(wref())
 
 Walking through the moving parts:
 
-- `weakref.ref(s1)` creates a *weak* reference object. Unlike a regular variable assignment (`s2 = s1`, which would bump the reference count), a weak ref does not count toward keeping the object alive.
+- `weakref.ref(s1)` creates a *weak* reference object. Contrast with an ordinary assignment, which *does* keep the object alive: if we'd written `another = s1` instead, that second binding would bump the reference count and the `del s1` further down would no longer release the `Holder` (because `another` would still hold a strong reference). The weak ref deliberately doesn't count toward keeping the object alive.
 - `wref()` (calling the weakref like a function) returns the object if it's still alive, else `None`.
 - `del s1` removes the only *strong* reference. The reference count drops to zero — the `Holder` is collected.
 - `wref()` now returns `None` because the underlying object is gone.
