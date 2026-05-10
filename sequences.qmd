@@ -167,6 +167,14 @@ l = [10, 20, 30, 40, 50]
 l[:2], l[2:], l[1:4]
 ```
 
+Three different elisions of the `[start:stop]` form:
+
+- `l[:2]` is `[10, 20]` — start defaults to `0`, so this is "the first two elements." The exclusive stop means `stop - start = 2 - 0 = 2`, exactly the length of the result.
+- `l[2:]` is `[30, 40, 50]` — stop defaults to `len(l)`, so this is "everything from index 2 onward." Three elements, because `len(l) - 2 = 3`.
+- `l[1:4]` is `[20, 30, 40]` — explicit start *and* stop. Length is `4 - 1 = 3`. The exclusive-stop rule keeps the math trivial.
+
+That length-equals-`stop-start` invariant is why slices feel right: `l[:k] + l[k:]` always gives back the original list, with no off-by-one to track.
+
 `slice` objects let you give a slice a name:
 
 ```{python}
@@ -193,10 +201,14 @@ l[2:5] = [20, 30]
 l
 ```
 
+`l[2:5]` selects three elements (`[2, 3, 4]`), and we assigned a *two*-element list to them. The slice is *replaced* by the new contents — three slots become two — and the rest of the list shifts left to fill the gap. Output: `[0, 1, 20, 30, 5, 6, 7, 8, 9]`. Same shape works the other way: assigning a longer list grows the original. This is how `list.extend(other)` is really implemented under the hood — `l[len(l):] = other` does the same thing.
+
 ```{python}
 del l[5:7]
 l
 ```
+
+`del l[5:7]` removes elements at indices 5 and 6 (the slice is two-wide); everything past index 6 shifts left. Equivalent to `l[5:7] = []` — assigning an empty iterable to the slice deletes it.
 
 ## `+` and `*` on sequences {#sec-sequences-plus-star}
 
@@ -205,6 +217,12 @@ l
 ```{python}
 [1, 2] + [3, 4], [0] * 5, "abc" * 3
 ```
+
+Three operations on three sequence types:
+
+- `[1, 2] + [3, 4]` — list concatenation. Returns a *new* list `[1, 2, 3, 4]`; both inputs are unchanged. (For lists, `+=` mutates in place via `__iadd__`; plain `+` always returns a new list.)
+- `[0] * 5` — list repetition. Returns `[0, 0, 0, 0, 0]`. Useful for pre-allocating a fixed-size list, e.g. `results = [None] * len(items)` so each worker can write to its own slot.
+- `"abc" * 3` — string repetition. Returns `"abcabcabc"`. Common idiom: `"=" * 80` for a separator line in console output.
 
 The classic gotcha is using `*` on a list of mutables:
 
