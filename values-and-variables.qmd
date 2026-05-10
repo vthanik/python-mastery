@@ -33,10 +33,12 @@ nothing = None
 - `None` is the singleton `NoneType` value — Python's "no value here" marker.
 - `type(x).__name__` asks each value for its class name, confirming the inference.
 
+The `[expr for x in iterable]` shape in that cell is a **list comprehension** — a compact way to apply the same expression to every item of a collection. We cover them properly in @sec-sequences; here, just read it as shorthand for "do `type(x).__name__` for each value, and put the answers in a list."
+
 The general rule: literals carry their own type; assignment never declares one. Notes worth keeping in mind:
 
 - **`int`** has no fixed size — `2 ** 200` is exact. Use underscores for readability: `1_000_000`.
-- **`float`** is a 64-bit IEEE-754 double. It is *not* exact: `0.1 + 0.2` is `0.30000000000000004`. For exact decimals, use `decimal.Decimal`.
+- **`float`** is a 64-bit IEEE-754 double. It is *not* exact: `0.1 + 0.2` is `0.30000000000000004`. For exact decimal arithmetic, use `decimal.Decimal` (shown below).
 - **`bool`** is a subclass of `int`: `True == 1`, `False == 0`. So `sum([True, False, True])` is `2`.
 - **`str`** is full Unicode. The deep treatment is in @sec-unicode.
 - **`None`** is the absence of a value — it's its own type, `NoneType`, and there is *one* `None` singleton.
@@ -50,7 +52,16 @@ import math
 math.isclose(0.1 + 0.2, 0.3)
 ```
 
-For numbers from sources you don't control, `math.isclose` is the right comparison — never `==`.
+For numbers from sources you don't control, `math.isclose` is the right comparison — never `==`. By default it uses a relative tolerance of `1e-09` (i.e. agreement to nine significant digits); pass `rel_tol=` or `abs_tol=` to tighten or loosen it.
+
+When you cannot tolerate any rounding — money is the canonical case — reach for `decimal.Decimal`, which stores numbers in base-10 instead of base-2 and so represents `0.1` exactly:
+
+```{python}
+from decimal import Decimal
+Decimal("0.1") + Decimal("0.2") == Decimal("0.3")
+```
+
+The string constructor (`Decimal("0.1")`) is intentional — passing the float `0.1` would import the same rounding error you were trying to avoid. Decimals are slower than floats, so use them only where exactness matters.
 
 ## Variables and naming {#sec-values-naming}
 
@@ -64,7 +75,7 @@ result = None
 [type(x).__name__ for x in (name, age, height, result)]
 ```
 
-Naming conventions Python programmers follow without exception (PEP 8):
+Naming conventions Python programmers follow without exception (PEP 8 — *Python Enhancement Proposal 8*, the official style guide that essentially every Python codebase follows for whitespace, naming, and layout):
 
 - `snake_case` for variables and functions.
 - `UpperCamelCase` for class names.
@@ -126,7 +137,7 @@ falsy = [False, None, 0, 0.0, "", [], {}, set(), ()]
 - `False` and `None` are explicit "no" values.
 - `0` and `0.0` — numeric zero, in `int` and `float` form.
 - `""` — the empty string.
-- `[]`, `{}`, `set()`, `()` — empty list, empty dict, empty set, empty tuple.
+- `[]`, `{}`, `set()`, `()` — empty list, empty *dict*, empty *set*, empty tuple. (`{}` is dict-empty because Python's curly-brace literal stores key:value pairs; the empty set has no literal form, so you must write `set()`.)
 - `bool(x)` calls Python's truthiness check on each, and they all answer `False`.
 
 The general rule: a value is falsy if it's "empty" or "zero" by its own type's reckoning; everything else is truthy. This shapes Pythonic style:
@@ -175,6 +186,67 @@ Python's primitives are few and consistent — but the trap is that `==` and `is
 ## Going deeper
 
 This chapter introduces the primitives. The full data-model treatment of how `==` and `is` plug into special methods (`__eq__`, `__hash__`) is @sec-data-model. The aliasing semantics — why `a = b` doesn't copy — is @sec-references-mutability.
+
+## Build: a tiny number summary {#sec-values-build}
+
+Most data-analysis problems start with: "given some numbers, what's their min, max, and mean?" We'll build a `summary(numbers)` function that exercises the chapter's primitives, arithmetic, and truthiness rules.
+
+**Step 1: the happy path.** Take a list of numbers and return min/max/mean as a dict:
+
+```{python}
+def summary(numbers):
+    return {
+        "n": len(numbers),
+        "min": min(numbers),
+        "max": max(numbers),
+        "mean": sum(numbers) / len(numbers),
+    }
+
+summary([2, 4, 4, 4, 5, 5, 7, 9])
+```
+
+`min`, `max`, `sum`, and `len` are built-in functions that work on any iterable. Note `sum(numbers) / len(numbers)` — true division (`/`) returns a float, which is what we want for a mean (`5.0`, not `5`).
+
+**Step 2: handle the empty case with truthiness.** Calling `min([])` raises `ValueError`, and `sum([]) / len([])` raises `ZeroDivisionError`. Use the empty-list-is-falsy rule for an early return:
+
+```{python}
+def summary(numbers):
+    if not numbers:
+        return {"n": 0, "min": None, "max": None, "mean": None}
+    return {
+        "n": len(numbers),
+        "min": min(numbers),
+        "max": max(numbers),
+        "mean": sum(numbers) / len(numbers),
+    }
+
+[summary([]), summary([3.5])]
+```
+
+`if not numbers:` reads as "if the list is empty" — the idiomatic check, not `if len(numbers) == 0:`. We return `None` for the missing values since *no* min/max/mean exists for zero data.
+
+**Step 3: compare two summaries safely.** Comparing summaries with `==` would compare their `mean` floats with `==`, which we've seen is fragile. The right comparison uses `math.isclose` on the float fields:
+
+```{python}
+import math
+
+def same_summary(s1, s2):
+    if s1["n"] != s2["n"]:
+        return False
+    if s1["n"] == 0:
+        return True
+    return (s1["min"] == s2["min"]
+            and s1["max"] == s2["max"]
+            and math.isclose(s1["mean"], s2["mean"]))
+
+a = summary([0.1, 0.2, 0.3])
+b = summary([0.3, 0.2, 0.1])
+[a == b, same_summary(a, b)]
+```
+
+`a == b` returns `False` because the means differ in the last few bits (`0.20000000000000004` vs `0.2`). `same_summary` correctly says `True` — same data, same answer.
+
+The build exercises every concept from the chapter: primitive types (`int`, `float`, `None`), arithmetic (`/` for mean), truthiness (`if not numbers`), and the `==`-vs-`is` lesson generalized to floats (`==` is wrong for floats; `math.isclose` is right).
 
 ## Exercises {#sec-values-exercises}
 
