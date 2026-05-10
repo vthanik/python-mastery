@@ -124,6 +124,8 @@ def set_age(age):
 set_age("not a number")
 ```
 
+Two distinct exception classes guard the two distinct failure modes. `TypeError` is for "wrong *kind* of value" — passing a `str` where an `int` was expected. `ValueError` is for "right kind, wrong value" — an `int` outside the realistic range. Choosing the right class matters because callers' `except` clauses match by type: code that wants to recover from age-out-of-range should write `except ValueError`, and a `TypeError` should propagate unchecked. The `f"age must be int, got {type(age).__name__}"` formats a useful diagnostic — telling the user what we got, not just what we wanted.
+
 Use `raise X from Y` to chain — the traceback shows both the original cause and the new exception:
 
 ```{python}
@@ -138,6 +140,16 @@ def load_config(text):
 
 load_config("{ bad json")
 ```
+
+The `try` / `except` catches the low-level `json.JSONDecodeError` and re-raises as a `ValueError` whose message describes the problem in the *caller's* vocabulary (the caller knows about config files; they shouldn't have to know about JSON internals). The `from e` clause attaches the original exception as `e.__cause__` on the new one, so the printed traceback shows both:
+
+```
+json.decoder.JSONDecodeError: Expecting property name ...
+The above exception was the direct cause of the following exception:
+ValueError: config file is not valid JSON
+```
+
+That two-frame traceback is the value of `from e`: callers see the abstraction-appropriate error; debuggers still see the raw cause. Without `from e`, Python prints the chain anyway but with "During handling of the above exception, another exception occurred" — that's the *implicit* chain (called `__context__`), reserved for accidental cascades.
 
 ## The exception hierarchy {#sec-err-hierarchy}
 
