@@ -229,6 +229,76 @@ The general pattern: where Java needs an interface (`Command { void execute(); }
 The Strategy and Command design patterns encode behavior in classes because in languages like Java, functions are not first-class objects. In Python, behavior **is** a function. Replace strategy objects with strategy functions. Replace command objects with callables. The pattern disappears — you're left with cleaner code.
 :::
 
+## Build: a CLI command dispatcher with `@command` {#sec-patterns-build}
+
+A common pattern in tooling: a script exposes several subcommands (`mytool greet alice`, `mytool tally`), and dispatch happens by name. The textbook OOP version is the Command pattern with a base class and one subclass per command. In Python, a registry dict + a decorator is the whole thing.
+
+**Step 1: a basic registry decorator.** A dict keyed by function name; `@command` registers and returns the function unchanged so it can still be called directly:
+
+```{python}
+COMMANDS = {}
+
+def command(func):
+    COMMANDS[func.__name__] = func
+    return func
+
+@command
+def greet(name):
+    return f"Hello, {name}!"
+
+@command
+def shout(text):
+    return text.upper() + "!"
+
+[greet("Alice"), shout("ok"), list(COMMANDS)]
+```
+
+`COMMANDS[func.__name__] = func` is the side effect; `return func` keeps the call site behavior unchanged. Both `greet("Alice")` and `COMMANDS["greet"]("Alice")` work — the registration is *additive*. This is the same `@register` pattern from the decorators chapter, applied to dispatch.
+
+**Step 2: parameterise to allow custom names.** Some commands want a friendlier name than the Python identifier — `bye` instead of `farewell`. A parameterised decorator factory adds the configuration:
+
+```{python}
+def command(name=None):
+    def decorate(func):
+        COMMANDS[name or func.__name__] = func
+        return func
+    return decorate
+
+COMMANDS.clear()
+
+@command()                       # uses func.__name__
+def greet(name):
+    return f"Hello, {name}!"
+
+@command(name="bye")             # custom name
+def farewell(name):
+    return f"Goodbye, {name}."
+
+list(COMMANDS)
+```
+
+`@command()` (with empty parens) calls the factory first; `command()` returns `decorate`, which then wraps `greet`. `name or func.__name__` falls back to the function's own name when the caller doesn't override — the truthy-default idiom from chapter 2.
+
+**Step 3: a dispatch function that calls the right command by name.** Looking up by string + raising `KeyError` for unknown commands gives you a usable mini-CLI in five lines:
+
+```{python}
+def dispatch(name, *args):
+    if name not in COMMANDS:
+        raise KeyError(f"unknown command: {name!r} (have: {sorted(COMMANDS)})")
+    return COMMANDS[name](*args)
+
+[dispatch("greet", "Alice"), dispatch("bye", "Bob")]
+```
+
+```{python}
+#| error: true
+dispatch("nope", "Alice")
+```
+
+`dispatch(name, *args)` looks up the function in `COMMANDS`, then calls it with the forwarded args. The error message includes `sorted(COMMANDS)` so a typo gets a helpful "did you mean one of these?" trace. In a real CLI you'd plug `argparse` (chapter 8) on top: take the first positional arg as the command name, forward the rest.
+
+The build is the chapter in motion: each command is a *plain function*, not a Command-pattern subclass; registration is a side effect of import-time decorator runs; dispatch is dict lookup; and the whole thing is twenty lines without a single ABC.
+
 ## Exercises {#sec-patterns-exercises}
 
 1. **Add a strategy.** Write a `weekend_promo` function that gives 5% off if the order is placed on a Saturday or Sunday. Register it with `@promotion` and confirm `best_promo` finds it without other changes.
