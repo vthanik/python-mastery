@@ -259,6 +259,90 @@ The free helpers are worth knowing:
 Start with plain public attributes. If you later need validation or computed values, add a `@property` — callers don't change their code. This is Python's answer to getters/setters: they're unnecessary at first, and available when needed, without breaking the API.
 :::
 
+## Build: a `Person` class with validated fields, a cached derivation, and a metadata fallback {#sec-attrs-build}
+
+A modest data class that exercises each chapter tool: a property factory for repeated validation, `cached_property` for a value computed once per instance, and `__getattr__` for transparent fallback to a metadata dict.
+
+**Step 1: a property factory for non-negative fields.** `age` and `height` should both reject negatives — write the validator once and apply it twice:
+
+```{python}
+def non_negative(name):
+    def getter(self):
+        return self.__dict__[f"_{name}"]
+    def setter(self, value):
+        if value < 0:
+            raise ValueError(f"{name} must be non-negative, got {value!r}")
+        self.__dict__[f"_{name}"] = value
+    return property(getter, setter)
+
+class Person:
+    age = non_negative("age")
+    height_cm = non_negative("height_cm")
+
+    def __init__(self, name: str, age: int, height_cm: float) -> None:
+        self.name = name
+        self.age = age                     # uses the setter — validates
+        self.height_cm = height_cm
+
+p = Person("Alice", 30, 165)
+[p.name, p.age, p.height_cm]
+```
+
+```{python}
+#| error: true
+p.age = -1
+```
+
+`non_negative(name)` is a closure-based factory: each call captures the storage name and returns a fresh `property`. The class body uses it twice as a class attribute — same effect as writing `@property` and `@x.setter` per field, but one line per attribute instead of two methods. The validator runs in `__init__` too, so a bad starting value is rejected at construction.
+
+**Step 2: a `cached_property` for an expensive-ish derivation.** Compute the BMI once per instance and store it on the instance dict. Accessing `p.bmi` repeatedly only runs the computation the first time:
+
+```{python}
+from functools import cached_property
+
+class Person(Person):                    # extend the previous class
+    @cached_property
+    def bmi(self) -> float:
+        print("computing BMI")           # observe the one-time call
+        height_m = self.height_cm / 100
+        return round(70 / (height_m ** 2), 2)   # toy formula
+
+p = Person("Alice", 30, 165)
+[p.bmi, p.bmi, p.bmi]                    # only one "computing" line
+```
+
+`cached_property` runs the body the *first* time `p.bmi` is accessed, stores the result in `p.__dict__["bmi"]`, and never runs again. The print fires once; subsequent reads hit the dict directly. Caveat: the cache isn't invalidated when `height_cm` changes — `cached_property` is for values that are effectively immutable per instance, not for live derivations.
+
+**Step 3: a `__getattr__` fallback for arbitrary metadata.** Allow callers to attach extra information that's accessible like an attribute, with the validated fields still taking precedence:
+
+```{python}
+class Person(Person):
+    def __init__(self, name, age, height_cm, **metadata):
+        super().__init__(name, age, height_cm)
+        self._metadata = metadata
+
+    def __getattr__(self, name):
+        # Called *only* when normal lookup fails — so age/height_cm/bmi never reach here
+        if name.startswith("_"):
+            raise AttributeError(name)
+        meta = self.__dict__.get("_metadata", {})
+        if name in meta:
+            return meta[name]
+        raise AttributeError(f"{type(self).__name__!r} has no attribute {name!r}")
+
+p = Person("Alice", 30, 165, city="London", role="engineer")
+[p.name, p.age, p.bmi, p.city, p.role]
+```
+
+```{python}
+#| error: true
+p.unknown
+```
+
+`__getattr__` only fires *after* the normal attribute machinery has failed — so the validated `age`/`height_cm`/`bmi` are still found first. The `name.startswith("_")` guard is safety: dunder lookups (`__copy__`, `__deepcopy__`, `__getstate__`, …) hit `__getattr__` for any attribute Python is *probing for* during pickling/copy/etc.; raising plain `AttributeError` for those is the right contract. The unknown-attribute case ends with a useful `AttributeError` message — `getattr(p, 'role', 'default')` would treat it correctly as "absent" and return `'default'`.
+
+The build threads the chapter together: a property factory for repeated validation logic (Step 1), `cached_property` for a per-instance derivation (Step 2), and `__getattr__` for a transparent dict fallback that respects the rest of the attribute machinery (Step 3). About thirty lines of code; behaves like a much more elaborate framework class.
+
 ## Exercises {#sec-attrs-exercises}
 
 1. **`FrozenJSON` for lists at top level.** Modify `FrozenJSON` so it works when the top-level argument is a list. (The `__new__` already handles it — verify.)
