@@ -55,16 +55,24 @@ lat, lon, ref = Coordinate(55.756, 37.617)
 lat, ref
 ```
 
-Two helpers worth remembering:
+Two helpers worth remembering — both bridge between named-tuples and "regular" Python data shapes:
+
+**`_asdict()`** turns a namedtuple instance into a plain `dict` keyed by field names. Useful when you need to hand the data to something that expects a mapping — `json.dumps`, a templating engine, an HTTP request body. Note the leading underscore: the `namedtuple` machinery prefixes its own helpers with `_` so they can't collide with user-defined field names. (Imagine a namedtuple with a field literally called `keys` — without the prefix the helper would shadow it.)
 
 ```{python}
 moscow = Coordinate(55.756, 37.617)
 moscow._asdict()
 ```
 
+The result is an ordinary `dict`. The default `reference="WGS84"` is included because every field of the tuple — defaulted or not — has a concrete value at this point.
+
+**`_make(iterable)`** is the inverse: it builds a namedtuple instance from any iterable, *without* writing out the field names. Compare `Coordinate(*row)` (positional unpacking) with `Coordinate._make(row)` — they're equivalent in effect, but `_make` reads as "construct from this row" and works directly on iterators that you don't want to materialise as a list first.
+
 ```{python}
 Coordinate._make([55.756, 37.617, "WGS84"])
 ```
+
+The classic use case: parsing a CSV into namedtuples — `for row in csv.reader(f): Coordinate._make(row)`. Each row is already a list of strings; `_make` slots them into the right fields by *position*, not by name.
 
 ## Typed named tuples {#sec-dataclasses-typed-namedtuple}
 
