@@ -219,7 +219,7 @@ except AuthError as e:
 ```
 
 - `__init__` stores `user` and `reason` on the instance — callers can read them programmatically without parsing the message.
-- `super().__init__(message)` sets the formatted string that `str(e)` returns. Forgetting this call is the classic bug — `str(e)` would come back empty.
+- `super().__init__(message)` calls the parent class's (`Exception`'s) `__init__` to set the formatted string that `str(e)` returns. `super()` is the standard way to invoke a parent class's behaviour from a subclass — the deep treatment is in @sec-classes-basics. Forgetting this call is the classic bug: `str(e)` would come back empty.
 - Catching code can now branch on `e.reason` instead of string-matching the message.
 
 The general rule: subclass `Exception` for an app-specific base, then add a subclass per error category. Override `__init__` only when you need structured fields beyond a plain message.
@@ -240,8 +240,8 @@ with open(target, encoding="utf-8") as f:
 content
 ```
 
-- `tempfile.mkdtemp()` makes a fresh temp directory; the `Path / "hello.txt"` builds the file path.
-- `target.write_text(...)` is a one-line write — sets up the input file for the demo.
+- `tempfile.mkdtemp()` returns the path of a fresh, empty temporary directory; `Path` (from `pathlib`, the modern path-handling module covered in @sec-files-and-io) wraps that path so we can use `/` to compose subpaths — `target` ends up as something like `/tmp/tmpAbCdEf/hello.txt`.
+- `target.write_text(...)` is `pathlib`'s one-line write — it opens the file, writes the text, and closes it. We're using it just to set up the input for the demo; the topic is what comes next.
 - `with open(target, encoding="utf-8") as f:` opens the file, binds it to `f`, and registers a guarantee: when the block exits — normally or via exception — `f.close()` is called.
 - `content = f.read()` reads while the file is open.
 - The moment the indented block ends, the file is closed. There's no way to forget.
@@ -320,6 +320,88 @@ Exceptions separate the *happy path* from the *recovery path*. Code with explici
 ## Going deeper
 
 `with`, `match`, and the orphaned `else` clauses on `for` and `while` loops are the subject of @sec-with-match-else. The descriptor protocol behind `__enter__` / `__exit__` and the broader data model is @sec-data-model.
+
+## Build: a robust JSON config loader {#sec-err-build}
+
+Real applications load configuration from a file, parse it, and complain *clearly* when something's wrong. We'll build `load_config(path)` that exercises custom exceptions, exception chaining, multiple `except` clauses, and `with` for file lifecycle — all the chapter's pieces in one running example.
+
+**Step 1: a small exception hierarchy.** Two classes — a base for "any config problem" and a specific subclass for "a required key is missing":
+
+```{python}
+class ConfigError(Exception):
+    """Base exception for config-loading failures."""
+
+class MissingKeyError(ConfigError):
+    def __init__(self, key):
+        self.key = key
+        super().__init__(f"missing required key: {key!r}")
+
+try:
+    raise MissingKeyError("database_url")
+except ConfigError as e:
+    type(e).__name__, e.key, str(e)
+```
+
+`MissingKeyError` carries a structured `key` field so callers can branch on the missing key without parsing the message. Catching `ConfigError` matches both classes — exactly the hierarchy from earlier in the chapter.
+
+**Step 2: chain a parse failure with `from`.** When `json.loads` fails, we want the caller to see a `ConfigError` (our domain error) but still keep the original `JSONDecodeError` for debugging. `raise X from Y` does that:
+
+```{python}
+import json
+
+def parse_config(text):
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ConfigError(f"config is not valid JSON: {e.msg}") from e
+
+try:
+    parse_config("{ bad json")
+except ConfigError as e:
+    type(e).__name__, str(e), type(e.__cause__).__name__
+```
+
+`from e` sets `e.__cause__` on the new exception — Python's traceback uses it to print "The above exception was the direct cause of the following exception". `e.__cause__` is the original `JSONDecodeError`. Callers see a clean `ConfigError`; debuggers still see the raw cause.
+
+**Step 3: tie it together with `with`, validation, and a missing-file branch.** The full loader opens the file (closing it on every exit path), parses, validates required keys, and raises a clean `ConfigError` for every failure mode:
+
+```{python}
+import json, tempfile
+from pathlib import Path
+
+REQUIRED = ("host", "port")
+
+def load_config(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise ConfigError(f"config file not found: {path}") from None
+    except json.JSONDecodeError as e:
+        raise ConfigError(f"config file is not valid JSON: {e.msg}") from e
+
+    for key in REQUIRED:
+        if key not in data:
+            raise MissingKeyError(key)
+    return data
+
+# Set up a valid file and a missing-key file in a temp dir
+tmp = Path(tempfile.mkdtemp())
+(tmp / "good.json").write_text('{"host": "localhost", "port": 5432}')
+(tmp / "partial.json").write_text('{"host": "localhost"}')
+
+results = []
+for name in ("good.json", "partial.json", "missing.json"):
+    try:
+        results.append(("ok", load_config(tmp / name)))
+    except ConfigError as e:
+        results.append(("err", type(e).__name__, str(e)))
+results
+```
+
+Three new tricks here. The `with open(...)` block guarantees the file closes even if `json.load` raises — exactly the cleanup invariant `with` was designed for. `from None` *suppresses* the original `FileNotFoundError` from the chained traceback — useful when the original exception adds noise rather than information. And the `for key in REQUIRED:` validation loop raises the structured `MissingKeyError` at the first missing key — callers can read `e.key` to know which.
+
+The build exercises every piece from the chapter: custom exception hierarchy, `super().__init__`, multiple `except` clauses, chaining (`from e`) vs. suppression (`from None`), `with` for file lifecycle, and validation as raise-on-failure. It's also the shape of nearly every real-world config loader.
 
 ## Exercises {#sec-err-exercises}
 
