@@ -24,6 +24,8 @@ Python supports four typing styles, and they coexist in the same codebase:
 | Static typing | at type-check | `mypy`, `pyright` |
 | Runtime protocol | runtime | `isinstance(x, Protocol)` (with `@runtime_checkable`) |
 
+"EAFP" is the Pythonic acronym for **Easier to Ask Forgiveness than Permission**: try the operation, catch the exception if it fails. Its opposite is LBYL (*Look Before You Leap*) — `if hasattr(x, 'method'): x.method()`. Python's data model favours EAFP because methods do their own type-checking and raise specific exceptions; the LBYL form is verbose and racy.
+
 The right choice depends on *who* checks the contract and *when*. We'll walk through the four in order.
 
 ```{mermaid}
@@ -249,6 +251,83 @@ Protocols compose, just like ABCs.
 ## Why this matters
 ABCs enforce contracts at runtime via `isinstance` checks. Protocols enforce contracts at static analysis time via `mypy`. Both formalize duck typing. Use `Protocol` for library code that should be type-safe; use ABC when you want runtime enforcement and want to provide partial implementations (mixin methods on the ABC).
 :::
+
+## Build: a runtime-checkable `Plugin` protocol with a registry {#sec-protocols-build}
+
+A plugin system is the canonical use-case for `typing.Protocol`: many third-party classes need to satisfy one shape, but you don't want to force them all to import a common base class. We'll build a `Plugin` Protocol, two unrelated concrete plugins, and a registry that uses `isinstance` against the Protocol to validate at the boundary.
+
+**Step 1: define the Protocol.** A plugin must expose a string `name` and a `run(config)` method. Mark it `@runtime_checkable` so the registry can use `isinstance`:
+
+```{python}
+from typing import Protocol, runtime_checkable
+
+@runtime_checkable
+class Plugin(Protocol):
+    name: str
+    def run(self, config: dict) -> str: ...
+```
+
+The Protocol declares one *attribute* (`name: str`) and one *method* (`run(self, config: dict) -> str`). The body of `run` is `...` — a stub Python never executes; the protocol only describes shape. `@runtime_checkable` tells Python "build the introspection so `isinstance(obj, Plugin)` works."
+
+**Step 2: two plugins that satisfy the protocol by shape.** Neither imports `Plugin`. A `HelloPlugin` (a regular class) and an `EchoPlugin` (a `@dataclass`) — both happen to fit the contract:
+
+```{python}
+from dataclasses import dataclass
+
+class HelloPlugin:
+    name = "hello"
+    def run(self, config: dict) -> str:
+        return f"Hello, {config.get('who', 'world')}!"
+
+@dataclass
+class EchoPlugin:
+    text: str
+    name: str = "echo"
+    def run(self, config: dict) -> str:
+        return config.get("text", self.text)
+
+[isinstance(HelloPlugin(), Plugin),
+ isinstance(EchoPlugin(text="hi"), Plugin),
+ isinstance("not a plugin", Plugin)]
+```
+
+`HelloPlugin` is a hand-written class; `EchoPlugin` is a dataclass — totally unrelated implementation strategies. Both have a `name` and a `run` of the right shape, so both pass `isinstance(..., Plugin)`. A `str` doesn't have `name` or `run`, so it fails. Crucially: neither plugin class inherits from `Plugin`, and `Plugin` doesn't appear in either's MRO. This is structural typing in action.
+
+**Step 3: a registry that validates at the boundary.** The point of `@runtime_checkable` is to fail loudly on bad input *at the entry point*, while allowing the rest of the code to assume the type:
+
+```{python}
+class Registry:
+    def __init__(self) -> None:
+        self._plugins: dict[str, Plugin] = {}
+
+    def register(self, plugin: Plugin) -> None:
+        if not isinstance(plugin, Plugin):
+            raise TypeError(f"{plugin!r} does not satisfy the Plugin protocol")
+        self._plugins[plugin.name] = plugin
+
+    def run(self, name: str, config: dict) -> str:
+        return self._plugins[name].run(config)
+
+reg = Registry()
+reg.register(HelloPlugin())
+reg.register(EchoPlugin(text="default"))
+
+[reg.run("hello", {"who": "Alice"}),
+ reg.run("echo",  {"text": "ping"}),
+ reg.run("echo",  {})]
+```
+
+```{python}
+#| error: true
+class BrokenPlugin:
+    pass                                   # missing both name and run
+
+reg.register(BrokenPlugin())
+```
+
+`Registry.register` checks `isinstance(plugin, Plugin)` and raises `TypeError` with a clear message if the value is shape-wrong. After that, `reg.run(...)` can trust the dict's values are real plugins — no further checking needed inside. `BrokenPlugin` is rejected immediately because it has neither `name` nor `run`.
+
+The build threads the chapter's lessons through one practical case: a `Protocol` declares the shape (Step 1), unrelated classes satisfy it without inheritance — including a `@dataclass` (Step 2), and `@runtime_checkable` lets the registry use `isinstance` to enforce the contract at the boundary while the rest of the code stays trusting (Step 3). No ABC, no `register()` calls, no MRO games.
 
 ## Exercises {#sec-protocols-exercises}
 
