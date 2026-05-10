@@ -21,12 +21,16 @@ Every class in Python is an *instance* of `type`. That includes built-ins:
 int.__class__, str.__class__, type.__class__
 ```
 
+The output is `(<class 'type'>, <class 'type'>, <class 'type'>)`. Each of `int`, `str`, and `type` itself is an instance of `type` — that's the meaning of "`type` is the metaclass of all classes." The recursive `type.__class__ is type` is the bootstrap fixed point: the class-of-a-class chain has to end somewhere, and Python ends it by making `type` its own class.
+
 `type` is its own metaclass — that's how the system bootstraps. Classes carry the same kind of attributes any other object does:
 
 ```{python}
 class Foo: ...
 Foo.__name__, Foo.__mro__, Foo.__module__
 ```
+
+`Foo.__name__` is `'Foo'` (the source-level name). `Foo.__mro__` is the method-resolution order, a tuple `(Foo, object)` because `Foo` only inherits from `object` (the implicit default). `Foo.__module__` is `'__main__'` in this notebook context, or whatever module the class was defined in. These are just *attributes on the class object* — exactly the same kind of thing as `Foo.method` would be — because classes are objects.
 
 You can pass classes around, store them in lists and dicts, and pick one at runtime to instantiate. None of that is "metaprogramming" — it's just the data model.
 
