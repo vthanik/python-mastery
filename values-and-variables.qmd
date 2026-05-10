@@ -47,6 +47,10 @@ The general rule: literals carry their own type; assignment never declares one. 
 0.1 + 0.2, 0.1 + 0.2 == 0.3
 ```
 
+The first value, `0.30000000000000004`, is the *actual* result of adding two binary-floating-point approximations of `0.1` and `0.2` — neither input can be represented exactly in base-2, so the addition's last bit is wrong. The second answer, `False`, is the consequence: `0.1 + 0.2` is genuinely *not* `0.3` to the bit-pattern level, even though every grade-school sanity check says it should be. This is why `==` on floats from arithmetic is a trap.
+
+The fix is `math.isclose(a, b)`, which compares within a tolerance instead of bit-for-bit:
+
 ```{python}
 import math
 math.isclose(0.1 + 0.2, 0.3)
@@ -147,12 +151,16 @@ items = []
 "empty" if not items else "has items"
 ```
 
+The expression `"empty" if not items else "has items"` is Python's **ternary** form — the conditional shortened into one expression. It reads almost as English: "give me `empty` if not items, else `has items`." `not items` is `True` for an empty list (because `bool([])` is `False`), so the first branch fires.
+
+Same shape with a non-empty list:
+
 ```{python}
 items = [1, 2, 3]
 "empty" if not items else "has items"
 ```
 
-Idiomatic Python writes `if items:` rather than `if len(items) > 0:`.
+Now `bool([1, 2, 3])` is `True`, so `not items` is `False`, and the `else` branch returns `"has items"`. The point: the *list itself* — not its length — is the truthy check. Idiomatic Python writes `if items:` rather than `if len(items) > 0:`.
 
 ## `==` vs `is` {#sec-values-eq-is}
 
