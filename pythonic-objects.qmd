@@ -258,6 +258,123 @@ The general rule: writing through an instance always creates an instance attribu
 A well-designed Python class uses special methods to integrate with the language. It implements `__repr__` for debugging, `__str__` for users, `__eq__` and `__hash__` together (or neither), `__bool__` for truthiness, `__iter__` for unpacking. These are the contracts that make your class feel like a built-in.
 :::
 
+## Build: a Pythonic `Money` value class {#sec-pythonic-build}
+
+Money is a textbook value object: immutable, hashable (so it can sit in a set or a dict key), printable two ways (developer + user), and formattable. We'll build it incrementally, applying the chapter's tools one at a time so the payoff of each is visible.
+
+**Step 1: data, name-mangled storage, `__repr__` and `__str__`.** Start with the bones: read-only `amount` and `currency`, exposed via properties; double-underscore storage so subclasses can't accidentally clobber the fields:
+
+```{python}
+class Money:
+    def __init__(self, amount, currency="USD"):
+        self.__amount = float(amount)
+        self.__currency = currency
+
+    @property
+    def amount(self): return self.__amount
+
+    @property
+    def currency(self): return self.__currency
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.__amount!r}, {self.__currency!r})"
+
+    def __str__(self):
+        return f"{self.__currency} {self.__amount:.2f}"
+
+m = Money(19.99, "EUR")
+[repr(m), str(m), m.amount]
+```
+
+`__amount` (with two underscores) triggers name-mangling: outside the class it's `_Money__amount`. The properties are read-only — `m.amount = 5` raises `AttributeError`, which is the right behaviour for a value object.
+
+**Step 2: equality + hash, plus `__bool__`.** Implement `__eq__` and `__hash__` together (the rule from the chapter). The hash composes the components' hashes — `hash((amount, currency))`. `__bool__` makes zero-amount money falsy, mirroring how `0` is falsy:
+
+```{python}
+class Money:
+    def __init__(self, amount, currency="USD"):
+        self.__amount = float(amount)
+        self.__currency = currency
+
+    @property
+    def amount(self): return self.__amount
+    @property
+    def currency(self): return self.__currency
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.__amount!r}, {self.__currency!r})"
+
+    def __str__(self):
+        return f"{self.__currency} {self.__amount:.2f}"
+
+    def __eq__(self, other):
+        return (isinstance(other, Money)
+                and self.__amount == other.__amount
+                and self.__currency == other.__currency)
+
+    def __hash__(self):
+        return hash((self.__amount, self.__currency))
+
+    def __bool__(self):
+        return self.__amount != 0
+
+a, b, c = Money(10, "USD"), Money(10, "USD"), Money(10, "GBP")
+[a == b, a == c, len({a, b, c}), bool(Money(0)), bool(a)]
+```
+
+`a == b` is `True` (same amount and currency); `a == c` is `False` because the currencies differ. The set `{a, b, c}` collapses to two elements — the equal ones merge. Because `__hash__` and `__eq__` agree, the set operation is fast (hash compare first, equality only on collisions).
+
+**Step 3: `__format__` for custom display, `__slots__` for memory.** Add a `c` (compact) suffix to the format spec — `f"{m:c}"` gives `"USD20"` (no decimals, no space), `f"{m:.2f}"` falls through to the default `"USD 10.00"` form. Add `__slots__` to drop the per-instance `__dict__`:
+
+```{python}
+class Money:
+    __slots__ = ("__amount", "__currency")
+
+    def __init__(self, amount, currency="USD"):
+        self.__amount = float(amount)
+        self.__currency = currency
+
+    @property
+    def amount(self): return self.__amount
+    @property
+    def currency(self): return self.__currency
+
+    def __repr__(self):
+        return f"{type(self).__name__}({self.__amount!r}, {self.__currency!r})"
+
+    def __str__(self):
+        return f"{self.__currency} {self.__amount:.2f}"
+
+    def __eq__(self, other):
+        return (isinstance(other, Money)
+                and self.__amount == other.__amount
+                and self.__currency == other.__currency)
+
+    def __hash__(self):
+        return hash((self.__amount, self.__currency))
+
+    def __bool__(self):
+        return self.__amount != 0
+
+    def __format__(self, spec):
+        if spec.endswith("c"):                           # compact form
+            spec = spec[:-1]
+            return f"{self.__currency}{format(self.__amount, spec or '.0f')}"
+        return f"{self.__currency} {format(self.__amount, spec or '.2f')}"
+
+m = Money(20, "USD")
+[f"{m}", f"{m:c}", f"{m:.4f}", f"{m:.0fc}"]
+```
+
+```{python}
+#| error: true
+m.region = "EU"                                          # __slots__ rejects unknown attrs
+```
+
+`__format__(self, spec)` runs whenever `format(m, spec)` or `f"{m:spec}"` is evaluated. We branch on the trailing `c`, strip it off, then forward the rest of the spec to `format(self.__amount, ...)` — the `.4f` and `.0f` work because the float responds to them. `__slots__ = ("__amount", "__currency")` (note: the slot names use the *mangled* form — Python rewrites `__amount` to the same name the storage gets) drops the per-instance dict; `m.region = "EU"` is rejected at runtime.
+
+The build is the chapter at full strength: a dozen lines of constructor and properties, four dunders for output and comparison (`__repr__`, `__str__`, `__eq__`, `__hash__`), one for truthiness (`__bool__`), one for formatting (`__format__`), and `__slots__` on top. Sixty lines of code; behaves like a built-in.
+
 ## Exercises {#sec-pythonic-exercises}
 
 1. **Override `__str__`.** Replace the `tuple` form of `__str__` with `f"{self.x:g}, {self.y:g}"`. What does that change in `print(v)`?
