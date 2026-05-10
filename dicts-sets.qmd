@@ -199,6 +199,8 @@ od.move_to_end("b")
 list(od.keys())
 ```
 
+`OrderedDict(a=1, b=2, c=3)` builds a dict whose keys are in insertion order: `a, b, c`. `od.move_to_end("b")` mutates `od` so that `b` is now at the *end* — the keys reorder to `a, c, b`. There's a `last=False` flag for "move to the front" instead. The use case is LRU-cache-style ordering: every time a key is touched, `move_to_end` it; the `popitem(last=False)` form then evicts the oldest. Plain `dict` doesn't have this — the only ordering guarantee is "first insert wins."
+
 **`ChainMap`** layers several mappings into one logical view. Lookups traverse the chain in order:
 
 ```{python}
@@ -216,10 +218,14 @@ ct = Counter("abracadabra")
 ct.most_common(3)
 ```
 
+`Counter("abracadabra")` walks the iterable (a string is iterable as characters) and tallies occurrences: `{'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1}`. `.most_common(3)` returns the top three as `(char, count)` tuples sorted by count descending — `[('a', 5), ('b', 2), ('r', 2)]`. Tie-breaking between `'b'` and `'r'` (both count 2) is by insertion order. With no argument, `.most_common()` returns *all* pairs sorted; with a number, the top *n*.
+
 ```{python}
 ct.update("aaaaazzz")
 ct["z"]
 ```
+
+`ct.update("aaaaazzz")` *adds* to the existing counts (it doesn't replace, the way `dict.update` would). After the call, `'a'` has gone from 5 to 10, and a new `'z'` key was created with count 3. `ct["z"]` returns `3` — and crucially, even *before* the update, asking for `ct["unseen_key"]` returns `0` rather than raising `KeyError`. That zero-default is `Counter`'s key superpower over a plain dict.
 
 ## Immutable mappings with `MappingProxyType` {#sec-dicts-proxy}
 
@@ -254,6 +260,8 @@ empty = set()  # NOT {} — that's an empty dict
 type(s), type(empty)
 ```
 
+`{1, 2, 3}` is a set literal — curly braces with comma-separated *values* (no `:` between them). For the *empty* set you must write `set()`, because `{}` parses as empty *dict* (curly braces with key-value pairs). The cell confirms this: `type(s)` is `set`, `type(empty)` is `set`. If you swapped `set()` for `{}`, `type(empty)` would be `dict` — the canonical first-day-with-Python gotcha.
+
 The four set operations:
 
 ```{python}
@@ -262,6 +270,8 @@ b = {2, 4, 6}
 
 a | b, a & b, a - b, a ^ b
 ```
+
+The output is `({1, 2, 3, 4, 6}, {2, 4}, {1, 3}, {1, 3, 6})` — read from the table below for the meaning of each operator. Each operation returns a *new* set; `a` and `b` are unchanged. There are method forms too — `a.union(b)`, `a.intersection(b)`, `a.difference(b)`, `a.symmetric_difference(b)` — which accept any iterable, not just another set, so `a.union([5, 6, 7])` works while `a | [5, 6, 7]` would raise. Reach for the operators when both sides are sets and you want the math notation; reach for the methods when one side is an arbitrary iterable.
 
 | Operator | Meaning | Example output |
 |---|---|---|
