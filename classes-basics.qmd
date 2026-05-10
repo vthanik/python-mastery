@@ -154,7 +154,7 @@ Two terms to know first:
 - A **getter** is a method that runs when someone *reads* an attribute (`c.radius`).
 - A **setter** is a method that runs when someone *writes* one (`c.radius = 5`).
 
-With a plain attribute, Python stashes the value in the instance's `__dict__` and reads it back unchanged — no methods involved. With `@property`, Python routes every read through your getter and every write through your setter. The calling syntax stays the same (`c.radius` to read, `c.radius = 5` to write) but now validation, computation, or logging can sit in between. The hooks fire on the *instance* (`c`, an object built from the class), not on the class `Circle` itself. Build the pattern in three small steps.
+With a plain attribute, Python stashes the value in the instance's `__dict__` (a per-instance dict that maps attribute names to their values — every regular Python object has one) and reads it back unchanged — no methods involved. With `@property`, Python routes every read through your getter and every write through your setter. The calling syntax stays the same (`c.radius` to read, `c.radius = 5` to write) but now validation, computation, or logging can sit in between. The hooks fire on the *instance* (`c`, an object built from the class), not on the class `Circle` itself. Build the pattern in three small steps.
 
 **Step 1: turn a method into a read-only attribute.** Decorating a method with `@property` lets the caller use it as an attribute — no parentheses needed:
 
@@ -583,6 +583,96 @@ This chapter is a working introduction. The deep dives:
 - **Inheritance, the MRO, multiple inheritance** — @sec-inheritance.
 - **`@dataclass` and the three other data-class builders** — @sec-dataclasses.
 - **Protocols, ABCs, and structural typing** — @sec-protocols-abcs.
+
+## Build: a 2-D Vector class {#sec-cls-build}
+
+A 2-D vector is the textbook small example for tying the whole chapter together: it has data (`x`, `y`), special methods (`+`, `*`, `==`), a derived value (magnitude), and a natural alternative constructor (from a tuple). We'll build it in three steps that each pull in a different chapter section.
+
+**Step 1: hand-written, with the special methods we've seen.**
+
+```{python}
+import math
+
+class Vector2D:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        return f"Vector2D({self.x!r}, {self.y!r})"
+
+    def __eq__(self, other):
+        return isinstance(other, Vector2D) and self.x == other.x and self.y == other.y
+
+    def __add__(self, other):
+        return Vector2D(self.x + other.x, self.y + other.y)
+
+    def __mul__(self, scalar):
+        return Vector2D(self.x * scalar, self.y * scalar)
+
+v1 = Vector2D(3, 4)
+v2 = Vector2D(1, 2)
+[v1 + v2, v1 * 3, v1 == Vector2D(3, 4)]
+```
+
+The shape from the special-methods section: `__init__` stores the data, `__repr__` prints it back, the operator dunders return new vectors instead of mutating either operand. `__mul__` takes `scalar` (a number), not `other`, because multiplying two vectors would need a different operation (dot product) we haven't defined.
+
+**Step 2: replace the boilerplate with `@dataclass`, add a computed property for magnitude.** Step 1's `__init__`, `__repr__`, and `__eq__` are exactly what `@dataclass` writes for you. The magnitude is *derived* from `x` and `y`, so it's a getter-only `@property`:
+
+```{python}
+from dataclasses import dataclass
+
+@dataclass(frozen=True, slots=True)
+class Vector2D:
+    x: float
+    y: float
+
+    @property
+    def magnitude(self):
+        return math.hypot(self.x, self.y)
+
+    def __add__(self, other):
+        return Vector2D(self.x + other.x, self.y + other.y)
+
+    def __mul__(self, scalar):
+        return Vector2D(self.x * scalar, self.y * scalar)
+
+v = Vector2D(3, 4)
+[v, v.magnitude, v == Vector2D(3, 4)]
+```
+
+`frozen=True` makes the instance immutable — `v.x = 99` raises `FrozenInstanceError`. That's the right setting for a value object: equal vectors should stay equal forever. `slots=True` skips the per-instance `__dict__` — smaller memory and faster attribute access. We kept `__add__` and `__mul__` because `@dataclass` doesn't know about arithmetic — it only generates the data-shape methods (`__init__`, `__repr__`, `__eq__`).
+
+**Step 3: an alternative constructor with `@classmethod`.** Callers often have an `(x, y)` tuple in hand (from a CSV row, a JSON record, a math library). `@classmethod` is the right way to expose a second build path *without* a second `__init__`:
+
+```{python}
+@dataclass(frozen=True, slots=True)
+class Vector2D:
+    x: float
+    y: float
+
+    @property
+    def magnitude(self):
+        return math.hypot(self.x, self.y)
+
+    @classmethod
+    def from_tuple(cls, pair):
+        x, y = pair
+        return cls(x, y)
+
+    def __add__(self, other):
+        return Vector2D(self.x + other.x, self.y + other.y)
+
+    def __mul__(self, scalar):
+        return Vector2D(self.x * scalar, self.y * scalar)
+
+v = Vector2D.from_tuple((3, 4))
+[v, v.magnitude]
+```
+
+`from_tuple` follows the `from_xxx` naming convention from the `@classmethod` section. The `cls(x, y)` call goes through `__init__` like any other construction — and crucially, if anyone subclasses `Vector2D`, `Subclass.from_tuple((3, 4))` returns an instance of the subclass, not of the parent.
+
+The build exercises every section: a basic class with data and methods (Step 1), special methods for natural operator syntax (Step 1), `@dataclass` for the boilerplate three (Step 2), `@property` for derived values (Step 2), and `@classmethod` for an alternative constructor (Step 3). About thirty lines of code and a value class that behaves like a built-in.
 
 ## Exercises {#sec-cls-exercises}
 
