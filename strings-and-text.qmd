@@ -38,6 +38,8 @@ pattern = r"\d+"
 re.findall(pattern, "abc 12 def 345")
 ```
 
+`re` is Python's regular-expression module (treated properly in @sec-stdlib-re); `\d+` is the regex pattern "one or more digits", and `re.findall` returns *every* non-overlapping match. The point here isn't the regex itself — it's that without the leading `r`, the string `"\d+"` would still work *by accident* (the `\d` happens not to be a known string escape), but `r"\n"` to mean a literal backslash-n would silently be interpreted as a newline. Raw strings remove that hazard.
+
 ## f-strings {#sec-strings-fstrings}
 
 Building output from variables used to mean either string concatenation (`"Hello, " + name + "!"`) or `%`-style formatting (`"Hello, %s!" % name`). Both get unwieldy fast. f-strings ("formatted string literals", introduced in 3.6) put the expression *inside* the string with `{...}` — always prefer them.
@@ -190,6 +192,58 @@ String handling in Python is uniform: every string is Unicode, every method retu
 ## Going deeper
 
 This chapter treats `str` as a workable text type. The deeper questions — what *is* a Unicode code point, how do `str` and `bytes` differ, and what does normalization mean — are covered in @sec-unicode. Slicing is a small example of the *sequence protocol* that runs through @sec-sequences.
+
+## Build: a banner formatter {#sec-strings-build}
+
+A common need in CLI tools and reports: print a title surrounded by a horizontal rule, like a section header. We'll build `banner(title)` that exercises the chapter's f-string format spec, string multiplication, and `.join()`.
+
+**Step 1: a fixed-width banner.** Take a title and frame it with `=` rules above and below, centered to a fixed width:
+
+```{python}
+def banner(title, width=40, char="="):
+    rule = char * width
+    centered = f"{title:^{width}}"
+    return f"{rule}\n{centered}\n{rule}"
+
+print(banner("Sales Report Q1"))
+```
+
+Two new tricks here. `char * width` *multiplies* a string — Python repeats it that many times, so `"=" * 40` is a 40-character rule. And `f"{title:^{width}}"` is a *nested* format spec: the inner `{width}` is evaluated first (to `40`), then the outer slot becomes `f"{title:^40}"` — center-align in 40 columns. `^` is centre, `<` is left, `>` is right.
+
+**Step 2: grow the width if the title is too long.** A title longer than 40 characters would overflow the rule. Compute the actual width as the larger of the requested width and the title length plus a 4-character margin:
+
+```{python}
+def banner(title, width=40, char="="):
+    width = max(width, len(title) + 4)
+    rule = char * width
+    centered = f"{title:^{width}}"
+    return f"{rule}\n{centered}\n{rule}"
+
+print(banner("A very long sales report title that exceeds forty characters"))
+```
+
+`max(...)` is a built-in that returns the largest of its arguments. `+ 4` leaves two spaces of margin on each side.
+
+**Step 3: optional subtitle.** Allow a second line under the title, only when supplied. This is where `.join()` and the empty-string-is-falsy rule combine cleanly:
+
+```{python}
+def banner(title, subtitle="", width=40, char="="):
+    width = max(width, len(title) + 4, len(subtitle) + 4)
+    rule = char * width
+    rows = [rule, f"{title:^{width}}"]
+    if subtitle:
+        rows.append(f"{subtitle:^{width}}")
+    rows.append(rule)
+    return "\n".join(rows)
+
+print(banner("Sales Report", subtitle="Q1 2024"))
+print()
+print(banner("No Subtitle"))
+```
+
+`if subtitle:` is the truthy check — the empty string `""` (the default) is falsy, so the row is skipped. `"\n".join(rows)` glues the lines with newlines: cheap, idiomatic, and avoids the `+=` trap from earlier in the chapter.
+
+The build exercises every section: quoting (the docstring-style `"""..."""` would be the natural fourth step), f-string format spec with dynamic width, string multiplication, `.join()`, and truthiness on strings.
 
 ## Exercises {#sec-strings-exercises}
 
