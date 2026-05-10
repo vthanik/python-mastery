@@ -303,6 +303,100 @@ The general rule: use `get_type_hints` whenever you need to introspect annotatio
 Variance captures the direction of subtype relationships for generics. Covariance and contravariance are not just academic — they explain why `list[int]` is not a `list[float]` (mutation makes it unsafe), and why read-only containers can be covariant. If you produce `T`, you can be covariant. If you consume `T`, you can be contravariant.
 :::
 
+## Build: a fluent `QueryBuilder` with `Self`, `@override`, and a `TypedDict` result {#sec-typing-build}
+
+A query-builder is a small DSL where chained method calls accumulate state and the last call materialises a result. It exercises the chapter's modern features: `Self` for chain-friendly return types, `@override` for refactor-safety, and `TypedDict` for the shape of the materialised query.
+
+**Step 1: a base `QueryBuilder` returning `Self` from each fluent method.** The `Self` annotation makes chained calls preserve the most-specific class — so subclasses' `.where(...)` calls don't widen back to `QueryBuilder`:
+
+```{python}
+from typing import Self, TypedDict
+
+class QueryBuilder:
+    def __init__(self) -> None:
+        self._table: str | None = None
+        self._where: list[str] = []
+
+    def from_(self, table: str) -> Self:
+        self._table = table
+        return self
+
+    def where(self, clause: str) -> Self:
+        self._where.append(clause)
+        return self
+
+    def build(self) -> str:
+        if self._table is None:
+            raise ValueError("from_() not called")
+        sql = f"SELECT * FROM {self._table}"
+        if self._where:
+            sql += " WHERE " + " AND ".join(self._where)
+        return sql
+
+QueryBuilder().from_("users").where("active = 1").where("age > 18").build()
+```
+
+`-> Self` reads "an instance of the class this method is defined on." Because `from_`, `where`, and any subclass methods all return `Self`, the chained call stays in the same class — `mypy` knows `QueryBuilder().from_(...).where(...)` is still a `QueryBuilder`, not a widening to some base.
+
+**Step 2: a subclass with `@override` and a new fluent method.** `UserQueryBuilder` validates clauses to forbid dangerous SQL, *and* adds a `.by_email(...)` shortcut. `@override` declares the intent to replace a parent method — `mypy` flags it if the parent's `where` is renamed away:
+
+```{python}
+from typing import override
+
+class UserQueryBuilder(QueryBuilder):
+    @override
+    def where(self, clause: str) -> Self:
+        if "DROP" in clause.upper() or "DELETE" in clause.upper():
+            raise ValueError(f"dangerous clause rejected: {clause!r}")
+        return super().where(clause)                       # delegate to the base
+
+    def by_email(self, email: str) -> Self:
+        return self.where(f"email = {email!r}")            # returns Self, still chainable
+
+q = (UserQueryBuilder()
+     .from_("users")
+     .by_email("alice@example.com")
+     .where("active = 1"))
+q.build()
+```
+
+`UserQueryBuilder().from_(...)` returns `Self` — and because `Self` follows the class, `mypy` narrows it to `UserQueryBuilder`, so `.by_email(...)` is callable on the result. With a plain `-> "QueryBuilder"` return type, the chain would lose the subclass and `.by_email` would fail type-check after the first chained call.
+
+```{python}
+#| error: true
+UserQueryBuilder().from_("users").where("DROP TABLE users")
+```
+
+The `@override` validator rejects the dangerous clause at runtime. `mypy` separately verifies, at type-check time, that `where` actually overrides a parent method — the refactor-safety from earlier in the chapter.
+
+**Step 3: a `TypedDict` for the materialised query.** Sometimes downstream code wants the parts of the query rather than the SQL string — `TypedDict` describes the shape without leaving the runtime as a plain `dict`:
+
+```{python}
+class CompiledQuery(TypedDict):
+    table: str
+    clauses: list[str]
+    sql: str
+
+class CompiledQueryBuilder(UserQueryBuilder):
+    def compile(self) -> CompiledQuery:
+        if self._table is None:
+            raise ValueError("from_() not called")
+        return {
+            "table": self._table,
+            "clauses": list(self._where),
+            "sql": self.build(),
+        }
+
+(CompiledQueryBuilder()
+ .from_("users")
+ .by_email("bob@example.com")
+ .compile())
+```
+
+`CompiledQuery(TypedDict)` is a static-only marker — at runtime, `compile()` returns a plain `dict`. But `mypy` checks that the literal has all three keys with matching types, and any downstream `query["sql"]` is statically typed as `str`. If we forgot to fill `clauses`, the type checker would catch it before runtime.
+
+The build is the chapter at full strength: `Self` keeps fluent chains type-safe across subclasses (Step 1), `@override` declares intentional overrides and gets refactor-safety (Step 2), and `TypedDict` documents the shape of the materialised payload while keeping the runtime trivial (Step 3). Static guarantees at no runtime cost.
+
 ## Exercises {#sec-typing-exercises}
 
 1. **Overload `to_str`.** Write `to_str` that returns `str` for `int`, `float`, and `bool`. Use `@overload` to document the three signatures.
