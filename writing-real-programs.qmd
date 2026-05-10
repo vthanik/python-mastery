@@ -374,6 +374,93 @@ The script template, type hints, tests, and the fifteen idioms together form the
 
 Type hints in depth — `Protocol`, generics, `TypeVar`, runtime checking — are in @sec-type-hints and @sec-advanced-typing. The Pythonic-objects philosophy and the design choices behind these idioms are spread across @sec-pythonic-objects, @sec-protocols-abcs, and the data-model treatment that opens Part I.
 
+## Build: a small grading module with inline tests {#sec-real-build}
+
+We've talked about the template, the type hints, and the test idioms — let's see all three in one tight example. A grading module: pure logic in the middle, type hints on every signature, inline tests at the bottom mirroring `pytest`'s positive/parametrize/raises pattern. Everything runs in this notebook.
+
+**Step 1: pure logic, well-typed.** A function that converts a numeric score to a letter grade, plus a parser that validates the input range:
+
+```{python}
+def grade(score: float) -> str:
+    """Return the letter grade for a score in [0, 100]."""
+    if not 0 <= score <= 100:
+        raise ValueError(f"score out of range: {score}")
+    if score >= 90: return "A"
+    if score >= 80: return "B"
+    if score >= 70: return "C"
+    if score >= 60: return "D"
+    return "F"
+
+def parse_score(text: str) -> float:
+    """Parse text as a score; raise ValueError on garbage."""
+    try:
+        value = float(text)
+    except ValueError as e:
+        raise ValueError(f"could not parse score: {text!r}") from e
+    return value
+
+[grade(95), parse_score("87.5")]
+```
+
+`grade(score: float) -> str` documents both directions of the contract — readers and tools see the input/output types without reading the body. The validation `if not 0 <= score <= 100:` raises `ValueError` (idiom #10: exceptions, not return codes), and `parse_score` *chains* the underlying float-parsing failure with `from e` (chapter 7) so the original cause is preserved in the traceback.
+
+**Step 2: glue them together.** A small `process` that takes a list of `(name, raw_score)` records and returns enriched records. I/O at the edges (load/save) would surround it; the middle is pure:
+
+```{python}
+from collections.abc import Iterable
+
+def process(records: Iterable[tuple[str, str]]) -> list[dict]:
+    """Convert (name, raw) pairs into [{name, score, grade}, ...]."""
+    out = []
+    for name, raw in records:
+        score = parse_score(raw)
+        out.append({"name": name, "score": score, "grade": grade(score)})
+    return out
+
+process([("Alice", "95"), ("Bob", "73.5"), ("Carol", "60")])
+```
+
+`Iterable[tuple[str, str]]` accepts any iterable of pairs — a list, a generator, even a CSV reader. `list[dict]` commits to a concrete return type. That's the "accept broadly, commit narrowly" rule from earlier in the chapter.
+
+**Step 3: inline tests in the three pytest shapes.** Without pytest installed in this notebook, plain `assert`s — bunched into a tiny test runner — produce a pass/fail report in the same style:
+
+```{python}
+def run(*tests):
+    failed = []
+    for fn in tests:
+        try:
+            fn()
+        except AssertionError as e:
+            failed.append((fn.__name__, str(e)))
+    return f"{len(tests) - len(failed)}/{len(tests)} passed", failed
+
+# Positive: simple direct check.
+def test_grade_positive():
+    assert grade(95) == "A"
+
+# Parametrize-style: one logic over a table of cases.
+def test_grade_cases():
+    cases = [(95, "A"), (85, "B"), (75, "C"), (65, "D"), (50, "F"),
+             (90, "A"), (80, "B"), (70, "C"), (60, "D")]
+    for score, expected in cases:
+        assert grade(score) == expected, f"grade({score}) → {grade(score)} ≠ {expected}"
+
+# Raises-style: assert the boundary exception fires.
+def test_grade_out_of_range():
+    for bad in (-1, 101, 200):
+        try:
+            grade(bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"grade({bad}) should have raised ValueError")
+
+run(test_grade_positive, test_grade_cases, test_grade_out_of_range)
+```
+
+Each function follows pytest's discovery convention (`test_` prefix). The parametrize-style test does what `@pytest.mark.parametrize` would do for us: one function, many inputs, an assertion message that names the failing input. The raises-style test mirrors `with pytest.raises(ValueError):`. Run with real `pytest` and these same functions would be picked up automatically.
+
+The build is the chapter in miniature: I/O at the edges (omitted here — `process` is the pure middle), type hints documenting every signature, exceptions over return codes, and tests that exercise the positive path, the cases table, and the boundary failure. About forty lines total, including the test runner.
+
 ## Exercises {#sec-real-exercises}
 
 1. **Refactor a script.** Take a script you have lying around. Apply the template: pull I/O to the edges, replace `print` debugging with `logging`, replace `sys.argv` with `argparse`, add `if __name__ == "__main__":`. Compare line count.
